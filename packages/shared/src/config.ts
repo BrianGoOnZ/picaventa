@@ -30,3 +30,12 @@ export interface RespuestaHealth {
 }
 
 export type ResultadoConexion = { ok: true } | { ok: false; error: string }
+
+// El admin solo escribe la contraseña del superusuario 'postgres' (la que ya
+// conoce de instalar Postgres) — la app genera y guarda su propia contraseña
+// dedicada para el rol 'picaventa', vía aprovisionarBaseDatos().
+export interface DatosConfigurarServidor {
+  host: string
+  puerto: number
+  passwordSuperusuario: string
+}

@@ -52,9 +52,9 @@ interface PropsFormulario {
 }
 
 function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React.JSX.Element {
-  const [postgresUrl, setPostgresUrl] = useState(
-    'postgresql://postgres:postgres@localhost:5432/picaventa'
-  )
+  const [host, setHost] = useState('localhost')
+  const [puerto, setPuerto] = useState('5432')
+  const [passwordSuperusuario, setPasswordSuperusuario] = useState('')
   const [ipLocal, setIpLocal] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
@@ -68,7 +68,11 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
     setEnviando(true)
     setError('')
 
-    const resultado = await window.picaventa.configurarServidor(postgresUrl)
+    const resultado = await window.picaventa.configurarServidor({
+      host,
+      puerto: Number(puerto),
+      passwordSuperusuario
+    })
 
     if (resultado.ok) {
       onConfigurado()
@@ -86,14 +90,41 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
           necesitar para configurar las demás cajas.
         </p>
       )}
+      <p className="mb-4 text-sm text-neutral-600">
+        PostgreSQL ya debe estar instalado en esta PC. Solo necesitamos la contraseña del
+        superusuario <strong>postgres</strong> que se configuró al instalarlo — la app crea y
+        administra su propio usuario dedicado automáticamente, no vuelvas a necesitar esta
+        contraseña después de este paso.
+      </p>
       <form onSubmit={manejarEnviar} className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <label className="flex-1 text-sm font-medium text-neutral-700">
+            Host
+            <input
+              type="text"
+              value={host}
+              onChange={(evento) => setHost(evento.target.value)}
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm"
+            />
+          </label>
+          <label className="w-28 text-sm font-medium text-neutral-700">
+            Puerto
+            <input
+              type="text"
+              value={puerto}
+              onChange={(evento) => setPuerto(evento.target.value)}
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm"
+            />
+          </label>
+        </div>
         <label className="text-sm font-medium text-neutral-700">
-          Cadena de conexión a PostgreSQL
+          Contraseña del superusuario &quot;postgres&quot;
           <input
-            type="text"
-            value={postgresUrl}
-            onChange={(evento) => setPostgresUrl(evento.target.value)}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm"
+            type="password"
+            required
+            value={passwordSuperusuario}
+            onChange={(evento) => setPasswordSuperusuario(evento.target.value)}
+            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
         {error && <p className="text-sm text-red-600">No se pudo conectar: {error}</p>}
@@ -110,7 +141,7 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
             disabled={enviando}
             className="flex-1 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {enviando ? 'Probando conexión...' : 'Probar conexión y guardar'}
+            {enviando ? 'Configurando base de datos...' : 'Configurar y continuar'}
           </button>
         </div>
       </form>

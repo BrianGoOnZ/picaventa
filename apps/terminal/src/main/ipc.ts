@@ -10,6 +10,7 @@ import {
   type CredencialesLogin,
   type DatosCategoria,
   type DatosCrearUsuario,
+  type DatosConfigurarServidor,
   type DatosCrearVenta,
   type DatosNegocio,
   type DatosNuevoUsuario,
@@ -33,7 +34,7 @@ import {
   type RespuestaEstadoAuth,
   type SesionUsuario
 } from '@picaventa/shared'
-import { probarConexionPostgres, aplicarMigraciones } from '@picaventa/db'
+import { probarConexionPostgres, aplicarMigraciones, aprovisionarBaseDatos } from '@picaventa/db'
 import { obtenerConfig, guardarConfig, borrarConfig } from './config-store'
 import { arrancarServidorEmbebido } from './servidor-embebido'
 import {
@@ -101,7 +102,24 @@ export function registrarManejadoresIpc(): void {
 
   ipcMain.handle(
     CANALES_IPC.configurarServidor,
-    async (_evento, postgresUrl: string): Promise<ResultadoConexion> => {
+    async (_evento, datos: DatosConfigurarServidor): Promise<ResultadoConexion> => {
+      const { host, puerto, passwordSuperusuario } = datos
+      // Conexión transitoria como superusuario, solo para crear/actualizar el
+      // rol y la base de datos dedicados — nunca se guarda esta contraseña.
+      const urlSuperusuario = `postgresql://postgres:${encodeURIComponent(
+        passwordSuperusuario
+      )}@${host}:${puerto}/postgres`
+
+      const passwordRol = randomBytes(24).toString('hex')
+
+      try {
+        await aprovisionarBaseDatos(urlSuperusuario, passwordRol)
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      }
+
+      const postgresUrl = `postgresql://picaventa:${passwordRol}@${host}:${puerto}/picaventa`
+
       const prueba = await probarConexionPostgres(postgresUrl)
       if (!prueba.ok) return prueba
 

@@ -4,6 +4,7 @@ import {
   type ConfigLocal,
   type CredencialesLogin,
   type DatosCategoria,
+  type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
   type DatosNegocio,
@@ -39,8 +40,8 @@ const api = {
   verificarServidor: (host: string, puerto: number): Promise<ResultadoConexion> =>
     ipcRenderer.invoke(CANALES_IPC.verificarServidor, host, puerto),
 
-  configurarServidor: (postgresUrl: string): Promise<ResultadoConexion> =>
-    ipcRenderer.invoke(CANALES_IPC.configurarServidor, postgresUrl),
+  configurarServidor: (datos: DatosConfigurarServidor): Promise<ResultadoConexion> =>
+    ipcRenderer.invoke(CANALES_IPC.configurarServidor, datos),
 
   configurarTerminal: (host: string, puerto: number): Promise<ResultadoConexion> =>
     ipcRenderer.invoke(CANALES_IPC.configurarTerminal, host, puerto),
