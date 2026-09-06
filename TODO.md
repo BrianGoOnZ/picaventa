@@ -15,3 +15,11 @@
   si el cliente lo pide más adelante. Riesgo conocido: algunos routers
   bloquean tráfico multicast, por lo que tendría que quedar como opción
   complementaria, no reemplazo de la IP manual.
+
+- **Revisar `sandbox: false` en el preload de `apps/terminal`.** Fue necesario
+  porque el preload importa `@picaventa/shared` (que depende de `zod`), y el
+  sandbox por defecto de Electron no permite requerir paquetes npm ahí.
+  `contextIsolation` sigue activo (protección más relevante), pero antes de
+  producción vale la pena evaluar si conviene separar del preload los tipos
+  que dependen de zod (dejando solo los canales IPC como strings planos) para
+  poder reactivar el sandbox.

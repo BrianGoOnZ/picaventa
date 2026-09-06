@@ -1,18 +1,13 @@
 import 'dotenv/config'
-import express from 'express'
-import { createServer } from 'node:http'
-import { Server } from 'socket.io'
+import { iniciarServidor } from './server.js'
 
-const app = express()
-const httpServer = createServer(app)
-new Server(httpServer)
+const postgresUrl = process.env.DATABASE_URL
+if (!postgresUrl) {
+  throw new Error('Falta la variable de entorno DATABASE_URL')
+}
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true })
-})
+const puerto = process.env.PORT ? Number(process.env.PORT) : undefined
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3000
-
-httpServer.listen(port, () => {
-  console.log(`[picaventa] servidor escuchando en el puerto ${port}`)
+iniciarServidor({ postgresUrl, puerto }).then((servidor) => {
+  console.log(`[picaventa] servidor escuchando en el puerto ${servidor.puerto}`)
 })
