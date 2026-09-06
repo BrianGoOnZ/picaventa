@@ -239,6 +239,8 @@ export const configuracionNegocio = pgTable('configuracion_negocio', {
   nombreNegocio: text('nombre_negocio').notNull(),
   direccionNegocio: text('direccion_negocio'),
   telefonoNegocio: text('telefono_negocio'),
-  logoUrl: text('logo_url'),
+  // Imagen del logo embebida directamente (base64), no una ruta de archivo:
+  // servidor y cajas no comparten sistema de archivos, solo Postgres.
+  logoDatos: text('logo_datos'),
   fechaActualizacion: timestamp('fecha_actualizacion').notNull().defaultNow()
 })

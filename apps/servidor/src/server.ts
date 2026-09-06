@@ -4,6 +4,7 @@ import { Server as ServidorSocket } from 'socket.io'
 import { PUERTO_SERVIDOR_DEFECTO } from '@picaventa/shared'
 import { crearConexion } from '@picaventa/db'
 import { crearRutasAuth } from './auth.js'
+import { crearRutasNegocio } from './negocio.js'
 
 export interface OpcionesServidor {
   postgresUrl: string
@@ -23,7 +24,9 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
   const app = express()
   app.locals.db = db
   app.locals.jwtSecret = opciones.jwtSecret
-  app.use(express.json())
+  // limit por encima del default (100kb): el logo del negocio viaja como
+  // base64 embebido en el body JSON
+  app.use(express.json({ limit: '2mb' }))
 
   const httpServer = createServer(app)
   const io = new ServidorSocket(httpServer)
@@ -33,6 +36,7 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
   })
 
   app.use('/auth', crearRutasAuth())
+  app.use('/negocio', crearRutasNegocio())
 
   await new Promise<void>((resolve) => httpServer.listen(puerto, resolve))
 

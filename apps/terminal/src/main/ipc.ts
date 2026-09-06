@@ -9,11 +9,14 @@ import {
   type ConfigLocal,
   type CredencialesLogin,
   type DatosCrearUsuario,
+  type DatosNegocio,
   type DatosNuevoUsuario,
   type ResultadoAuth,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
+  type ResultadoGuardarNegocio,
   type ResultadoListaUsuarios,
+  type ResultadoObtenerNegocio,
   type ResultadoReautenticacion,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -30,6 +33,7 @@ import {
   listarUsuarios,
   crearUsuario
 } from './auth-cliente'
+import { obtenerNegocio, guardarNegocio } from './negocio-cliente'
 import { obtenerSesion } from './sesion'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -172,6 +176,21 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return crearUsuario(config, datos)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.negocioObtener, (): Promise<ResultadoObtenerNegocio> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerNegocio(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.negocioGuardar,
+    (_evento, datos: DatosNegocio): Promise<ResultadoGuardarNegocio> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return guardarNegocio(config, datos)
     }
   )
 }

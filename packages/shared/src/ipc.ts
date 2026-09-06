@@ -14,5 +14,8 @@ export const CANALES_IPC = {
   authSesionActual: 'auth:sesion-actual',
   authReautenticar: 'auth:reautenticar',
   authListarUsuarios: 'auth:listar-usuarios',
-  authCrearUsuario: 'auth:crear-usuario'
+  authCrearUsuario: 'auth:crear-usuario',
+
+  negocioObtener: 'negocio:obtener',
+  negocioGuardar: 'negocio:guardar'
 } as const
