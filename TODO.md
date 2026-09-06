@@ -34,3 +34,13 @@
   Antes de generar el instalador real: copiar `migrations/` como recurso
   extra (`extraResources` en `electron-builder.yml`) y leer desde
   `process.resourcesPath` en producción en vez de la ruta relativa al monorepo.
+
+- **Impresión ESC/POS real y cajón de dinero (RNF-08) sin probar con hardware.**
+  El ticket (RF-07) se implementó con `window.print()` de Electron (dialogo
+  nativo de Windows) en vez de comandos ESC/POS crudos vía
+  `node-thermal-printer` — funciona con cualquier impresora que tenga driver
+  de Windows instalado, pero no se pudo validar contra una impresora térmica
+  física real. La apertura automática del cajón de dinero si necesita
+  comandos ESC/POS reales (no algo que el diálogo de impresión de Windows
+  pueda hacer) — implementar y probar con el hardware real del cliente antes
+  de entregar el sistema.
