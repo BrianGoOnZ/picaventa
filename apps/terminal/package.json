@@ -1,5 +1,30 @@
 {
   "name": "@picaventa/terminal",
   "private": true,
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "dist": "npm run build && electron-builder --win",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@picaventa/shared": "*",
+    "node-thermal-printer": "^4.6.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.2.0",
+    "electron-vite": "^5.0.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^7.3.6"
+  }
 }

@@ -3,6 +3,7 @@ dist/
 build/
 out/
 release/
+*.tsbuildinfo
 .env
 .env.local
 *.log
