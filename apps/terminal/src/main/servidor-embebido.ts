@@ -4,10 +4,11 @@ let servidorActivo: ServidorActivo | null = null
 
 export async function arrancarServidorEmbebido(
   postgresUrl: string,
+  jwtSecret: string,
   puerto?: number
 ): Promise<ServidorActivo> {
   if (servidorActivo) return servidorActivo
-  servidorActivo = await iniciarServidor({ postgresUrl, puerto })
+  servidorActivo = await iniciarServidor({ postgresUrl, jwtSecret, puerto })
   return servidorActivo
 }
 

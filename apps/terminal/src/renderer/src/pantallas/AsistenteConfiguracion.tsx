@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { PUERTO_SERVIDOR_DEFECTO, type ConfigLocal } from '@picaventa/shared'
+import { PUERTO_SERVIDOR_DEFECTO } from '@picaventa/shared'
 
 type Paso = 'elegir' | 'servidor' | 'terminal'
 
 interface Props {
-  onConfigurado: (config: ConfigLocal) => void
+  onConfigurado: () => void
 }
 
 export default function AsistenteConfiguracion({ onConfigurado }: Props): React.JSX.Element {
@@ -48,7 +48,7 @@ export default function AsistenteConfiguracion({ onConfigurado }: Props): React.
 
 interface PropsFormulario {
   onVolver: () => void
-  onConfigurado: (config: ConfigLocal) => void
+  onConfigurado: () => void
 }
 
 function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React.JSX.Element {
@@ -71,7 +71,7 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
     const resultado = await window.picaventa.configurarServidor(postgresUrl)
 
     if (resultado.ok) {
-      onConfigurado({ modo: 'servidor', postgresUrl, puerto: PUERTO_SERVIDOR_DEFECTO })
+      onConfigurado()
     } else {
       setEnviando(false)
       setError(resultado.error)
@@ -133,7 +133,7 @@ function FormularioTerminal({ onVolver, onConfigurado }: PropsFormulario): React
     const resultado = await window.picaventa.configurarTerminal(host, puertoNumerico)
 
     if (resultado.ok) {
-      onConfigurado({ modo: 'terminal', serverHost: host, serverPort: puertoNumerico })
+      onConfigurado()
     } else {
       setEnviando(false)
       setError(resultado.error)

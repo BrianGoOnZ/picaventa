@@ -88,6 +88,10 @@ export const usuarios = pgTable('usuarios', {
   nombreUsuario: text('nombre_usuario').notNull(),
   correoUsuario: text('correo_usuario').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  // PIN numérico corto (hash aparte), para desbloqueo por inactividad y
+  // confirmaciones rápidas de acciones críticas (RNF-04) sin retipear la
+  // contraseña completa cada vez.
+  pinHash: text('pin_hash').notNull(),
   rolUsuario: rolUsuarioEnum('rol_usuario').notNull(),
   fechaIngreso: date('fecha_ingreso').notNull().defaultNow()
 })

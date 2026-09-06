@@ -5,7 +5,9 @@ export const PUERTO_SERVIDOR_DEFECTO = 3000
 export const configServidorSchema = z.object({
   modo: z.literal('servidor'),
   postgresUrl: z.string().min(1),
-  puerto: z.number().int().positive().default(PUERTO_SERVIDOR_DEFECTO)
+  puerto: z.number().int().positive().default(PUERTO_SERVIDOR_DEFECTO),
+  // Generado una sola vez al configurar el servidor; firma los JWT de sesión.
+  jwtSecret: z.string().min(1)
 })
 
 export const configTerminalSchema = z.object({

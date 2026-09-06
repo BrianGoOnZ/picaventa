@@ -23,3 +23,14 @@
   producción vale la pena evaluar si conviene separar del preload los tipos
   que dependen de zod (dejando solo los canales IPC como strings planos) para
   poder reactivar el sandbox.
+
+- **Empaquetado: `packages/db/migrations` no sobrevive a electron-builder.**
+  `aplicarMigraciones` ahora recibe la carpeta de migraciones como parámetro
+  explícito porque `import.meta.url` deja de servir una vez empaquetado por
+  electron-vite (apunta al bundle, no al código fuente). En dev, `apps/terminal`
+  la resuelve con `app.getAppPath() + '../../packages/db/migrations'`, que
+  funciona porque el monorepo está completo en disco — pero un build final de
+  electron-builder no incluye `packages/db/migrations` en esa ruta relativa.
+  Antes de generar el instalador real: copiar `migrations/` como recurso
+  extra (`extraResources` en `electron-builder.yml`) y leer desde
+  `process.resourcesPath` en producción en vez de la ruta relativa al monorepo.

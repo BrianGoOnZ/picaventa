@@ -4,7 +4,7 @@ import { reintentar } from './lib/reintentos'
 import AsistenteConfiguracion from './pantallas/AsistenteConfiguracion'
 import PantallaConectando from './pantallas/PantallaConectando'
 import PantallaErrorConexion from './pantallas/PantallaErrorConexion'
-import PantallaListo from './pantallas/PantallaListo'
+import Sesion from './Sesion'
 
 type Estado = 'cargando' | 'asistente' | 'conectando' | 'error' | 'listo'
 
@@ -52,13 +52,15 @@ export default function App(): React.JSX.Element {
     }
   }, [conectar])
 
-  const manejarConfigurado = useCallback(
-    (configNueva: ConfigLocal) => {
-      setConfig(configNueva)
-      void conectar(configNueva)
-    },
-    [conectar]
-  )
+  const manejarConfigurado = useCallback(async () => {
+    // Se vuelve a pedir la config real guardada por el proceso main (en vez
+    // de reconstruirla aquí) porque incluye datos que el renderer nunca ve,
+    // como el jwtSecret generado del lado del servidor.
+    const configGuardada = await window.picaventa.obtenerConfig()
+    if (!configGuardada) return
+    setConfig(configGuardada)
+    await conectar(configGuardada)
+  }, [conectar])
 
   const manejarCambiarConfiguracion = useCallback(async () => {
     await window.picaventa.borrarConfig()
@@ -84,11 +86,7 @@ export default function App(): React.JSX.Element {
         />
       )
     case 'listo':
-      return config ? (
-        <PantallaListo config={config} />
-      ) : (
-        <PantallaConectando mensaje="Cargando..." />
-      )
+      return config ? <Sesion config={config} /> : <PantallaConectando mensaje="Cargando..." />
     case 'cargando':
     default:
       return <PantallaConectando mensaje="Cargando..." />

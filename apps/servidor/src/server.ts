@@ -3,9 +3,11 @@ import { createServer } from 'node:http'
 import { Server as ServidorSocket } from 'socket.io'
 import { PUERTO_SERVIDOR_DEFECTO } from '@picaventa/shared'
 import { crearConexion } from '@picaventa/db'
+import { crearRutasAuth } from './auth.js'
 
 export interface OpcionesServidor {
   postgresUrl: string
+  jwtSecret: string
   puerto?: number
 }
 
@@ -20,6 +22,8 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
 
   const app = express()
   app.locals.db = db
+  app.locals.jwtSecret = opciones.jwtSecret
+  app.use(express.json())
 
   const httpServer = createServer(app)
   const io = new ServidorSocket(httpServer)
@@ -28,14 +32,18 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
     res.json({ ok: true })
   })
 
+  app.use('/auth', crearRutasAuth())
+
   await new Promise<void>((resolve) => httpServer.listen(puerto, resolve))
 
   return {
     puerto,
-    cerrar: () =>
-      new Promise<void>((resolve, reject) => {
-        io.close()
+    cerrar: async () => {
+      io.close()
+      await new Promise<void>((resolve, reject) => {
         httpServer.close((err) => (err ? reject(err) : resolve()))
       })
+      await db.$client.end()
+    }
   }
 }

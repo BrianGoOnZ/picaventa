@@ -1,15 +1,41 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import { networkInterfaces } from 'node:os'
+import { randomBytes } from 'node:crypto'
+import { join } from 'node:path'
 import {
   CANALES_IPC,
   PUERTO_SERVIDOR_DEFECTO,
   probarConexionServidorRemoto,
   type ConfigLocal,
-  type ResultadoConexion
+  type CredencialesLogin,
+  type DatosNuevoUsuario,
+  type ResultadoAuth,
+  type ResultadoConexion,
+  type ResultadoReautenticacion,
+  type RespuestaEstadoAuth,
+  type SesionUsuario
 } from '@picaventa/shared'
 import { probarConexionPostgres, aplicarMigraciones } from '@picaventa/db'
 import { obtenerConfig, guardarConfig, borrarConfig } from './config-store'
 import { arrancarServidorEmbebido } from './servidor-embebido'
+import {
+  obtenerEstadoInicial,
+  crearPrimerUsuario,
+  login,
+  reautenticar,
+  cerrarSesionRemota
+} from './auth-cliente'
+import { obtenerSesion } from './sesion'
+
+// aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
+// vez empaquetado por electron-vite (import.meta.url apunta al bundle, no al
+// código fuente). app.getAppPath() sí sobrevive al empaquetado.
+// TODO: en un build empaquetado (electron-builder) esta ruta relativa al
+// monorepo ya no existirá — hay que copiar migrations/ como recurso del
+// instalador y leer desde process.resourcesPath en ese caso.
+function obtenerCarpetaMigraciones(): string {
+  return join(app.getAppPath(), '../../packages/db/migrations')
+}
 
 function obtenerIpLocal(): string | null {
   const interfaces = networkInterfaces()
@@ -42,14 +68,21 @@ export function registrarManejadoresIpc(): void {
       const prueba = await probarConexionPostgres(postgresUrl)
       if (!prueba.ok) return prueba
 
+      const jwtSecret = randomBytes(32).toString('hex')
+
       try {
-        await aplicarMigraciones(postgresUrl)
-        await arrancarServidorEmbebido(postgresUrl, PUERTO_SERVIDOR_DEFECTO)
+        await aplicarMigraciones(postgresUrl, obtenerCarpetaMigraciones())
+        await arrancarServidorEmbebido(postgresUrl, jwtSecret, PUERTO_SERVIDOR_DEFECTO)
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
 
-      guardarConfig({ modo: 'servidor', postgresUrl, puerto: PUERTO_SERVIDOR_DEFECTO })
+      guardarConfig({
+        modo: 'servidor',
+        postgresUrl,
+        jwtSecret,
+        puerto: PUERTO_SERVIDOR_DEFECTO
+      })
       return { ok: true }
     }
   )
@@ -77,11 +110,48 @@ export function registrarManejadoresIpc(): void {
       if (!prueba.ok) return prueba
 
       try {
-        await arrancarServidorEmbebido(config.postgresUrl, config.puerto)
+        await arrancarServidorEmbebido(config.postgresUrl, config.jwtSecret, config.puerto)
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
       return { ok: true }
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.authEstadoInicial, (): Promise<RespuestaEstadoAuth> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ hayUsuarios: false })
+    return obtenerEstadoInicial(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.authCrearPrimerUsuario,
+    (_evento, datos: DatosNuevoUsuario): Promise<ResultadoAuth> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearPrimerUsuario(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.authLogin,
+    (_evento, credenciales: CredencialesLogin): Promise<ResultadoAuth> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return login(config, credenciales)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.authCerrarSesion, (): void => cerrarSesionRemota())
+
+  ipcMain.handle(CANALES_IPC.authSesionActual, (): SesionUsuario | null => obtenerSesion())
+
+  ipcMain.handle(
+    CANALES_IPC.authReautenticar,
+    (_evento, pin: string): Promise<ResultadoReautenticacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return reautenticar(config, pin)
     }
   )
 }

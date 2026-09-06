@@ -5,5 +5,12 @@ export const CANALES_IPC = {
   verificarServidor: 'red:verificar-servidor',
   configurarServidor: 'config:configurar-servidor',
   configurarTerminal: 'config:configurar-terminal',
-  iniciarServidorDesdeConfig: 'servidor:iniciar-desde-config'
+  iniciarServidorDesdeConfig: 'servidor:iniciar-desde-config',
+
+  authEstadoInicial: 'auth:estado-inicial',
+  authCrearPrimerUsuario: 'auth:crear-primer-usuario',
+  authLogin: 'auth:login',
+  authCerrarSesion: 'auth:cerrar-sesion',
+  authSesionActual: 'auth:sesion-actual',
+  authReautenticar: 'auth:reautenticar'
 } as const
