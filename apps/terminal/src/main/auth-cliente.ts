@@ -1,9 +1,12 @@
 import type {
   ConfigLocal,
   CredencialesLogin,
+  DatosCrearUsuario,
   DatosNuevoUsuario,
   RespuestaEstadoAuth,
   ResultadoAuth,
+  ResultadoCrearUsuario,
+  ResultadoListaUsuarios,
   ResultadoLogin,
   ResultadoReautenticacion
 } from '@picaventa/shared'
@@ -67,4 +70,23 @@ export function reautenticar(config: ConfigLocal, pin: string): Promise<Resultad
 
 export function cerrarSesionRemota(): void {
   borrarSesion()
+}
+
+export function listarUsuarios(config: ConfigLocal): Promise<ResultadoListaUsuarios> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(`${obtenerUrlBase(config)}/auth/usuarios`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function crearUsuario(
+  config: ConfigLocal,
+  datos: DatosCrearUsuario
+): Promise<ResultadoCrearUsuario> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(`${obtenerUrlBase(config)}/auth/usuarios`, opcionesJson(datos, token))
 }

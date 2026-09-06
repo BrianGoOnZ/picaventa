@@ -22,9 +22,14 @@ export const datosReautenticacionSchema = z.object({
   pin: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
 })
 
+export const datosCrearUsuarioSchema = datosNuevoUsuarioSchema.extend({
+  rol: z.enum(rolUsuarioValores)
+})
+
 export type CredencialesLogin = z.infer<typeof credencialesLoginSchema>
 export type DatosNuevoUsuario = z.infer<typeof datosNuevoUsuarioSchema>
 export type DatosReautenticacion = z.infer<typeof datosReautenticacionSchema>
+export type DatosCrearUsuario = z.infer<typeof datosCrearUsuarioSchema>
 
 export interface RespuestaEstadoAuth {
   hayUsuarios: boolean
@@ -33,6 +38,13 @@ export interface RespuestaEstadoAuth {
 export interface SesionUsuario {
   idUsuario: number
   nombreUsuario: string
+  rolUsuario: RolUsuario
+}
+
+export interface UsuarioResumen {
+  idUsuario: number
+  nombreUsuario: string
+  correoUsuario: string
   rolUsuario: RolUsuario
 }
 
@@ -49,3 +61,11 @@ export type ResultadoLogin =
 export type ResultadoAuth = { ok: true; sesion: SesionUsuario } | { ok: false; error: string }
 
 export type ResultadoReautenticacion = { ok: true } | { ok: false; error: string }
+
+export type ResultadoListaUsuarios =
+  | { ok: true; usuarios: UsuarioResumen[] }
+  | { ok: false; error: string }
+
+export type ResultadoCrearUsuario =
+  | { ok: true; usuario: UsuarioResumen }
+  | { ok: false; error: string }

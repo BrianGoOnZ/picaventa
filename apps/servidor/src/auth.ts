@@ -5,6 +5,7 @@ import { eq, count } from 'drizzle-orm'
 import { usuarios, type crearConexion } from '@picaventa/db'
 import {
   credencialesLoginSchema,
+  datosCrearUsuarioSchema,
   datosNuevoUsuarioSchema,
   datosReautenticacionSchema,
   HORAS_EXPIRACION_JWT,
@@ -48,6 +49,15 @@ export const verificarJwt: RequestHandler = (req, res, next) => {
   } catch {
     res.status(401).json({ ok: false, error: 'Sesión inválida o expirada' })
   }
+}
+
+export const requiereAdministrador: RequestHandler = (req, res, next) => {
+  const payload = (req as RequestAutenticado).usuarioToken
+  if (payload?.rolUsuario !== 'administrador') {
+    res.status(403).json({ ok: false, error: 'Se requiere rol de administrador' })
+    return
+  }
+  next()
 }
 
 export function crearRutasAuth(): Router {
@@ -146,6 +156,72 @@ export function crearRutasAuth(): Router {
     }
 
     res.json({ ok: true })
+  })
+
+  router.get('/usuarios', verificarJwt, requiereAdministrador, async (req, res) => {
+    const db = obtenerDb(req)
+    const filas = await db
+      .select({
+        idUsuario: usuarios.idUsuario,
+        nombreUsuario: usuarios.nombreUsuario,
+        correoUsuario: usuarios.correoUsuario,
+        rolUsuario: usuarios.rolUsuario
+      })
+      .from(usuarios)
+    res.json({ ok: true, usuarios: filas })
+  })
+
+  router.post('/usuarios', verificarJwt, requiereAdministrador, async (req, res) => {
+    const datos = datosCrearUsuarioSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const db = obtenerDb(req)
+    const passwordHash = await bcrypt.hash(datos.data.password, RONDAS_SAL)
+    const pinHash = await bcrypt.hash(datos.data.pin, RONDAS_SAL)
+
+    let usuario
+    try {
+      ;[usuario] = await db
+        .insert(usuarios)
+        .values({
+          nombreUsuario: datos.data.nombre,
+          correoUsuario: datos.data.correo,
+          passwordHash,
+          pinHash,
+          rolUsuario: datos.data.rol
+        })
+        .returning()
+    } catch (err) {
+      // drizzle-orm envuelve el error real del driver en DrizzleQueryError,
+      // dejando el código SQLSTATE original (ej. 23505 = unique_violation)
+      // en .cause, no en el objeto de nivel superior.
+      const errorTipado = err as { code?: string; cause?: { code?: string } }
+      const codigo = errorTipado.cause?.code ?? errorTipado.code
+      if (codigo === '23505') {
+        res.status(409).json({ ok: false, error: 'Ya existe un usuario con ese correo' })
+      } else {
+        res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) })
+      }
+      return
+    }
+
+    if (!usuario) {
+      res.status(500).json({ ok: false, error: 'No se pudo crear el usuario' })
+      return
+    }
+
+    res.status(201).json({
+      ok: true,
+      usuario: {
+        idUsuario: usuario.idUsuario,
+        nombreUsuario: usuario.nombreUsuario,
+        correoUsuario: usuario.correoUsuario,
+        rolUsuario: usuario.rolUsuario
+      }
+    })
   })
 
   return router

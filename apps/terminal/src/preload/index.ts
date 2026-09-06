@@ -3,9 +3,12 @@ import {
   CANALES_IPC,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosCrearUsuario,
   type DatosNuevoUsuario,
   type ResultadoAuth,
   type ResultadoConexion,
+  type ResultadoCrearUsuario,
+  type ResultadoListaUsuarios,
   type ResultadoReautenticacion,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -45,7 +48,13 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.authSesionActual),
 
   reautenticar: (pin: string): Promise<ResultadoReautenticacion> =>
-    ipcRenderer.invoke(CANALES_IPC.authReautenticar, pin)
+    ipcRenderer.invoke(CANALES_IPC.authReautenticar, pin),
+
+  listarUsuarios: (): Promise<ResultadoListaUsuarios> =>
+    ipcRenderer.invoke(CANALES_IPC.authListarUsuarios),
+
+  crearUsuario: (datos: DatosCrearUsuario): Promise<ResultadoCrearUsuario> =>
+    ipcRenderer.invoke(CANALES_IPC.authCrearUsuario, datos)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)

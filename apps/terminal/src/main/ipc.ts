@@ -8,9 +8,12 @@ import {
   probarConexionServidorRemoto,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosCrearUsuario,
   type DatosNuevoUsuario,
   type ResultadoAuth,
   type ResultadoConexion,
+  type ResultadoCrearUsuario,
+  type ResultadoListaUsuarios,
   type ResultadoReautenticacion,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -23,7 +26,9 @@ import {
   crearPrimerUsuario,
   login,
   reautenticar,
-  cerrarSesionRemota
+  cerrarSesionRemota,
+  listarUsuarios,
+  crearUsuario
 } from './auth-cliente'
 import { obtenerSesion } from './sesion'
 
@@ -152,6 +157,21 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return reautenticar(config, pin)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.authListarUsuarios, (): Promise<ResultadoListaUsuarios> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarUsuarios(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.authCrearUsuario,
+    (_evento, datos: DatosCrearUsuario): Promise<ResultadoCrearUsuario> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearUsuario(config, datos)
     }
   )
 }
