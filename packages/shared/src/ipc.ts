@@ -27,5 +27,10 @@ export const CANALES_IPC = {
   catalogoListarProductos: 'catalogo:listar-productos',
   catalogoCrearProducto: 'catalogo:crear-producto',
   catalogoEditarProducto: 'catalogo:editar-producto',
-  catalogoEliminarProducto: 'catalogo:eliminar-producto'
+  catalogoEliminarProducto: 'catalogo:eliminar-producto',
+
+  ventasCrear: 'ventas:crear',
+  ventasListar: 'ventas:listar',
+  ventasObtener: 'ventas:obtener',
+  ventasCancelarPausada: 'ventas:cancelar-pausada'
 } as const

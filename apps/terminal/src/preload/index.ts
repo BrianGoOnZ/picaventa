@@ -5,6 +5,7 @@ import {
   type CredencialesLogin,
   type DatosCategoria,
   type DatosCrearUsuario,
+  type DatosCrearVenta,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
@@ -13,14 +14,17 @@ import {
   type ResultadoCategoria,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
+  type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
   type ResultadoListaCategorias,
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
+  type ResultadoListaVentas,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
+  type ResultadoVentaDetallada,
   type RespuestaEstadoAuth,
   type SesionUsuario
 } from '@picaventa/shared'
@@ -95,7 +99,19 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.catalogoEditarProducto, id, datos),
 
   eliminarProducto: (id: number): Promise<ResultadoOperacion> =>
-    ipcRenderer.invoke(CANALES_IPC.catalogoEliminarProducto, id)
+    ipcRenderer.invoke(CANALES_IPC.catalogoEliminarProducto, id),
+
+  crearVenta: (datos: DatosCrearVenta): Promise<ResultadoCrearVenta> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasCrear, datos),
+
+  listarVentas: (estado?: string): Promise<ResultadoListaVentas> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasListar, estado),
+
+  obtenerVenta: (id: number): Promise<ResultadoVentaDetallada> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasObtener, id),
+
+  cancelarVentaPausada: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasCancelarPausada, id)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)

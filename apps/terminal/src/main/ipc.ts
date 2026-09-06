@@ -10,6 +10,7 @@ import {
   type CredencialesLogin,
   type DatosCategoria,
   type DatosCrearUsuario,
+  type DatosCrearVenta,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
@@ -18,14 +19,17 @@ import {
   type ResultadoCategoria,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
+  type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
   type ResultadoListaCategorias,
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
+  type ResultadoListaVentas,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
+  type ResultadoVentaDetallada,
   type RespuestaEstadoAuth,
   type SesionUsuario
 } from '@picaventa/shared'
@@ -52,6 +56,12 @@ import {
   editarProducto,
   eliminarProducto
 } from './catalogo-cliente'
+import {
+  crearVenta,
+  listarVentas,
+  obtenerVenta,
+  cancelarVentaPausada
+} from './ventas-cliente'
 import { obtenerSesion } from './sesion'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -278,6 +288,42 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return eliminarProducto(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.ventasCrear,
+    (_evento, datos: DatosCrearVenta): Promise<ResultadoCrearVenta> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearVenta(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.ventasListar,
+    (_evento, estado?: string): Promise<ResultadoListaVentas> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return listarVentas(config, estado)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.ventasObtener,
+    (_evento, id: number): Promise<ResultadoVentaDetallada> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerVenta(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.ventasCancelarPausada,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return cancelarVentaPausada(config, id)
     }
   )
 }

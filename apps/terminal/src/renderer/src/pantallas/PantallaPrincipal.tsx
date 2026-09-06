@@ -3,6 +3,7 @@ import type { ConfigLocal, SesionUsuario } from '@picaventa/shared'
 import PantallaGestionUsuarios from './PantallaGestionUsuarios'
 import PantallaConfiguracionNegocio from './PantallaConfiguracionNegocio'
 import PantallaCatalogo from './PantallaCatalogo'
+import PantallaVenta from './PantallaVenta'
 
 interface Props {
   config: ConfigLocal
@@ -15,7 +16,9 @@ export default function PantallaPrincipal({
   sesion,
   onCerrarSesion
 }: Props): React.JSX.Element {
-  const [vista, setVista] = useState<'inicio' | 'usuarios' | 'negocio' | 'catalogo'>('inicio')
+  const [vista, setVista] = useState<'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta'>(
+    'inicio'
+  )
   const [productosStockBajo, setProductosStockBajo] = useState(0)
 
   useEffect(() => {
@@ -36,6 +39,28 @@ export default function PantallaPrincipal({
 
   if (vista === 'catalogo') {
     return <PantallaCatalogo onVolver={() => setVista('inicio')} />
+  }
+
+  if (vista === 'venta') {
+    return (
+      <div className="flex h-screen flex-col">
+        <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-2">
+          <span className="text-sm text-neutral-600">
+            {sesion.nombreUsuario} ({sesion.rolUsuario})
+          </span>
+          <button
+            type="button"
+            onClick={() => setVista('inicio')}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+          >
+            Salir de venta
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <PantallaVenta />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -69,6 +94,13 @@ export default function PantallaPrincipal({
       )}
 
       <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setVista('venta')}
+          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+        >
+          Punto de venta
+        </button>
         {sesion.rolUsuario === 'administrador' && (
           <>
             <button
