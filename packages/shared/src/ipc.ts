@@ -17,5 +17,15 @@ export const CANALES_IPC = {
   authCrearUsuario: 'auth:crear-usuario',
 
   negocioObtener: 'negocio:obtener',
-  negocioGuardar: 'negocio:guardar'
+  negocioGuardar: 'negocio:guardar',
+
+  catalogoListarCategorias: 'catalogo:listar-categorias',
+  catalogoCrearCategoria: 'catalogo:crear-categoria',
+  catalogoEditarCategoria: 'catalogo:editar-categoria',
+  catalogoEliminarCategoria: 'catalogo:eliminar-categoria',
+
+  catalogoListarProductos: 'catalogo:listar-productos',
+  catalogoCrearProducto: 'catalogo:crear-producto',
+  catalogoEditarProducto: 'catalogo:editar-producto',
+  catalogoEliminarProducto: 'catalogo:eliminar-producto'
 } as const

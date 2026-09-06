@@ -8,15 +8,23 @@ import {
   probarConexionServidorRemoto,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosCategoria,
   type DatosCrearUsuario,
   type DatosNegocio,
   type DatosNuevoUsuario,
+  type DatosProducto,
+  type FiltrosProductos,
   type ResultadoAuth,
+  type ResultadoCategoria,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
   type ResultadoGuardarNegocio,
+  type ResultadoListaCategorias,
+  type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoObtenerNegocio,
+  type ResultadoOperacion,
+  type ResultadoProducto,
   type ResultadoReautenticacion,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -34,6 +42,16 @@ import {
   crearUsuario
 } from './auth-cliente'
 import { obtenerNegocio, guardarNegocio } from './negocio-cliente'
+import {
+  listarCategorias,
+  crearCategoria,
+  editarCategoria,
+  eliminarCategoria,
+  listarProductos,
+  crearProducto,
+  editarProducto,
+  eliminarProducto
+} from './catalogo-cliente'
 import { obtenerSesion } from './sesion'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -191,6 +209,75 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return guardarNegocio(config, datos)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.catalogoListarCategorias, (): Promise<ResultadoListaCategorias> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarCategorias(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoCrearCategoria,
+    (_evento, datos: DatosCategoria): Promise<ResultadoCategoria> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearCategoria(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoEditarCategoria,
+    (_evento, id: number, datos: DatosCategoria): Promise<ResultadoCategoria> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return editarCategoria(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoEliminarCategoria,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return eliminarCategoria(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoListarProductos,
+    (_evento, filtros: FiltrosProductos): Promise<ResultadoListaProductos> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return listarProductos(config, filtros)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoCrearProducto,
+    (_evento, datos: DatosProducto): Promise<ResultadoProducto> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearProducto(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoEditarProducto,
+    (_evento, id: number, datos: DatosProducto): Promise<ResultadoProducto> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return editarProducto(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoEliminarProducto,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return eliminarProducto(config, id)
     }
   )
 }

@@ -5,6 +5,7 @@ import { PUERTO_SERVIDOR_DEFECTO } from '@picaventa/shared'
 import { crearConexion } from '@picaventa/db'
 import { crearRutasAuth } from './auth.js'
 import { crearRutasNegocio } from './negocio.js'
+import { crearRutasCatalogo } from './catalogo.js'
 
 export interface OpcionesServidor {
   postgresUrl: string
@@ -37,6 +38,7 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
 
   app.use('/auth', crearRutasAuth())
   app.use('/negocio', crearRutasNegocio())
+  app.use(crearRutasCatalogo())
 
   await new Promise<void>((resolve) => httpServer.listen(puerto, resolve))
 

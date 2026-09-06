@@ -3,15 +3,23 @@ import {
   CANALES_IPC,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosCategoria,
   type DatosCrearUsuario,
   type DatosNegocio,
   type DatosNuevoUsuario,
+  type DatosProducto,
+  type FiltrosProductos,
   type ResultadoAuth,
+  type ResultadoCategoria,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
   type ResultadoGuardarNegocio,
+  type ResultadoListaCategorias,
+  type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoObtenerNegocio,
+  type ResultadoOperacion,
+  type ResultadoProducto,
   type ResultadoReautenticacion,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -63,7 +71,31 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.negocioObtener),
 
   guardarNegocio: (datos: DatosNegocio): Promise<ResultadoGuardarNegocio> =>
-    ipcRenderer.invoke(CANALES_IPC.negocioGuardar, datos)
+    ipcRenderer.invoke(CANALES_IPC.negocioGuardar, datos),
+
+  listarCategorias: (): Promise<ResultadoListaCategorias> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoListarCategorias),
+
+  crearCategoria: (datos: DatosCategoria): Promise<ResultadoCategoria> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoCrearCategoria, datos),
+
+  editarCategoria: (id: number, datos: DatosCategoria): Promise<ResultadoCategoria> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoEditarCategoria, id, datos),
+
+  eliminarCategoria: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoEliminarCategoria, id),
+
+  listarProductos: (filtros?: FiltrosProductos): Promise<ResultadoListaProductos> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoListarProductos, filtros ?? {}),
+
+  crearProducto: (datos: DatosProducto): Promise<ResultadoProducto> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoCrearProducto, datos),
+
+  editarProducto: (id: number, datos: DatosProducto): Promise<ResultadoProducto> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoEditarProducto, id, datos),
+
+  eliminarProducto: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoEliminarProducto, id)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)
