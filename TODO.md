@@ -35,12 +35,25 @@
   extra (`extraResources` en `electron-builder.yml`) y leer desde
   `process.resourcesPath` en producción en vez de la ruta relativa al monorepo.
 
-- **Impresión ESC/POS real y cajón de dinero (RNF-08) sin probar con hardware.**
-  El ticket (RF-07) se implementó con `window.print()` de Electron (dialogo
-  nativo de Windows) en vez de comandos ESC/POS crudos vía
-  `node-thermal-printer` — funciona con cualquier impresora que tenga driver
-  de Windows instalado, pero no se pudo validar contra una impresora térmica
-  física real. La apertura automática del cajón de dinero si necesita
-  comandos ESC/POS reales (no algo que el diálogo de impresión de Windows
-  pueda hacer) — implementar y probar con el hardware real del cliente antes
-  de entregar el sistema.
+- **🔴 BLOQUEANTE PARA PRODUCCIÓN — impresión de tickets es un placeholder
+  temporal, NO la implementación final.** `03-Arquitectura-general.md`
+  definió `node-thermal-printer`/`escpos` (comandos ESC/POS reales) como la
+  solución — eso sigue siendo lo que hay que construir. Lo que existe hoy
+  (`window.print()`, el diálogo nativo de impresión de Windows) es un
+  sustituto que permite demostrar y probar el flujo completo de venta sin
+  tener la impresora térmica física en este entorno de desarrollo, pero
+  **no es una alternativa aceptable para la entrega real**:
+  - No abre el cajón de dinero automáticamente (RNF-08) — eso requiere
+    comandos ESC/POS reales enviados directo a la impresora, algo que un
+    diálogo de impresión de Windows no puede hacer.
+  - No corta el papel automáticamente ni usa el formato angosto real de
+    una impresora térmica (58/80mm) — depende del driver genérico de
+    Windows que tenga instalado esa impresora, si es que lo tiene.
+  - Un ticket real de tienda no debería mostrar un diálogo de impresión
+    de Windows en cada venta — debe imprimirse directo, sin intervención.
+  - **Antes de instalar el sistema en la tienda real**: conseguir acceso a
+    la impresora térmica física del cliente, reemplazar `window.print()`
+    por comandos ESC/POS vía `node-thermal-printer` (ya es dependencia
+    instalada, sin usar todavía), y probar apertura de cajón de dinero.
+    No marcar este pendiente como resuelto hasta probarlo contra hardware
+    real.
