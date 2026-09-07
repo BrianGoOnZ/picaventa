@@ -55,10 +55,45 @@ export interface ReporteVentas {
   desde: string
   hasta: string
   totalVendido: number
+  numeroVentas: number
   porMetodo: DesgloseMetodoPago
   productos: ProductoReporte[]
 }
 
 export type ResultadoReporteVentas =
   | { ok: true; reporte: ReporteVentas }
+  | { ok: false; error: string }
+
+export interface VentaPorDia {
+  fecha: string
+  total: number
+}
+
+export type ResultadoVentasPorDia =
+  | { ok: true; dias: VentaPorDia[] }
+  | { ok: false; error: string }
+
+export interface VentaPorCajero {
+  idUsuario: number
+  nombreUsuario: string
+  total: number
+}
+
+export type ResultadoVentasPorCajero =
+  | { ok: true; cajeros: VentaPorCajero[] }
+  | { ok: false; error: string }
+
+export interface CorteCajaResumen {
+  idCorte: number
+  fechaCorte: string
+  nombreUsuario: string
+  fondoInicial: number
+  totalVendido: number
+  totalEsperado: number
+  totalContadoSistema: number
+  diferencia: number
+}
+
+export type ResultadoListaCortes =
+  | { ok: true; cortes: CorteCajaResumen[] }
   | { ok: false; error: string }

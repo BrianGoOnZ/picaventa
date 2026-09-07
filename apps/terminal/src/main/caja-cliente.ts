@@ -2,8 +2,11 @@ import type {
   ConfigLocal,
   DatosMovimientoCaja,
   ResultadoCorteCaja,
+  ResultadoListaCortes,
   ResultadoMovimientoCaja,
-  ResultadoReporteVentas
+  ResultadoReporteVentas,
+  ResultadoVentasPorCajero,
+  ResultadoVentasPorDia
 } from '@picaventa/shared'
 import {
   obtenerUrlBase,
@@ -63,4 +66,39 @@ export function obtenerReporteVentas(
 
 export function establecerFondoInicialTurno(monto: number): void {
   guardarFondoInicial(monto)
+}
+
+export function obtenerVentasPorDia(config: ConfigLocal, dias: number): Promise<ResultadoVentasPorDia> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/reportes/ventas-por-dia?dias=${dias}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function obtenerVentasPorCajero(
+  config: ConfigLocal,
+  desde?: string,
+  hasta?: string
+): Promise<ResultadoVentasPorCajero> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  const parametros = new URLSearchParams()
+  if (desde) parametros.set('desde', desde)
+  if (hasta) parametros.set('hasta', hasta)
+  const query = parametros.toString()
+
+  return solicitarJson(
+    `${obtenerUrlBase(config)}/caja/reportes/ventas-por-cajero${query ? `?${query}` : ''}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+}
+
+export function listarCortes(config: ConfigLocal, limite: number): Promise<ResultadoListaCortes> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/cortes?limite=${limite}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
 }

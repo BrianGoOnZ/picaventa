@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express'
 import bcrypt from 'bcrypt'
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, gte, lte, desc } from 'drizzle-orm'
 import {
   venta,
   contiene,
@@ -127,6 +127,9 @@ export function crearRutasCaja(): Router {
       .values({
         fondoInicial: datos.data.fondoInicial.toString(),
         totalContadoSistema: datos.data.totalContadoSistema.toString(),
+        totalVendido: totalVendido.toString(),
+        totalEsperado: totalEsperado.toString(),
+        diferencia: diferencia.toString(),
         idUsuario: payload.idUsuario
       })
       .returning()
@@ -219,9 +222,116 @@ export function crearRutasCaja(): Router {
         desde: desde.toISOString(),
         hasta: hasta.toISOString(),
         totalVendido,
+        numeroVentas: ventasPeriodo.length,
         porMetodo,
         productos
       }
+    })
+  })
+
+  router.get('/reportes/ventas-por-dia', verificarJwt, requiereAdministrador, async (req, res) => {
+    const dias = Math.min(Math.max(Number(req.query.dias) || 7, 1), 90)
+    const hoy = new Date()
+    hoy.setHours(23, 59, 59, 999)
+    const desde = new Date(hoy)
+    desde.setDate(desde.getDate() - (dias - 1))
+    desde.setHours(0, 0, 0, 0)
+
+    const db = obtenerDb(req)
+    const ventasPeriodo = await db
+      .select()
+      .from(venta)
+      .where(and(gte(venta.fechaVenta, desde), lte(venta.fechaVenta, hoy), eq(venta.estadoVenta, 'activa')))
+
+    // Se agrupa por fecha LOCAL (no UTC): el rango de arriba también está
+    // en hora local, y con un huso como UTC-6 una venta de la tarde/noche ya
+    // cae en el día UTC siguiente — agrupar por UTC la perdía silenciosamente
+    // del día al que en realidad pertenece para quien vende.
+    function claveFechaLocal(fecha: Date): string {
+      const anio = fecha.getFullYear()
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+      const dia = String(fecha.getDate()).padStart(2, '0')
+      return `${anio}-${mes}-${dia}`
+    }
+
+    const totalesPorFecha = new Map<string, number>()
+    for (const v of ventasPeriodo) {
+      const clave = claveFechaLocal(v.fechaVenta)
+      totalesPorFecha.set(clave, (totalesPorFecha.get(clave) ?? 0) + Number(v.total))
+    }
+
+    const diasResultado: { fecha: string; total: number }[] = []
+    for (let i = 0; i < dias; i++) {
+      const fecha = new Date(desde)
+      fecha.setDate(fecha.getDate() + i)
+      const clave = claveFechaLocal(fecha)
+      diasResultado.push({ fecha: clave, total: totalesPorFecha.get(clave) ?? 0 })
+    }
+
+    res.json({ ok: true, dias: diasResultado })
+  })
+
+  router.get('/reportes/ventas-por-cajero', verificarJwt, requiereAdministrador, async (req, res) => {
+    const desde = req.query.desde ? new Date(String(req.query.desde)) : new Date(0)
+    const hasta = req.query.hasta ? new Date(String(req.query.hasta)) : new Date()
+
+    const db = obtenerDb(req)
+    const filas = await db
+      .select({
+        idUsuario: venta.idUsuario,
+        nombreUsuario: usuarios.nombreUsuario,
+        total: venta.total
+      })
+      .from(venta)
+      .innerJoin(usuarios, eq(venta.idUsuario, usuarios.idUsuario))
+      .where(and(gte(venta.fechaVenta, desde), lte(venta.fechaVenta, hasta), eq(venta.estadoVenta, 'activa')))
+
+    const porCajero = new Map<number, { nombreUsuario: string; total: number }>()
+    for (const f of filas) {
+      const acumulado = porCajero.get(f.idUsuario) ?? { nombreUsuario: f.nombreUsuario, total: 0 }
+      acumulado.total += Number(f.total)
+      porCajero.set(f.idUsuario, acumulado)
+    }
+
+    const cajeros = [...porCajero.entries()]
+      .map(([idUsuario, datos]) => ({ idUsuario, nombreUsuario: datos.nombreUsuario, total: datos.total }))
+      .sort((a, b) => b.total - a.total)
+
+    res.json({ ok: true, cajeros })
+  })
+
+  router.get('/cortes', verificarJwt, requiereAdministrador, async (req, res) => {
+    const limite = Math.min(Math.max(Number(req.query.limite) || 10, 1), 100)
+
+    const db = obtenerDb(req)
+    const filas = await db
+      .select({
+        idCorte: corteCaja.idCorte,
+        fechaCorte: corteCaja.fechaCorte,
+        nombreUsuario: usuarios.nombreUsuario,
+        fondoInicial: corteCaja.fondoInicial,
+        totalVendido: corteCaja.totalVendido,
+        totalEsperado: corteCaja.totalEsperado,
+        totalContadoSistema: corteCaja.totalContadoSistema,
+        diferencia: corteCaja.diferencia
+      })
+      .from(corteCaja)
+      .innerJoin(usuarios, eq(corteCaja.idUsuario, usuarios.idUsuario))
+      .orderBy(desc(corteCaja.fechaCorte))
+      .limit(limite)
+
+    res.json({
+      ok: true,
+      cortes: filas.map((f) => ({
+        idCorte: f.idCorte,
+        fechaCorte: f.fechaCorte.toISOString(),
+        nombreUsuario: f.nombreUsuario,
+        fondoInicial: Number(f.fondoInicial),
+        totalVendido: Number(f.totalVendido),
+        totalEsperado: Number(f.totalEsperado),
+        totalContadoSistema: Number(f.totalContadoSistema),
+        diferencia: Number(f.diferencia)
+      }))
     })
   })
 

@@ -33,12 +33,15 @@ import {
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
   type ResultadoMovimientoCaja,
+  type ResultadoListaCortes,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
   type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
+  type ResultadoVentasPorCajero,
+  type ResultadoVentasPorDia,
   type RespuestaEstadoAuth,
   type SesionUsuario
 } from '@picaventa/shared'
@@ -82,7 +85,10 @@ import {
   registrarMovimientoCaja,
   cerrarTurno,
   obtenerReporteVentas,
-  establecerFondoInicialTurno
+  establecerFondoInicialTurno,
+  obtenerVentasPorDia,
+  obtenerVentasPorCajero,
+  listarCortes
 } from './caja-cliente'
 import { obtenerSesion } from './sesion'
 
@@ -436,6 +442,33 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return obtenerReporteVentas(config, desde, hasta)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.cajaVentasPorDia,
+    (_evento, dias: number): Promise<ResultadoVentasPorDia> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerVentasPorDia(config, dias)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.cajaVentasPorCajero,
+    (_evento, desde?: string, hasta?: string): Promise<ResultadoVentasPorCajero> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerVentasPorCajero(config, desde, hasta)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.cajaListarCortes,
+    (_evento, limite: number): Promise<ResultadoListaCortes> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return listarCortes(config, limite)
     }
   )
 }

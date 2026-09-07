@@ -196,10 +196,15 @@ export const corteCaja = pgTable('corte_caja', {
   idCorte: serial('id_corte').primaryKey(),
   fechaCorte: timestamp('fecha_corte', { withTimezone: true }).notNull().defaultNow(),
   fondoInicial: dinero('fondo_inicial').notNull(),
-  // total_esperado y diferencia (de 02-DER.md) no se guardan: se calculan a
-  // partir de fondo_inicial + ventas del turno en el módulo de corte de caja,
-  // siguiendo la simplificación de 04-Base-de-datos-V1.md.
   totalContadoSistema: dinero('total_contado_sistema').notNull(),
+  // total_esperado y diferencia sí se guardan (a diferencia de la nota
+  // original en 04-Base-de-datos-V1.md que proponía calcularlos solo al
+  // momento del corte): el inicio del turno se deriva del iat del JWT, que
+  // no persiste en ningún lado, así que sin estas columnas un corte pasado
+  // no se puede volver a mostrar en un historial (dashboard, auditoría).
+  totalVendido: dinero('total_vendido').notNull(),
+  totalEsperado: dinero('total_esperado').notNull(),
+  diferencia: dinero('diferencia').notNull(),
   idUsuario: integer('id_usuario')
     .notNull()
     .references(() => usuarios.idUsuario)

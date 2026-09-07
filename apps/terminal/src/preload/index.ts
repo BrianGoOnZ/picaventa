@@ -27,6 +27,7 @@ import {
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
+  type ResultadoListaCortes,
   type ResultadoMovimientoCaja,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
@@ -34,6 +35,8 @@ import {
   type ResultadoReautenticacion,
   type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
+  type ResultadoVentasPorCajero,
+  type ResultadoVentasPorDia,
   type RespuestaEstadoAuth,
   type SesionUsuario
 } from '@picaventa/shared'
@@ -147,7 +150,16 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.cajaCerrarTurno, totalContadoSistema),
 
   obtenerReporteVentas: (desde?: string, hasta?: string): Promise<ResultadoReporteVentas> =>
-    ipcRenderer.invoke(CANALES_IPC.cajaReporteVentas, desde, hasta)
+    ipcRenderer.invoke(CANALES_IPC.cajaReporteVentas, desde, hasta),
+
+  obtenerVentasPorDia: (dias: number): Promise<ResultadoVentasPorDia> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaVentasPorDia, dias),
+
+  obtenerVentasPorCajero: (desde?: string, hasta?: string): Promise<ResultadoVentasPorCajero> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaVentasPorCajero, desde, hasta),
+
+  listarCortes: (limite: number): Promise<ResultadoListaCortes> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)

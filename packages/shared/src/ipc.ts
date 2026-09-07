@@ -43,5 +43,8 @@ export const CANALES_IPC = {
   cajaEstablecerFondoInicial: 'caja:establecer-fondo-inicial',
   cajaRegistrarMovimiento: 'caja:registrar-movimiento',
   cajaCerrarTurno: 'caja:cerrar-turno',
-  cajaReporteVentas: 'caja:reporte-ventas'
+  cajaReporteVentas: 'caja:reporte-ventas',
+  cajaVentasPorDia: 'caja:ventas-por-dia',
+  cajaVentasPorCajero: 'caja:ventas-por-cajero',
+  cajaListarCortes: 'caja:listar-cortes'
 } as const

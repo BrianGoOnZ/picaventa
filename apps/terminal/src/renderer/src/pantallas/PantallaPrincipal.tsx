@@ -7,6 +7,7 @@ import PantallaCatalogo from './PantallaCatalogo'
 import PantallaVenta from './PantallaVenta'
 import PantallaClientes from './PantallaClientes'
 import PantallaCaja from './PantallaCaja'
+import PantallaDashboardAdmin from './PantallaDashboardAdmin'
 
 export type Vista = 'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes' | 'caja'
 
@@ -23,7 +24,6 @@ export default function PantallaPrincipal({
 }: Props): React.JSX.Element {
   const [vista, setVista] = useState<Vista>('inicio')
   const [productosStockBajo, setProductosStockBajo] = useState(0)
-  const [clientesPendientes, setClientesPendientes] = useState(0)
   const [negocio, setNegocio] = useState<DatosNegocio | null>(null)
 
   useEffect(() => {
@@ -32,20 +32,11 @@ export default function PantallaPrincipal({
     })
 
     // RF-13: alerta automática de stock bajo al iniciar sesión, sin depender
-    // de que alguien consulte el reporte manualmente.
+    // de que alguien consulte el reporte manualmente. El administrador ve el
+    // detalle en el panel de Inicio; el cajero solo ve este aviso simple.
     void window.picaventa.listarProductos({ stockBajo: true }).then((resultado) => {
       if (resultado.ok) setProductosStockBajo(resultado.productos.length)
     })
-
-    if (sesion.rolUsuario === 'administrador') {
-      // Alerta de clientes dados de alta por un cajero a media venta a
-      // fiado, pendientes de que un administrador los revise.
-      void window.picaventa.listarClientes().then((resultado) => {
-        if (resultado.ok) {
-          setClientesPendientes(resultado.clientes.filter((c) => c.pendienteRevision).length)
-        }
-      })
-    }
   }, [])
 
   return (
@@ -83,7 +74,14 @@ export default function PantallaPrincipal({
           {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}
           {vista === 'venta' && <PantallaVenta />}
 
-          {vista === 'inicio' && (
+          {vista === 'inicio' && sesion.rolUsuario === 'administrador' && (
+            <PantallaDashboardAdmin
+              onIrACatalogo={() => setVista('catalogo')}
+              onIrAClientes={() => setVista('clientes')}
+            />
+          )}
+
+          {vista === 'inicio' && sesion.rolUsuario !== 'administrador' && (
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
               <p className="text-sm text-texto-secundario">
                 Hola, {sesion.nombreUsuario} — sesión de {sesion.rolUsuario}.
@@ -91,27 +89,7 @@ export default function PantallaPrincipal({
 
               {productosStockBajo > 0 && (
                 <p className="rounded-md bg-alerta/10 px-3 py-2 text-sm text-alerta">
-                  ⚠ {productosStockBajo} producto{productosStockBajo === 1 ? '' : 's'} con stock
-                  bajo
-                  {sesion.rolUsuario === 'administrador' && (
-                    <>
-                      {' — '}
-                      <button type="button" onClick={() => setVista('catalogo')} className="underline">
-                        revisar
-                      </button>
-                    </>
-                  )}
-                </p>
-              )}
-
-              {clientesPendientes > 0 && (
-                <p className="rounded-md bg-alerta/10 px-3 py-2 text-sm text-alerta">
-                  ⚠ {clientesPendientes} cliente{clientesPendientes === 1 ? '' : 's'} dado
-                  {clientesPendientes === 1 ? '' : 's'} de alta por un cajero, pendiente
-                  {clientesPendientes === 1 ? '' : 's'} de revisión —{' '}
-                  <button type="button" onClick={() => setVista('clientes')} className="underline">
-                    revisar
-                  </button>
+                  ⚠ {productosStockBajo} producto{productosStockBajo === 1 ? '' : 's'} con stock bajo
                 </p>
               )}
 
