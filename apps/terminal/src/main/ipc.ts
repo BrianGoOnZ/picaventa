@@ -14,6 +14,7 @@ import {
   type DatosCrearUsuario,
   type DatosConfigurarServidor,
   type DatosCrearVenta,
+  type DatosEntradaInventario,
   type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
@@ -66,7 +67,8 @@ import {
   listarProductos,
   crearProducto,
   editarProducto,
-  eliminarProducto
+  eliminarProducto,
+  registrarEntradaInventario
 } from './catalogo-cliente'
 import {
   crearVenta,
@@ -333,6 +335,15 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return eliminarProducto(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.catalogoRegistrarEntrada,
+    (_evento, id: number, datos: DatosEntradaInventario): Promise<ResultadoProducto> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return registrarEntradaInventario(config, id, datos)
     }
   )
 

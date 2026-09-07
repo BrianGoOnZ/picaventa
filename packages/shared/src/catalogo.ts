@@ -67,6 +67,11 @@ export interface FiltrosProductos {
   stockBajo?: boolean
 }
 
+export const datosEntradaInventarioSchema = z.object({
+  cantidad: z.number().positive()
+})
+export type DatosEntradaInventario = z.infer<typeof datosEntradaInventarioSchema>
+
 export type ResultadoOperacion = { ok: true } | { ok: false; error: string }
 
 export type ResultadoListaCategorias =

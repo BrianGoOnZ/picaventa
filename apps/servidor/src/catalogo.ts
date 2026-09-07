@@ -1,8 +1,9 @@
 import { Router, type Request } from 'express'
-import { eq, lte, ilike, and, count, type SQL } from 'drizzle-orm'
+import { eq, lte, ilike, and, count, sql, type SQL } from 'drizzle-orm'
 import { categoria, producto, type crearConexion } from '@picaventa/db'
 import {
   datosCategoriaSchema,
+  datosEntradaInventarioSchema,
   datosProductoSchema,
   PALETA_COLORES_CATEGORIA,
   type Producto
@@ -216,6 +217,32 @@ export function crearRutasCatalogo(): Router {
       }
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) })
     }
+  })
+
+  // Entrada rápida de mercancía: escanear el producto y sumar la cantidad
+  // recibida al stock actual, sin tener que abrir el formulario completo de
+  // edición ni volver a escribir el resto de los datos del producto.
+  router.post('/productos/:id/entrada', verificarJwt, requiereAdministrador, async (req, res) => {
+    const datos = datosEntradaInventarioSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const id = Number(req.params.id)
+    const db = obtenerDb(req)
+
+    const [fila] = await db
+      .update(producto)
+      .set({ stockActual: sql`${producto.stockActual} + ${datos.data.cantidad.toString()}` })
+      .where(eq(producto.idProducto, id))
+      .returning()
+
+    if (!fila) {
+      res.status(404).json({ ok: false, error: 'Producto no encontrado' })
+      return
+    }
+    res.json({ ok: true, producto: filaAProducto(fila) })
   })
 
   router.delete('/productos/:id', verificarJwt, requiereAdministrador, async (req, res) => {

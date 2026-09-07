@@ -9,6 +9,7 @@ import {
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
+  type DatosEntradaInventario,
   type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
@@ -112,6 +113,11 @@ const api = {
 
   eliminarProducto: (id: number): Promise<ResultadoOperacion> =>
     ipcRenderer.invoke(CANALES_IPC.catalogoEliminarProducto, id),
+
+  registrarEntradaInventario: (
+    id: number,
+    datos: DatosEntradaInventario
+  ): Promise<ResultadoProducto> => ipcRenderer.invoke(CANALES_IPC.catalogoRegistrarEntrada, id, datos),
 
   crearVenta: (datos: DatosCrearVenta): Promise<ResultadoCrearVenta> =>
     ipcRenderer.invoke(CANALES_IPC.ventasCrear, datos),

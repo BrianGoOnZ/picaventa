@@ -1,6 +1,7 @@
 import type {
   ConfigLocal,
   DatosCategoria,
+  DatosEntradaInventario,
   DatosProducto,
   FiltrosProductos,
   ResultadoCategoria,
@@ -101,4 +102,17 @@ export function eliminarProducto(config: ConfigLocal, id: number): Promise<Resul
     method: 'DELETE',
     headers: encabezadoAuth()
   })
+}
+
+export function registrarEntradaInventario(
+  config: ConfigLocal,
+  id: number,
+  datos: DatosEntradaInventario
+): Promise<ResultadoProducto> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(
+    `${obtenerUrlBase(config)}/productos/${id}/entrada`,
+    opcionesJson('POST', datos, token)
+  )
 }
