@@ -1,26 +1,54 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { Producto } from '@picaventa/shared'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import type { Producto, UnidadMedida } from '@picaventa/shared'
+import { confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
-interface EntradaHistorial {
+interface Pendiente {
+  idProducto: number
+  nombreProducto: string
+  unidadMedida: UnidadMedida
+  stockPrevio: number
+  cantidad: number
+}
+
+interface ResultadoEntrada {
   id: number
   nombreProducto: string
-  unidadMedida: Producto['unidadMedida']
-  cantidadAgregada: number
-  nuevoTotal: number
+  mensaje: string
+  ok: boolean
   hora: string
 }
 
-let siguienteIdHistorial = 1
+const NUEVO_PRODUCTO_VACIO = {
+  nombreProducto: '',
+  codigoBarras: '',
+  precioVenta: '',
+  unidadMedida: 'pieza' as UnidadMedida,
+  stockInicial: '',
+  stockMinimo: '5'
+}
+
+let siguienteIdResultado = 1
+
+function horaActual(): string {
+  return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+}
 
 export default function PantallaEntradaInventario(): React.JSX.Element {
   const [codigo, setCodigo] = useState('')
-  const [resultados, setResultados] = useState<Producto[]>([])
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<Producto[]>([])
   const [productoEncontrado, setProductoEncontrado] = useState<Producto | null>(null)
   const [cantidad, setCantidad] = useState('')
-  const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
-  const [historial, setHistorial] = useState<EntradaHistorial[]>([])
+
+  const [mostrarNuevoProducto, setMostrarNuevoProducto] = useState(false)
+  const [nuevoProducto, setNuevoProducto] = useState(NUEVO_PRODUCTO_VACIO)
+  const [creandoProducto, setCreandoProducto] = useState(false)
+
+  const [pendientes, setPendientes] = useState<Pendiente[]>([])
+  const [enviandoLote, setEnviandoLote] = useState(false)
+  const [resultados, setResultados] = useState<ResultadoEntrada[]>([])
+
   const { mostrarToast } = useToast()
   const inputCodigoRef = useRef<HTMLInputElement>(null)
   const inputCantidadRef = useRef<HTMLInputElement>(null)
@@ -31,10 +59,21 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
 
   function seleccionarProducto(producto: Producto): void {
     setProductoEncontrado(producto)
-    setResultados([])
+    setResultadosBusqueda([])
     setCodigo('')
     setError('')
     setTimeout(() => inputCantidadRef.current?.focus(), 0)
+  }
+
+  function abrirNuevoProducto(texto: string): void {
+    setNuevoProducto({
+      ...NUEVO_PRODUCTO_VACIO,
+      nombreProducto: texto,
+      codigoBarras: texto
+    })
+    setMostrarNuevoProducto(true)
+    setResultadosBusqueda([])
+    setError('')
   }
 
   async function manejarBuscar(evento: KeyboardEvent<HTMLInputElement>): Promise<void> {
@@ -52,11 +91,12 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
     if (porNombre.ok && porNombre.productos.length === 1) {
       seleccionarProducto(porNombre.productos[0]!)
     } else if (porNombre.ok && porNombre.productos.length > 1) {
-      setResultados(porNombre.productos)
+      setResultadosBusqueda(porNombre.productos)
       setError('')
     } else {
-      setResultados([])
-      setError('No se encontró ningún producto')
+      // No existe: en vez de mandar al cajero/admin a la pestaña de
+      // Productos, se puede dar de alta aquí mismo sin perder el flujo.
+      abrirNuevoProducto(texto)
     }
   }
 
@@ -67,50 +107,252 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
     inputCodigoRef.current?.focus()
   }
 
-  async function manejarAgregar(evento: FormEvent): Promise<void> {
+  function agregarAPendientes(evento: FormEvent): void {
     evento.preventDefault()
     if (!productoEncontrado) return
     const monto = Number(cantidad)
     if (!monto || monto <= 0) return
 
-    setEnviando(true)
-    setError('')
-    const resultado = await window.picaventa.registrarEntradaInventario(
-      productoEncontrado.idProducto,
-      { cantidad: monto }
+    setPendientes((actual) => {
+      const existente = actual.find((p) => p.idProducto === productoEncontrado.idProducto)
+      if (existente) {
+        return actual.map((p) =>
+          p.idProducto === productoEncontrado.idProducto ? { ...p, cantidad: p.cantidad + monto } : p
+        )
+      }
+      return [
+        ...actual,
+        {
+          idProducto: productoEncontrado.idProducto,
+          nombreProducto: productoEncontrado.nombreProducto,
+          unidadMedida: productoEncontrado.unidadMedida,
+          stockPrevio: productoEncontrado.stockActual,
+          cantidad: monto
+        }
+      ]
+    })
+    setProductoEncontrado(null)
+    setCantidad('')
+    inputCodigoRef.current?.focus()
+  }
+
+  function actualizarCantidadPendiente(idProducto: number, nuevaCantidad: number): void {
+    setPendientes((actual) =>
+      actual.map((p) => (p.idProducto === idProducto ? { ...p, cantidad: nuevaCantidad } : p))
     )
+  }
+
+  function quitarPendiente(idProducto: number): void {
+    setPendientes((actual) => actual.filter((p) => p.idProducto !== idProducto))
+  }
+
+  async function manejarCrearProducto(evento: FormEvent): Promise<void> {
+    evento.preventDefault()
+    setCreandoProducto(true)
+    setError('')
+
+    const stockInicial = Number(nuevoProducto.stockInicial) || 0
+    const resultado = await window.picaventa.crearProducto({
+      nombreProducto: nuevoProducto.nombreProducto,
+      codigoBarras: nuevoProducto.codigoBarras || undefined,
+      precioVenta: Number(nuevoProducto.precioVenta) || 0,
+      unidadMedida: nuevoProducto.unidadMedida,
+      stockActual: stockInicial,
+      stockMinimo: Number(nuevoProducto.stockMinimo) || 0
+    })
 
     if (resultado.ok) {
-      setHistorial((actual) => [
+      setResultados((actual) => [
         {
-          id: siguienteIdHistorial++,
+          id: siguienteIdResultado++,
           nombreProducto: resultado.producto.nombreProducto,
-          unidadMedida: resultado.producto.unidadMedida,
-          cantidadAgregada: monto,
-          nuevoTotal: resultado.producto.stockActual,
-          hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+          mensaje: `Producto nuevo — stock inicial: ${stockInicial} ${resultado.producto.unidadMedida}`,
+          ok: true,
+          hora: horaActual()
         },
         ...actual
       ])
-      mostrarToast(`+${monto} ${resultado.producto.nombreProducto} — nuevo stock: ${resultado.producto.stockActual}`)
-      setProductoEncontrado(null)
-      setCantidad('')
+      mostrarToast(`Producto "${resultado.producto.nombreProducto}" registrado`)
+      setMostrarNuevoProducto(false)
+      setNuevoProducto(NUEVO_PRODUCTO_VACIO)
       inputCodigoRef.current?.focus()
     } else {
       setError(resultado.error)
     }
-    setEnviando(false)
+    setCreandoProducto(false)
+  }
+
+  async function confirmarYEnviar(): Promise<void> {
+    if (pendientes.length === 0) return
+
+    const confirmado = await confirmarCritico({
+      titulo: `¿Confirmar la entrada de ${pendientes.length} producto${pendientes.length === 1 ? '' : 's'}?`,
+      texto: 'Se sumará la cantidad indicada al stock de cada uno. Revisa la lista antes de continuar.',
+      textoConfirmar: 'Sí, cargar al inventario',
+      colorConfirmar: '#15803D'
+    })
+    if (!confirmado) return
+
+    setEnviandoLote(true)
+    const nuevosResultados: ResultadoEntrada[] = []
+
+    for (const pendiente of pendientes) {
+      const resultado = await window.picaventa.registrarEntradaInventario(pendiente.idProducto, {
+        cantidad: pendiente.cantidad
+      })
+      nuevosResultados.push({
+        id: siguienteIdResultado++,
+        nombreProducto: pendiente.nombreProducto,
+        ok: resultado.ok,
+        mensaje: resultado.ok
+          ? `+${pendiente.cantidad} ${pendiente.unidadMedida} → nuevo stock: ${resultado.producto.stockActual}`
+          : resultado.error,
+        hora: horaActual()
+      })
+    }
+
+    setResultados((actual) => [...nuevosResultados, ...actual])
+    setPendientes([])
+    setEnviandoLote(false)
+
+    const exitosos = nuevosResultados.filter((r) => r.ok).length
+    const fallidos = nuevosResultados.length - exitosos
+    mostrarToast(
+      fallidos === 0
+        ? `${exitosos} producto${exitosos === 1 ? '' : 's'} cargado${exitosos === 1 ? '' : 's'} correctamente`
+        : `${exitosos} cargado${exitosos === 1 ? '' : 's'}, ${fallidos} con error`,
+      fallidos === 0 ? 'exito' : 'error'
+    )
+    inputCodigoRef.current?.focus()
+  }
+
+  function actualizarCampoNuevoProducto(
+    campo: keyof typeof NUEVO_PRODUCTO_VACIO,
+    valor: string
+  ): void {
+    setNuevoProducto((actual) => ({ ...actual, [campo]: valor }))
   }
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-texto-secundario">
-        Escanea o busca el producto, indica cuánto llegó de mercancía nueva y se suma al stock
-        actual — sin abrir el formulario completo de edición.
+        Escanea o busca cada producto y la cantidad recibida se agrega a una lista — revisa que
+        todo esté correcto y confirma para cargarlo todo junto al inventario.
       </p>
 
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
-        {!productoEncontrado ? (
+        {mostrarNuevoProducto ? (
+          <form onSubmit={(evento) => void manejarCrearProducto(evento)} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-onix">
+                Este producto no existe — regístralo
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarNuevoProducto(false)
+                  setError('')
+                  inputCodigoRef.current?.focus()
+                }}
+                className="text-sm text-texto-secundario underline"
+              >
+                Cancelar
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-medium text-neutral-700">
+                Nombre
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={nuevoProducto.nombreProducto}
+                  onChange={(evento: ChangeEvent<HTMLInputElement>) =>
+                    actualizarCampoNuevoProducto('nombreProducto', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-sm font-medium text-neutral-700">
+                Código de barras
+                <input
+                  type="text"
+                  value={nuevoProducto.codigoBarras}
+                  onChange={(evento: ChangeEvent<HTMLInputElement>) =>
+                    actualizarCampoNuevoProducto('codigoBarras', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-sm font-medium text-neutral-700">
+                Unidad de medida
+                <select
+                  value={nuevoProducto.unidadMedida}
+                  onChange={(evento) =>
+                    actualizarCampoNuevoProducto('unidadMedida', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  <option value="pieza">Pieza</option>
+                  <option value="kg">Kilogramo (granel)</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-neutral-700">
+                Precio de venta
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={nuevoProducto.precioVenta}
+                  onChange={(evento: ChangeEvent<HTMLInputElement>) =>
+                    actualizarCampoNuevoProducto('precioVenta', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-sm font-medium text-neutral-700">
+                Stock inicial
+                <input
+                  type="number"
+                  min="0"
+                  step={nuevoProducto.unidadMedida === 'kg' ? '0.001' : '1'}
+                  required
+                  value={nuevoProducto.stockInicial}
+                  onChange={(evento: ChangeEvent<HTMLInputElement>) =>
+                    actualizarCampoNuevoProducto('stockInicial', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-sm font-medium text-neutral-700">
+                Stock mínimo (alerta)
+                <input
+                  type="number"
+                  min="0"
+                  step={nuevoProducto.unidadMedida === 'kg' ? '0.001' : '1'}
+                  required
+                  value={nuevoProducto.stockMinimo}
+                  onChange={(evento: ChangeEvent<HTMLInputElement>) =>
+                    actualizarCampoNuevoProducto('stockMinimo', evento.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-texto-secundario">
+              La categoría y la foto se pueden agregar después en Catálogo → Productos.
+            </p>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button
+              type="submit"
+              disabled={creandoProducto}
+              className="rounded-md bg-cobre px-4 py-3 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+            >
+              {creandoProducto ? 'Registrando...' : 'Registrar producto'}
+            </button>
+          </form>
+        ) : !productoEncontrado ? (
           <>
             <label className="text-sm font-medium text-neutral-700">
               Código de barras o nombre del producto
@@ -126,9 +368,9 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
               />
             </label>
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-            {resultados.length > 0 && (
+            {resultadosBusqueda.length > 0 && (
               <div className="mt-2 rounded-md border border-borde">
-                {resultados.map((producto) => (
+                {resultadosBusqueda.map((producto) => (
                   <button
                     key={producto.idProducto}
                     type="button"
@@ -141,11 +383,18 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
                     </span>
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => abrirNuevoProducto(codigo.trim())}
+                  className="block w-full px-4 py-2 text-left text-sm text-cobre hover:bg-arena"
+                >
+                  Ninguno es — registrar "{codigo.trim()}" como producto nuevo
+                </button>
               </div>
             )}
           </>
         ) : (
-          <form onSubmit={manejarAgregar} className="flex flex-col gap-3">
+          <form onSubmit={agregarAPendientes} className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-display text-lg font-semibold text-onix">
@@ -173,54 +422,103 @@ export default function PantallaEntradaInventario(): React.JSX.Element {
                 className="mt-1 w-full rounded-md border border-neutral-300 px-4 py-3 text-base"
               />
             </label>
-            {productoEncontrado && cantidad && Number(cantidad) > 0 && (
-              <p className="text-sm text-texto-secundario">
-                Nuevo stock:{' '}
-                <span className="font-semibold text-onix">
-                  {(productoEncontrado.stockActual + Number(cantidad)).toFixed(
-                    productoEncontrado.unidadMedida === 'kg' ? 3 : 0
-                  )}{' '}
-                  {productoEncontrado.unidadMedida}
-                </span>
-              </p>
-            )}
-            {error && <p className="text-sm text-red-600">{error}</p>}
             <button
               type="submit"
-              disabled={enviando}
-              className="rounded-md bg-cobre px-4 py-3 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+              className="rounded-md bg-cobre px-4 py-3 text-sm font-semibold text-white hover:bg-cobre-oscuro"
             >
-              {enviando ? 'Agregando...' : 'Agregar al inventario'}
+              Agregar a la lista
             </button>
           </form>
         )}
       </div>
 
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
-        <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
-          Entradas de esta sesión {historial.length > 0 && `(${historial.length})`}
-        </h2>
-        {historial.length === 0 ? (
-          <p className="text-sm text-texto-secundario">Aún no has registrado ninguna entrada.</p>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-texto-secundario">
+            Por confirmar {pendientes.length > 0 && `(${pendientes.length})`}
+          </h2>
+          {pendientes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void confirmarYEnviar()}
+              disabled={enviandoLote}
+              className="rounded-md bg-exito px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {enviandoLote ? 'Cargando...' : `Confirmar y cargar al inventario`}
+            </button>
+          )}
+        </div>
+        {pendientes.length === 0 ? (
+          <p className="text-sm text-texto-secundario">
+            Aún no has agregado nada a la lista. Escanea un producto arriba para empezar.
+          </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {historial.map((entrada) => (
+            {pendientes.map((pendiente) => (
               <li
-                key={entrada.id}
-                className="flex items-center justify-between rounded-lg border border-borde p-3 text-sm"
+                key={pendiente.idProducto}
+                className="flex items-center gap-3 rounded-lg border border-borde p-3 text-sm"
               >
-                <span className="text-onix">{entrada.nombreProducto}</span>
-                <span className="text-texto-secundario">
-                  <span className="font-semibold text-exito">
-                    +{entrada.cantidadAgregada} {entrada.unidadMedida}
+                <span className="min-w-0 flex-1 truncate text-onix">{pendiente.nombreProducto}</span>
+                <label className="flex items-center gap-1 text-xs text-texto-secundario">
+                  Cantidad
+                  <input
+                    type="number"
+                    min="0.001"
+                    step={pendiente.unidadMedida === 'kg' ? '0.001' : '1'}
+                    value={pendiente.cantidad}
+                    onChange={(evento) =>
+                      actualizarCantidadPendiente(pendiente.idProducto, Number(evento.target.value))
+                    }
+                    className="w-20 rounded border border-borde px-2 py-1 text-onix"
+                  />
+                </label>
+                <span className="shrink-0 text-xs text-texto-secundario">
+                  {pendiente.stockPrevio} → <span className="font-semibold text-onix">
+                    {pendiente.stockPrevio + pendiente.cantidad}
                   </span>{' '}
-                  → {entrada.nuevoTotal} {entrada.unidadMedida} · {entrada.hora}
+                  {pendiente.unidadMedida}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => quitarPendiente(pendiente.idProducto)}
+                  className="shrink-0 text-xs text-peligro underline"
+                >
+                  Quitar
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {resultados.length > 0 && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+            Historial de esta sesión ({resultados.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {resultados.map((resultado) => (
+              <li
+                key={resultado.id}
+                className={`flex items-center justify-between rounded-lg border p-3 text-sm ${
+                  resultado.ok ? 'border-borde' : 'border-peligro bg-peligro/5'
+                }`}
+              >
+                <span className="flex items-center gap-2 text-onix">
+                  <span className={resultado.ok ? 'text-exito' : 'text-peligro'}>
+                    {resultado.ok ? '✓' : '✗'}
+                  </span>
+                  {resultado.nombreProducto}
+                </span>
+                <span className={resultado.ok ? 'text-texto-secundario' : 'font-medium text-peligro'}>
+                  {resultado.mensaje} · {resultado.hora}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
