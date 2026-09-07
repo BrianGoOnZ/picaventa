@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { Cliente, DatosNegocio, Producto, UnidadMedida, VentaDetallada } from '@picaventa/shared'
 import PantallaApartados from './PantallaApartados'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
@@ -31,6 +31,10 @@ export default function PantallaVenta(): React.JSX.Element {
   const [efectivoRecibido, setEfectivoRecibido] = useState('')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [idClienteSeleccionado, setIdClienteSeleccionado] = useState<number | null>(null)
+  const [mostrarNuevoCliente, setMostrarNuevoCliente] = useState(false)
+  const [nuevoClienteNombre, setNuevoClienteNombre] = useState('')
+  const [nuevoClienteLimite, setNuevoClienteLimite] = useState('')
+  const [creandoCliente, setCreandoCliente] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const [negocio, setNegocio] = useState<DatosNegocio | null>(null)
@@ -225,7 +229,36 @@ export default function PantallaVenta(): React.JSX.Element {
         descuento: l.descuentoAplicado
       }))
     )
+    // Restaurar el método de pago y el cliente originales del apartado —
+    // sin esto, al reanudar siempre quedaba en "efectivo" sin cliente,
+    // perdiendo silenciosamente que la venta era a tarjeta o a fiado.
+    setMetodoPago(detalle.venta.metodoPago as 'efectivo' | 'tarjeta' | 'fiado')
+    setIdClienteSeleccionado(detalle.venta.idCliente ?? null)
+    setEfectivoRecibido('')
     setVista('venta')
+  }
+
+  async function manejarCrearClienteRapido(evento: FormEvent<HTMLFormElement>): Promise<void> {
+    evento.preventDefault()
+    if (!nuevoClienteNombre.trim()) return
+
+    setCreandoCliente(true)
+    setError('')
+    const resultado = await window.picaventa.crearCliente({
+      nombreCliente: nuevoClienteNombre.trim(),
+      limiteCredito: Number(nuevoClienteLimite) || 0
+    })
+
+    if (resultado.ok) {
+      setClientes((actual) => [...actual, resultado.cliente])
+      setIdClienteSeleccionado(resultado.cliente.idCliente)
+      setNuevoClienteNombre('')
+      setNuevoClienteLimite('')
+      setMostrarNuevoCliente(false)
+    } else {
+      setError(resultado.error)
+    }
+    setCreandoCliente(false)
   }
 
   if (vista === 'apartados') {
@@ -390,24 +423,82 @@ export default function PantallaVenta(): React.JSX.Element {
               Cambio: <span className="font-semibold">${cambio >= 0 ? cambio.toFixed(2) : '—'}</span>
             </p>
           )}
-          {metodoPago === 'fiado' && (
+          {metodoPago === 'fiado' && !mostrarNuevoCliente && (
             <label className="text-sm font-medium text-neutral-700">
               Cliente
-              <select
-                value={idClienteSeleccionado ?? ''}
-                onChange={(evento) =>
-                  setIdClienteSeleccionado(evento.target.value ? Number(evento.target.value) : null)
-                }
-                className="mt-1 block w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              >
-                <option value="">Selecciona un cliente...</option>
-                {clientes.map((c) => (
-                  <option key={c.idCliente} value={c.idCliente}>
-                    {c.nombreCliente} (debe ${c.saldoActual.toFixed(2)} de ${c.limiteCredito.toFixed(2)})
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1 flex gap-2">
+                <select
+                  value={idClienteSeleccionado ?? ''}
+                  onChange={(evento) =>
+                    setIdClienteSeleccionado(evento.target.value ? Number(evento.target.value) : null)
+                  }
+                  className="block w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Selecciona un cliente...</option>
+                  {clientes.map((c) => (
+                    <option key={c.idCliente} value={c.idCliente}>
+                      {c.nombreCliente} (debe ${c.saldoActual.toFixed(2)} de $
+                      {c.limiteCredito.toFixed(2)})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setMostrarNuevoCliente(true)}
+                  className="whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  + Nuevo cliente
+                </button>
+              </div>
             </label>
+          )}
+          {metodoPago === 'fiado' && mostrarNuevoCliente && (
+            <form
+              onSubmit={(evento) => void manejarCrearClienteRapido(evento)}
+              className="rounded-md border border-neutral-300 bg-neutral-50 p-3"
+            >
+              <p className="mb-2 text-xs text-neutral-600">
+                Se creará marcado como pendiente de revisión por un administrador.
+              </p>
+              <div className="flex items-end gap-2">
+                <label className="text-sm font-medium text-neutral-700">
+                  Nombre
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={nuevoClienteNombre}
+                    onChange={(evento) => setNuevoClienteNombre(evento.target.value)}
+                    className="mt-1 block w-40 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-sm font-medium text-neutral-700">
+                  Límite de crédito
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={nuevoClienteLimite}
+                    onChange={(evento) => setNuevoClienteLimite(evento.target.value)}
+                    className="mt-1 block w-28 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={creandoCliente}
+                  className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {creandoCliente ? 'Creando...' : 'Crear'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMostrarNuevoCliente(false)}
+                  className="text-sm text-neutral-500 underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
           )}
           {clienteYaBloqueado && (
             <p className="max-w-xs pb-2 text-sm font-semibold text-red-600">

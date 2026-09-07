@@ -1,10 +1,11 @@
 import { Router, type Request } from 'express'
 import { eq } from 'drizzle-orm'
 import { cliente, abono, type crearConexion } from '@picaventa/db'
-import { datosClienteSchema, datosAbonoSchema } from '@picaventa/shared'
+import { datosClienteSchema, datosAbonoSchema, type PayloadJwt } from '@picaventa/shared'
 import { verificarJwt, requiereAdministrador } from './auth.js'
 
 type Db = ReturnType<typeof crearConexion>
+type RequestAutenticado = Request & { usuarioToken?: PayloadJwt }
 
 function obtenerDb(req: Request): Db {
   return req.app.locals.db as Db
@@ -21,7 +22,8 @@ function filaACliente(fila: typeof cliente.$inferSelect) {
     nombreCliente: fila.nombreCliente,
     telefonoCliente: fila.telefonoCliente ?? undefined,
     limiteCredito: Number(fila.limiteCredito),
-    saldoActual: Number(fila.saldoActual)
+    saldoActual: Number(fila.saldoActual),
+    pendienteRevision: fila.pendienteRevision
   }
 }
 
@@ -34,12 +36,17 @@ export function crearRutasClientes(): Router {
     res.json({ ok: true, clientes: filas.map(filaACliente) })
   })
 
-  router.post('/', verificarJwt, requiereAdministrador, async (req, res) => {
+  router.post('/', verificarJwt, async (req, res) => {
     const datos = datosClienteSchema.safeParse(req.body)
     if (!datos.success) {
       res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
       return
     }
+
+    const payload = (req as RequestAutenticado).usuarioToken
+    // Un cajero puede dar de alta un cliente a media venta a fiado, sin
+    // esperar a un administrador; queda marcado para revisión posterior.
+    const pendienteRevision = payload?.rolUsuario !== 'administrador'
 
     const db = obtenerDb(req)
     const [fila] = await db
@@ -47,7 +54,8 @@ export function crearRutasClientes(): Router {
       .values({
         nombreCliente: datos.data.nombreCliente,
         telefonoCliente: datos.data.telefonoCliente,
-        limiteCredito: datos.data.limiteCredito.toString()
+        limiteCredito: datos.data.limiteCredito.toString(),
+        pendienteRevision
       })
       .returning()
 
@@ -72,7 +80,9 @@ export function crearRutasClientes(): Router {
       .set({
         nombreCliente: datos.data.nombreCliente,
         telefonoCliente: datos.data.telefonoCliente,
-        limiteCredito: datos.data.limiteCredito.toString()
+        limiteCredito: datos.data.limiteCredito.toString(),
+        // Un administrador editando el cliente lo da por revisado.
+        pendienteRevision: false
       })
       .where(eq(cliente.idCliente, id))
       .returning()

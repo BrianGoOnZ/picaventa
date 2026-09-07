@@ -13,6 +13,7 @@ export interface Cliente {
   telefonoCliente?: string
   limiteCredito: number
   saldoActual: number
+  pendienteRevision: boolean
 }
 
 export const datosAbonoSchema = z.object({

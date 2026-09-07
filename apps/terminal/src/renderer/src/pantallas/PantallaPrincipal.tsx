@@ -22,6 +22,7 @@ export default function PantallaPrincipal({
     'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes' | 'caja'
   >('inicio')
   const [productosStockBajo, setProductosStockBajo] = useState(0)
+  const [clientesPendientes, setClientesPendientes] = useState(0)
 
   useEffect(() => {
     // RF-13: alerta automática de stock bajo al iniciar sesión, sin depender
@@ -29,6 +30,16 @@ export default function PantallaPrincipal({
     void window.picaventa.listarProductos({ stockBajo: true }).then((resultado) => {
       if (resultado.ok) setProductosStockBajo(resultado.productos.length)
     })
+
+    if (sesion.rolUsuario === 'administrador') {
+      // Alerta de clientes dados de alta por un cajero a media venta a
+      // fiado, pendientes de que un administrador los revise.
+      void window.picaventa.listarClientes().then((resultado) => {
+        if (resultado.ok) {
+          setClientesPendientes(resultado.clientes.filter((c) => c.pendienteRevision).length)
+        }
+      })
+    }
   }, [])
 
   if (vista === 'usuarios') {
@@ -106,6 +117,17 @@ export default function PantallaPrincipal({
               </button>
             </>
           )}
+        </p>
+      )}
+
+      {clientesPendientes > 0 && (
+        <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          ⚠ {clientesPendientes} cliente{clientesPendientes === 1 ? '' : 's'} dado
+          {clientesPendientes === 1 ? '' : 's'} de alta por un cajero, pendiente
+          {clientesPendientes === 1 ? '' : 's'} de revisión —{' '}
+          <button type="button" onClick={() => setVista('clientes')} className="underline">
+            revisar
+          </button>
         </p>
       )}
 

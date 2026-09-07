@@ -1,0 +1,1 @@
+ALTER TABLE "cliente" ADD COLUMN "pendiente_revision" boolean DEFAULT false NOT NULL;

@@ -132,6 +132,11 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
                         <span className={sobreLimite ? 'font-semibold text-red-600' : ''}>
                           debe ${cliente.saldoActual.toFixed(2)} de ${cliente.limiteCredito.toFixed(2)}
                         </span>
+                        {esAdmin && cliente.pendienteRevision && (
+                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
+                            Pendiente de revisión
+                          </span>
+                        )}
                       </span>
                       <span className="flex gap-2">
                         <button
@@ -202,7 +207,7 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
           )}
         </div>
 
-        {esAdmin && (
+        {(esAdmin || idEditando === null) && (
           <form
             onSubmit={manejarEnviar}
             className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 bg-white p-4"
@@ -210,6 +215,11 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
             <h2 className="col-span-2 text-sm font-semibold text-neutral-700">
               {idEditando === null ? 'Nuevo cliente' : 'Editar cliente'}
             </h2>
+            {!esAdmin && (
+              <p className="col-span-2 -mt-2 text-xs text-neutral-500">
+                Se creará marcado como pendiente de revisión por un administrador.
+              </p>
+            )}
             <label className="text-sm font-medium text-neutral-700">
               Nombre
               <input
@@ -268,7 +278,6 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
             </div>
           </form>
         )}
-        {!esAdmin && error && <p className="text-sm text-red-600">{error}</p>}
       </div>
     </div>
   )

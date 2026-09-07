@@ -5,6 +5,7 @@ import {
   text,
   integer,
   numeric,
+  boolean,
   date,
   timestamp,
   primaryKey
@@ -104,7 +105,12 @@ export const cliente = pgTable('cliente', {
   // No está en 04-Base-de-datos-V1.md pero sí en 02-DER.md; RF-20 exige
   // mostrar el saldo insoluto en tiempo real, así que se incluye como
   // contador mantenido por la aplicación (ver nota en el resumen del commit).
-  saldoActual: dinero('saldo_actual').notNull().default('0')
+  saldoActual: dinero('saldo_actual').notNull().default('0'),
+  // Un cajero puede dar de alta un cliente a media venta a fiado (sin
+  // esperar a un administrador), pero queda marcado para que el
+  // administrador lo revise después. Un administrador que edita el
+  // cliente lo da por revisado.
+  pendienteRevision: boolean('pendiente_revision').notNull().default(false)
 })
 
 export const abono = pgTable('abono', {
