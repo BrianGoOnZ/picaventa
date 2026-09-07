@@ -1,7 +1,13 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'node:path'
 import { registrarManejadoresIpc } from './ipc'
 import { detenerServidorEmbebido } from './servidor-embebido'
+
+// Sin menú nativo: en Windows, la tecla Alt sola abre el menú de la
+// aplicación por defecto (File/Edit/View...), lo que interfiere con los
+// atajos de teclado de Punto de Venta (Alt+1/2/3). También evita que un
+// cajero recargue la app o abra DevTools sin querer a media venta.
+Menu.setApplicationMenu(null)
 
 function crearVentana(): void {
   const ventana = new BrowserWindow({

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type {
   Categoria,
   Cliente,
@@ -10,6 +10,7 @@ import type {
 import PantallaApartados from './PantallaApartados'
 import TarjetaProducto from '../componentes/TarjetaProducto'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
+import { confirmarCritico } from '../lib/confirmar'
 
 interface LineaCarrito {
   idProducto: number
@@ -49,6 +50,10 @@ export default function PantallaVenta(): React.JSX.Element {
   const [error, setError] = useState('')
   const [negocio, setNegocio] = useState<DatosNegocio | null>(null)
   const [ticket, setTicket] = useState<TicketPendiente | null>(null)
+  const [indiceSeleccionado, setIndiceSeleccionado] = useState<number | null>(null)
+  const inputBusquedaRef = useRef<HTMLInputElement>(null)
+  const cantidadRefs = useRef<Map<number, HTMLInputElement>>(new Map())
+  const idProductoAResaltarRef = useRef<number | null>(null)
 
   useEffect(() => {
     void window.picaventa.obtenerNegocio().then((resultado) => {
@@ -96,12 +101,16 @@ export default function PantallaVenta(): React.JSX.Element {
     clienteSeleccionado.saldoActual + total > clienteSeleccionado.limiteCredito
 
   function agregarAlCarrito(producto: Producto): void {
+    // Forma funcional de setCarrito: si se agregan dos productos en el mismo
+    // tick (dos clics muy seguidos, o el lector de código de barras mandando
+    // teclas más rápido de lo que React vuelve a renderizar), leer "carrito"
+    // del cierre en vez del actualizador pierde la primera adición porque
+    // ambas llamadas partirían del mismo arreglo desactualizado.
+    idProductoAResaltarRef.current = producto.idProducto
     setCarrito((actual) => {
-      const existente = actual.find((l) => l.idProducto === producto.idProducto)
-      if (existente) {
-        return actual.map((l) =>
-          l.idProducto === producto.idProducto ? { ...l, cantidad: l.cantidad + 1 } : l
-        )
+      const indiceExistente = actual.findIndex((l) => l.idProducto === producto.idProducto)
+      if (indiceExistente !== -1) {
+        return actual.map((l, i) => (i === indiceExistente ? { ...l, cantidad: l.cantidad + 1 } : l))
       }
       return [
         ...actual,
@@ -153,6 +162,28 @@ export default function PantallaVenta(): React.JSX.Element {
   function quitarLinea(idProducto: number): void {
     setCarrito((actual) => actual.filter((l) => l.idProducto !== idProducto))
   }
+
+  // Se resuelve la selección del carrito después de que "carrito" ya se
+  // actualizó (nunca dentro del actualizador de setCarrito, cuyo momento
+  // exacto de ejecución no está garantizado): si se acaba de agregar o
+  // incrementar un producto, se selecciona esa línea; si el carrito se
+  // achicó (se quitó una línea), se ajusta la selección a los límites nuevos.
+  useEffect(() => {
+    const idProducto = idProductoAResaltarRef.current
+    if (idProducto !== null) {
+      idProductoAResaltarRef.current = null
+      const indice = carrito.findIndex((l) => l.idProducto === idProducto)
+      if (indice !== -1) {
+        setIndiceSeleccionado(indice)
+        return
+      }
+    }
+    setIndiceSeleccionado((actual) => {
+      if (carrito.length === 0) return null
+      if (actual === null) return null
+      return Math.min(actual, carrito.length - 1)
+    })
+  }, [carrito])
 
   function limpiarVenta(): void {
     setCarrito([])
@@ -288,6 +319,119 @@ export default function PantallaVenta(): React.JSX.Element {
     setCreandoCliente(false)
   }
 
+  // Atajos de teclado para vender sin soltar el teclado: F2 buscador,
+  // F3 cambia la cantidad de la línea seleccionada, F4 cobra, F8 pausa,
+  // F9 abre/cierra Apartados, Alt+1/2/3 cambia el método de pago,
+  // ↑/↓ navegan el carrito, Supr quita la línea seleccionada, y Esc
+  // cierra lo que esté "encima" (ticket, nuevo cliente, Apartados) o
+  // cancela la venta si no hay nada más que cerrar.
+  useEffect(() => {
+    function manejarTeclado(evento: globalThis.KeyboardEvent): void {
+      if (evento.key === 'Escape') {
+        if (ticket) {
+          setTicket(null)
+          return
+        }
+        if (mostrarNuevoCliente) {
+          setMostrarNuevoCliente(false)
+          return
+        }
+        if (vista === 'apartados') {
+          setVista('venta')
+          return
+        }
+        if (carrito.length > 0) {
+          evento.preventDefault()
+          void confirmarCritico({
+            titulo: '¿Cancelar la venta actual?',
+            texto: 'Se vaciará el carrito. Esta acción no se puede deshacer.',
+            textoConfirmar: 'Sí, cancelar venta'
+          }).then((confirmado) => {
+            if (confirmado) limpiarVenta()
+          })
+        }
+        return
+      }
+
+      if (ticket || vista !== 'venta') return
+
+      if (evento.key === 'F2') {
+        evento.preventDefault()
+        inputBusquedaRef.current?.focus()
+        inputBusquedaRef.current?.select()
+        return
+      }
+
+      if (evento.key === 'F4') {
+        evento.preventDefault()
+        if (!enviando && carrito.length > 0) void manejarCobrar()
+        return
+      }
+
+      if (evento.key === 'F8') {
+        evento.preventDefault()
+        if (!enviando && carrito.length > 0) void manejarPausar()
+        return
+      }
+
+      if (evento.key === 'F9') {
+        evento.preventDefault()
+        setVista('apartados')
+        return
+      }
+
+      if (evento.altKey && (evento.key === '1' || evento.key === '2' || evento.key === '3')) {
+        evento.preventDefault()
+        const metodos = { '1': 'efectivo', '2': 'tarjeta', '3': 'fiado' } as const
+        setMetodoPago(metodos[evento.key])
+        setIdClienteSeleccionado(null)
+        return
+      }
+
+      if (evento.key === 'F3') {
+        evento.preventDefault()
+        if (indiceSeleccionado !== null && carrito[indiceSeleccionado]) {
+          const input = cantidadRefs.current.get(carrito[indiceSeleccionado]!.idProducto)
+          input?.focus()
+          input?.select()
+        }
+        return
+      }
+
+      // Se evita interferir con los campos numéricos de cantidad/descuento,
+      // que ya usan las flechas arriba/abajo para subir o bajar el valor.
+      const activo = document.activeElement as HTMLInputElement | null
+      const enCampoNumerico = activo?.tagName === 'INPUT' && activo.type === 'number'
+
+      if (
+        (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') &&
+        !enCampoNumerico &&
+        carrito.length > 0
+      ) {
+        evento.preventDefault()
+        setIndiceSeleccionado((actual) => {
+          const base = actual ?? -1
+          const siguiente = evento.key === 'ArrowDown' ? base + 1 : base - 1
+          return Math.max(0, Math.min(siguiente, carrito.length - 1))
+        })
+        return
+      }
+
+      if (
+        evento.key === 'Delete' &&
+        !enCampoNumerico &&
+        indiceSeleccionado !== null &&
+        carrito[indiceSeleccionado]
+      ) {
+        evento.preventDefault()
+        quitarLinea(carrito[indiceSeleccionado]!.idProducto)
+      }
+    }
+
+    document.addEventListener('keydown', manejarTeclado)
+    return () => document.removeEventListener('keydown', manejarTeclado)
+  }, [ticket, mostrarNuevoCliente, vista, carrito, indiceSeleccionado, enviando, manejarCobrar, manejarPausar])
+
   if (vista === 'apartados') {
     return (
       <PantallaApartados
@@ -318,21 +462,27 @@ export default function PantallaVenta(): React.JSX.Element {
       {/* Columna izquierda: búsqueda, categorías y cuadrícula de productos */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="mb-3 flex items-center gap-3">
-          <input
-            type="text"
-            autoFocus
-            placeholder="Código de barras o nombre del producto..."
-            value={textoBusqueda}
-            onChange={(evento) => setTextoBusqueda(evento.target.value)}
-            onKeyDown={(evento) => void manejarBuscar(evento)}
-            className="flex-1 rounded-md border border-borde bg-tarjeta px-4 py-3 text-base"
-          />
+          <div className="relative flex-1">
+            <input
+              ref={inputBusquedaRef}
+              type="text"
+              autoFocus
+              placeholder="Código de barras o nombre del producto..."
+              value={textoBusqueda}
+              onChange={(evento) => setTextoBusqueda(evento.target.value)}
+              onKeyDown={(evento) => void manejarBuscar(evento)}
+              className="w-full rounded-md border border-borde bg-tarjeta px-4 py-3 text-base"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-borde bg-arena px-1.5 py-0.5 text-[10px] font-medium text-texto-secundario">
+              F2
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => setVista('apartados')}
             className="shrink-0 rounded-md border border-borde bg-tarjeta px-4 py-3 text-sm"
           >
-            Apartados
+            Apartados <span className="text-texto-secundario">(F9)</span>
           </button>
         </div>
 
@@ -398,59 +548,82 @@ export default function PantallaVenta(): React.JSX.Element {
           {carrito.length === 0 ? (
             <p className="p-6 text-center text-sm text-texto-secundario">El carrito está vacío</p>
           ) : (
-            carrito.map((linea) => (
-              <div key={linea.idProducto} className="border-b border-borde py-2 text-sm last:border-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="min-w-0 flex-1 truncate font-medium text-onix">
-                    {linea.nombreProducto}
-                  </p>
-                  <span className="shrink-0 tabular-nums font-medium text-onix">
-                    ${(linea.cantidad * linea.precioVenta - linea.descuento).toFixed(2)}
-                  </span>
+            <>
+              {carrito.map((linea, indice) => (
+                <div
+                  key={linea.idProducto}
+                  onClick={() => setIndiceSeleccionado(indice)}
+                  className={`cursor-pointer rounded-md border-b border-borde px-2 py-2 text-sm last:border-0 ${
+                    indiceSeleccionado === indice ? 'bg-cobre/10 ring-1 ring-cobre' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 truncate font-medium text-onix">
+                      {linea.nombreProducto}
+                    </p>
+                    <span className="shrink-0 tabular-nums font-medium text-onix">
+                      ${(linea.cantidad * linea.precioVenta - linea.descuento).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-texto-secundario">
+                    <label className="flex items-center gap-1">
+                      Cant.
+                      <input
+                        ref={(el) => {
+                          if (el) cantidadRefs.current.set(linea.idProducto, el)
+                          else cantidadRefs.current.delete(linea.idProducto)
+                        }}
+                        type="number"
+                        min="0"
+                        step={linea.unidadMedida === 'kg' ? '0.001' : '1'}
+                        value={linea.cantidad}
+                        onFocus={() => setIndiceSeleccionado(indice)}
+                        onKeyDown={(evento) => {
+                          if (evento.key === 'Enter') {
+                            evento.preventDefault()
+                            inputBusquedaRef.current?.focus()
+                          }
+                        }}
+                        onChange={(evento) =>
+                          actualizarLinea(linea.idProducto, 'cantidad', Number(evento.target.value))
+                        }
+                        className="w-14 rounded border border-borde px-1 py-0.5 text-onix"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1">
+                      Desc.
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={linea.descuento}
+                        onFocus={() => setIndiceSeleccionado(indice)}
+                        onChange={(evento) =>
+                          actualizarLinea(linea.idProducto, 'descuento', Number(evento.target.value))
+                        }
+                        className="w-14 rounded border border-borde px-1 py-0.5 text-onix"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => quitarLinea(linea.idProducto)}
+                      className="ml-auto text-peligro underline"
+                    >
+                      Quitar
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-texto-secundario">
-                  <label className="flex items-center gap-1">
-                    Cant.
-                    <input
-                      type="number"
-                      min="0"
-                      step={linea.unidadMedida === 'kg' ? '0.001' : '1'}
-                      value={linea.cantidad}
-                      onChange={(evento) =>
-                        actualizarLinea(linea.idProducto, 'cantidad', Number(evento.target.value))
-                      }
-                      className="w-14 rounded border border-borde px-1 py-0.5 text-onix"
-                    />
-                  </label>
-                  <label className="flex items-center gap-1">
-                    Desc.
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={linea.descuento}
-                      onChange={(evento) =>
-                        actualizarLinea(linea.idProducto, 'descuento', Number(evento.target.value))
-                      }
-                      className="w-14 rounded border border-borde px-1 py-0.5 text-onix"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => quitarLinea(linea.idProducto)}
-                    className="ml-auto text-peligro underline"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </div>
-            ))
+              ))}
+              <p className="mt-1 px-2 text-[10px] text-texto-secundario">
+                ↑↓ selecciona · Supr quita · F3 cambia cantidad
+              </p>
+            </>
           )}
         </div>
 
         <div className="flex flex-col gap-3 border-t border-borde p-3">
           <label className="text-xs font-medium text-texto-secundario">
-            Método de pago
+            Método de pago <span className="text-texto-secundario">(Alt+1/2/3)</span>
             <select
               value={metodoPago}
               onChange={(evento) => {
@@ -596,7 +769,7 @@ export default function PantallaVenta(): React.JSX.Element {
                 onClick={() => void manejarPausar()}
                 className="rounded-md border border-borde px-3 py-2 text-sm disabled:opacity-50"
               >
-                Pausar
+                Pausar <span className="text-texto-secundario">(F8)</span>
               </button>
               <button
                 type="button"
@@ -608,11 +781,14 @@ export default function PantallaVenta(): React.JSX.Element {
                 onClick={() => void manejarCobrar()}
                 className="rounded-md bg-cobre px-5 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
               >
-                {enviando ? 'Procesando...' : 'Cobrar'}
+                {enviando ? 'Procesando...' : 'Cobrar (F4)'}
               </button>
             </div>
           </div>
           {error && <p className="text-sm text-peligro">{error}</p>}
+          {carrito.length > 0 && (
+            <p className="text-[10px] text-texto-secundario">Esc cancela la venta actual</p>
+          )}
         </div>
       </div>
     </div>
