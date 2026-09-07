@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Cliente, SesionUsuario } from '@picaventa/shared'
 
 interface Props {
@@ -6,6 +6,19 @@ interface Props {
 }
 
 const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito: '' }
+
+const COLORES_AVATAR = ['#7C5B45', '#6B7A4F', '#8C6A2E', '#8E5B4E', '#4F7A78', '#9C6B8E', '#5B6B7A', '#3F6B52']
+
+function colorAvatar(idCliente: number): string {
+  return COLORES_AVATAR[idCliente % COLORES_AVATAR.length]!
+}
+
+const BOTON_SECUNDARIO =
+  'rounded-md border border-borde bg-tarjeta px-3 py-1.5 text-xs font-medium text-texto-secundario hover:bg-arena'
+const BOTON_ACENTO =
+  'rounded-md border border-cobre px-3 py-1.5 text-xs font-medium text-cobre hover:bg-cobre hover:text-white'
+const BOTON_PELIGRO =
+  'rounded-md border border-peligro px-3 py-1.5 text-xs font-medium text-peligro hover:bg-peligro hover:text-white'
 
 export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
@@ -17,6 +30,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const [montoAbono, setMontoAbono] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const formularioRef = useRef<HTMLFormElement>(null)
 
   async function cargar(): Promise<void> {
     const resultado = await window.picaventa.listarClientes()
@@ -36,6 +50,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
       limiteCredito: cliente.limiteCredito.toString()
     })
     setError('')
+    formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function cancelarEdicion(): void {
@@ -99,174 +114,187 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold text-neutral-900">Clientes</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <h1 className="text-2xl font-bold text-neutral-900">Clientes</h1>
 
-        <div className="mb-6 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-4">
-          {cargando ? (
-            <p className="text-sm text-neutral-500">Cargando...</p>
-          ) : clientes.length === 0 ? (
-            <p className="text-sm text-neutral-500">No hay clientes.</p>
-          ) : (
-            <ul className="divide-y divide-neutral-100">
-              {clientes.map((cliente) => {
-                const sobreLimite = cliente.saldoActual > cliente.limiteCredito
-                return (
-                  <li key={cliente.idCliente} className="py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span>
+      {(esAdmin || idEditando === null) && (
+        <form
+          ref={formularioRef}
+          onSubmit={manejarEnviar}
+          className="grid grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
+        >
+          <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
+            {idEditando === null ? 'Nuevo cliente' : 'Editar cliente'}
+          </h2>
+          {!esAdmin && (
+            <p className="col-span-2 -mt-2 text-xs text-texto-secundario">
+              Se creará marcado como pendiente de revisión por un administrador.
+            </p>
+          )}
+          <label className="text-sm font-medium text-neutral-700">
+            Nombre
+            <input
+              type="text"
+              required
+              autoFocus
+              value={formulario.nombreCliente}
+              onChange={(evento) =>
+                setFormulario({ ...formulario, nombreCliente: evento.target.value })
+              }
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm font-medium text-neutral-700">
+            Teléfono
+            <input
+              type="text"
+              value={formulario.telefonoCliente}
+              onChange={(evento) =>
+                setFormulario({ ...formulario, telefonoCliente: evento.target.value })
+              }
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm font-medium text-neutral-700">
+            Límite de crédito
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              required
+              value={formulario.limiteCredito}
+              onChange={(evento) =>
+                setFormulario({ ...formulario, limiteCredito: evento.target.value })
+              }
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </label>
+          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
+          <div className="col-span-2 flex gap-2">
+            {idEditando !== null && (
+              <button type="button" onClick={cancelarEdicion} className={BOTON_SECUNDARIO}>
+                Cancelar
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={enviando}
+              className="flex-1 rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+            >
+              {enviando ? 'Guardando...' : idEditando === null ? 'Agregar cliente' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+        <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+          Clientes registrados {clientes.length > 0 && `(${clientes.length})`}
+        </h2>
+        {cargando ? (
+          <p className="text-sm text-texto-secundario">Cargando...</p>
+        ) : clientes.length === 0 ? (
+          <p className="text-sm text-texto-secundario">Aún no hay clientes registrados.</p>
+        ) : (
+          <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+            {clientes.map((cliente) => {
+              const sobreLimite = cliente.saldoActual > cliente.limiteCredito
+              return (
+                <li
+                  key={cliente.idCliente}
+                  className="rounded-lg border border-borde p-3 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-semibold text-white"
+                      style={{ backgroundColor: colorAvatar(cliente.idCliente) }}
+                    >
+                      {cliente.nombreCliente.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-onix">
                         {cliente.nombreCliente}
-                        {cliente.telefonoCliente ? ` — ${cliente.telefonoCliente}` : ''}
-                        {' — '}
-                        <span className={sobreLimite ? 'font-semibold text-red-600' : ''}>
-                          debe ${cliente.saldoActual.toFixed(2)} de ${cliente.limiteCredito.toFixed(2)}
-                        </span>
                         {esAdmin && cliente.pendienteRevision && (
-                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
+                          <span className="ml-2 rounded bg-alerta/10 px-1.5 py-0.5 text-xs font-semibold text-alerta">
                             Pendiente de revisión
                           </span>
                         )}
-                      </span>
-                      <span className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIdAbonando(cliente.idCliente)}
-                          className="text-xs text-neutral-600 underline"
-                        >
-                          Abonar
-                        </button>
-                        {esAdmin && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => manejarEditar(cliente)}
-                              className="text-xs text-neutral-600 underline"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void manejarEliminar(cliente)}
-                              className="text-xs text-red-600 underline"
-                            >
-                              Eliminar
-                            </button>
-                          </>
-                        )}
-                      </span>
+                      </p>
+                      <p className="text-xs text-texto-secundario">
+                        {cliente.telefonoCliente && `${cliente.telefonoCliente} · `}
+                        <span className={sobreLimite ? 'font-semibold text-peligro' : ''}>
+                          debe ${cliente.saldoActual.toFixed(2)} de ${cliente.limiteCredito.toFixed(2)}
+                        </span>
+                      </p>
                     </div>
-                    {idAbonando === cliente.idCliente && (
-                      <form
-                        onSubmit={(evento) => void manejarAbonar(evento, cliente.idCliente)}
-                        className="mt-2 flex items-center gap-2"
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIdAbonando(cliente.idCliente)}
+                        className={BOTON_ACENTO}
                       >
-                        <input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          autoFocus
-                          placeholder="Monto"
-                          value={montoAbono}
-                          onChange={(evento) => setMontoAbono(evento.target.value)}
-                          className="w-32 rounded-md border border-neutral-300 px-2 py-1 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          disabled={enviando}
-                          className="rounded-md bg-cobre hover:bg-cobre-oscuro px-3 py-1 text-xs font-semibold text-white"
-                        >
-                          Registrar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIdAbonando(null)
-                            setMontoAbono('')
-                          }}
-                          className="text-xs text-neutral-500 underline"
-                        >
-                          Cancelar
-                        </button>
-                      </form>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-
-        {(esAdmin || idEditando === null) && (
-          <form
-            onSubmit={manejarEnviar}
-            className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 bg-white p-4"
-          >
-            <h2 className="col-span-2 text-sm font-semibold text-neutral-700">
-              {idEditando === null ? 'Nuevo cliente' : 'Editar cliente'}
-            </h2>
-            {!esAdmin && (
-              <p className="col-span-2 -mt-2 text-xs text-neutral-500">
-                Se creará marcado como pendiente de revisión por un administrador.
-              </p>
-            )}
-            <label className="text-sm font-medium text-neutral-700">
-              Nombre
-              <input
-                type="text"
-                required
-                value={formulario.nombreCliente}
-                onChange={(evento) =>
-                  setFormulario({ ...formulario, nombreCliente: evento.target.value })
-                }
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-sm font-medium text-neutral-700">
-              Teléfono
-              <input
-                type="text"
-                value={formulario.telefonoCliente}
-                onChange={(evento) =>
-                  setFormulario({ ...formulario, telefonoCliente: evento.target.value })
-                }
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-sm font-medium text-neutral-700">
-              Límite de crédito
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={formulario.limiteCredito}
-                onChange={(evento) =>
-                  setFormulario({ ...formulario, limiteCredito: evento.target.value })
-                }
-                className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-              />
-            </label>
-            {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
-            <div className="col-span-2 flex gap-2">
-              {idEditando !== null && (
-                <button
-                  type="button"
-                  onClick={cancelarEdicion}
-                  className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-                >
-                  Cancelar
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={enviando}
-                className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {enviando ? 'Guardando...' : idEditando === null ? 'Agregar' : 'Guardar'}
-              </button>
-            </div>
-          </form>
+                        Abonar
+                      </button>
+                      {esAdmin && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => manejarEditar(cliente)}
+                            className={BOTON_SECUNDARIO}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void manejarEliminar(cliente)}
+                            className={BOTON_PELIGRO}
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {idAbonando === cliente.idCliente && (
+                    <form
+                      onSubmit={(evento) => void manejarAbonar(evento, cliente.idCliente)}
+                      className="mt-3 flex items-center gap-2 border-t border-borde pt-3"
+                    >
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        autoFocus
+                        placeholder="Monto"
+                        value={montoAbono}
+                        onChange={(evento) => setMontoAbono(evento.target.value)}
+                        className="w-32 rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+                      />
+                      <button
+                        type="submit"
+                        disabled={enviando}
+                        className="rounded-md bg-cobre px-3 py-1.5 text-xs font-semibold text-white hover:bg-cobre-oscuro"
+                      >
+                        Registrar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdAbonando(null)
+                          setMontoAbono('')
+                        }}
+                        className={BOTON_SECUNDARIO}
+                      >
+                        Cancelar
+                      </button>
+                    </form>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
         )}
+      </div>
     </div>
   )
 }
