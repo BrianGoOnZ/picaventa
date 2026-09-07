@@ -72,6 +72,27 @@ export const datosEntradaInventarioSchema = z.object({
 })
 export type DatosEntradaInventario = z.infer<typeof datosEntradaInventarioSchema>
 
+// Auditoría persistente de entradas de inventario (quién cargó qué, cuánto y
+// cuándo) — a diferencia del historial de sesión de la pantalla de Entradas
+// de mercancía, esto sobrevive a cerrar la app y es consultable por un
+// administrador en cualquier momento.
+export interface EntradaInventarioHistorial {
+  idEntrada: number
+  idProducto: number
+  nombreProducto: string
+  unidadMedida: UnidadMedida
+  idUsuario: number
+  nombreUsuario: string
+  cantidad: number
+  stockAnterior: number
+  stockNuevo: number
+  fechaEntrada: string
+}
+
+export type ResultadoHistorialEntradas =
+  | { ok: true; entradas: EntradaInventarioHistorial[] }
+  | { ok: false; error: string }
+
 export type ResultadoOperacion = { ok: true } | { ok: false; error: string }
 
 export type ResultadoListaCategorias =

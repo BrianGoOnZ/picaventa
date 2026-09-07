@@ -10,6 +10,7 @@ import {
   timestamp,
   primaryKey
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 // Enums de valores fijos del sistema (no configurables por el negocio,
 // a diferencia de categorías de producto o tipos de promoción).
@@ -78,6 +79,24 @@ export const detalleCompra = pgTable(
   (tabla) => [primaryKey({ columns: [tabla.idCompra, tabla.idProducto] })]
 )
 
+// Auditoría persistente de "Entradas de mercancía" (RF nuevo, no en el DER
+// original): quién cargó qué inventario, cuánto y cuándo, con el stock antes
+// y después de esa entrada — separado de `merma` porque una entrada suma
+// stock por mercancía recibida, no lo ajusta ni lo da de baja.
+export const entradaInventario = pgTable('entrada_inventario', {
+  idEntrada: serial('id_entrada').primaryKey(),
+  idProducto: integer('id_producto')
+    .notNull()
+    .references(() => producto.idProducto),
+  idUsuario: integer('id_usuario')
+    .notNull()
+    .references(() => usuarios.idUsuario),
+  cantidad: cantidad('cantidad').notNull(),
+  stockAnterior: cantidad('stock_anterior').notNull(),
+  stockNuevo: cantidad('stock_nuevo').notNull(),
+  fechaEntrada: timestamp('fecha_entrada', { withTimezone: true }).notNull().defaultNow()
+})
+
 export const merma = pgTable('merma', {
   idMerma: serial('id_merma').primaryKey(),
   motivoMerma: text('motivo_merma').notNull(),
@@ -101,6 +120,14 @@ export const usuarios = pgTable('usuarios', {
   // contraseña completa cada vez.
   pinHash: text('pin_hash').notNull(),
   rolUsuario: rolUsuarioEnum('rol_usuario').notNull(),
+  // Solo relevante para rolUsuario = 'cajero': un administrador tiene todos
+  // los permisos implícitamente (ver tienePermiso() en @picaventa/shared).
+  // Nunca incluye nada relacionado con ver ganancias/márgenes — eso siempre
+  // depende de rolUsuario, nunca de esta lista.
+  permisos: text('permisos')
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
   fechaIngreso: date('fecha_ingreso').notNull().defaultNow()
 })
 

@@ -2,7 +2,7 @@ import { Router, type Request } from 'express'
 import { eq } from 'drizzle-orm'
 import { cliente, abono, type crearConexion } from '@picaventa/db'
 import { datosClienteSchema, datosAbonoSchema, type PayloadJwt } from '@picaventa/shared'
-import { verificarJwt, requiereAdministrador } from './auth.js'
+import { verificarJwt, requiereAdministrador, requierePermiso } from './auth.js'
 
 type Db = ReturnType<typeof crearConexion>
 type RequestAutenticado = Request & { usuarioToken?: PayloadJwt }
@@ -36,7 +36,7 @@ export function crearRutasClientes(): Router {
     res.json({ ok: true, clientes: filas.map(filaACliente) })
   })
 
-  router.post('/', verificarJwt, async (req, res) => {
+  router.post('/', verificarJwt, requierePermiso('crearClientes'), async (req, res) => {
     const datos = datosClienteSchema.safeParse(req.body)
     if (!datos.success) {
       res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
@@ -94,7 +94,7 @@ export function crearRutasClientes(): Router {
     res.json({ ok: true, cliente: filaACliente(fila) })
   })
 
-  router.delete('/:id', verificarJwt, requiereAdministrador, async (req, res) => {
+  router.delete('/:id', verificarJwt, requierePermiso('eliminarClientes'), async (req, res) => {
     const id = Number(req.params.id)
     const db = obtenerDb(req)
 

@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { Categoria } from '@picaventa/shared'
+import { tienePermiso, type Categoria, type SesionUsuario } from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarEliminar } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
-export default function PantallaCategorias(): React.JSX.Element {
+interface Props {
+  sesion: SesionUsuario
+}
+
+export default function PantallaCategorias({ sesion }: Props): React.JSX.Element {
+  const esAdmin = sesion.rolUsuario === 'administrador'
+  const puedeCrear = tienePermiso(sesion, 'crearCategorias')
+  const puedeEliminar = tienePermiso(sesion, 'eliminarCategorias')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [cargando, setCargando] = useState(true)
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -77,8 +84,11 @@ export default function PantallaCategorias(): React.JSX.Element {
     }
   }
 
+  const mostrarFormulario = esAdmin || (puedeCrear && idEditando === null)
+
   return (
     <div className="flex flex-col gap-4">
+      {mostrarFormulario && (
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
@@ -119,6 +129,7 @@ export default function PantallaCategorias(): React.JSX.Element {
           {idEditando === null ? 'Agregar' : 'Guardar'}
         </button>
       </form>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
@@ -142,20 +153,24 @@ export default function PantallaCategorias(): React.JSX.Element {
                 />
                 <span className="flex-1 font-medium text-onix">{categoria.nombreCategoria}</span>
                 <div className="flex shrink-0 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => manejarEditar(categoria)}
-                    className={BOTON_SECUNDARIO}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void manejarEliminar(categoria)}
-                    className={BOTON_PELIGRO}
-                  >
-                    Eliminar
-                  </button>
+                  {esAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => manejarEditar(categoria)}
+                      className={BOTON_SECUNDARIO}
+                    >
+                      Editar
+                    </button>
+                  )}
+                  {(esAdmin || puedeEliminar) && (
+                    <button
+                      type="button"
+                      onClick={() => void manejarEliminar(categoria)}
+                      className={BOTON_PELIGRO}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

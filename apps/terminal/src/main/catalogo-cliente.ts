@@ -5,6 +5,7 @@ import type {
   DatosProducto,
   FiltrosProductos,
   ResultadoCategoria,
+  ResultadoHistorialEntradas,
   ResultadoListaCategorias,
   ResultadoListaProductos,
   ResultadoOperacion,
@@ -115,4 +116,12 @@ export function registrarEntradaInventario(
     `${obtenerUrlBase(config)}/productos/${id}/entrada`,
     opcionesJson('POST', datos, token)
   )
+}
+
+export function obtenerHistorialEntradas(config: ConfigLocal): Promise<ResultadoHistorialEntradas> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/productos/entradas/historial`, {
+    headers: encabezadoAuth()
+  })
 }

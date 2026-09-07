@@ -69,10 +69,10 @@ export default function PantallaPrincipal({
         <main className="min-h-0 flex-1 overflow-y-auto p-6">
           {vista === 'usuarios' && <PantallaGestionUsuarios />}
           {vista === 'negocio' && <PantallaConfiguracionNegocio />}
-          {vista === 'catalogo' && <PantallaCatalogo />}
+          {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}
           {vista === 'clientes' && <PantallaClientes sesion={sesion} />}
           {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}
-          {vista === 'venta' && <PantallaVenta />}
+          {vista === 'venta' && <PantallaVenta sesion={sesion} />}
 
           {vista === 'inicio' && sesion.rolUsuario === 'administrador' && (
             <PantallaDashboardAdmin

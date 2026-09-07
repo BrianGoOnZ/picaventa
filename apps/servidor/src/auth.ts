@@ -10,6 +10,7 @@ import {
   datosReautenticacionSchema,
   HORAS_EXPIRACION_JWT,
   type PayloadJwt,
+  type Permiso,
   type SesionUsuario
 } from '@picaventa/shared'
 
@@ -60,6 +61,21 @@ export const requiereAdministrador: RequestHandler = (req, res, next) => {
   next()
 }
 
+// Un administrador siempre pasa (tiene todos los permisos implícitamente);
+// un cajero solo si el permiso puntual le fue otorgado al crear su usuario.
+// Nunca se usa para nada relacionado con ganancias/márgenes/reportes
+// financieros — eso siempre se protege con requiereAdministrador.
+export function requierePermiso(permiso: Permiso): RequestHandler {
+  return (req, res, next) => {
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (payload?.rolUsuario === 'administrador' || payload?.permisos?.includes(permiso)) {
+      next()
+      return
+    }
+    res.status(403).json({ ok: false, error: 'No tienes permiso para realizar esta acción' })
+  }
+}
+
 export function crearRutasAuth(): Router {
   const router = Router()
 
@@ -105,7 +121,8 @@ export function crearRutasAuth(): Router {
     const sesion: SesionUsuario = {
       idUsuario: usuario.idUsuario,
       nombreUsuario: usuario.nombreUsuario,
-      rolUsuario: usuario.rolUsuario
+      rolUsuario: usuario.rolUsuario,
+      permisos: (usuario.permisos ?? []) as Permiso[]
     }
     res.status(201).json({ ok: true, sesion, token: firmarToken(sesion, obtenerJwtSecret(req)) })
   })
@@ -131,7 +148,8 @@ export function crearRutasAuth(): Router {
     const sesion: SesionUsuario = {
       idUsuario: usuario.idUsuario,
       nombreUsuario: usuario.nombreUsuario,
-      rolUsuario: usuario.rolUsuario
+      rolUsuario: usuario.rolUsuario,
+      permisos: (usuario.permisos ?? []) as Permiso[]
     }
     res.json({ ok: true, sesion, token: firmarToken(sesion, obtenerJwtSecret(req)) })
   })
@@ -165,7 +183,8 @@ export function crearRutasAuth(): Router {
         idUsuario: usuarios.idUsuario,
         nombreUsuario: usuarios.nombreUsuario,
         correoUsuario: usuarios.correoUsuario,
-        rolUsuario: usuarios.rolUsuario
+        rolUsuario: usuarios.rolUsuario,
+        permisos: usuarios.permisos
       })
       .from(usuarios)
     res.json({ ok: true, usuarios: filas })
@@ -191,7 +210,11 @@ export function crearRutasAuth(): Router {
           correoUsuario: datos.data.correo,
           passwordHash,
           pinHash,
-          rolUsuario: datos.data.rol
+          rolUsuario: datos.data.rol,
+          // Los permisos solo tienen efecto para un cajero (un administrador
+          // ya tiene todo implícitamente vía tienePermiso()), pero se
+          // guardan igual si vinieran marcados por error en el formulario.
+          permisos: datos.data.rol === 'cajero' ? datos.data.permisos : []
         })
         .returning()
     } catch (err) {
@@ -219,7 +242,8 @@ export function crearRutasAuth(): Router {
         idUsuario: usuario.idUsuario,
         nombreUsuario: usuario.nombreUsuario,
         correoUsuario: usuario.correoUsuario,
-        rolUsuario: usuario.rolUsuario
+        rolUsuario: usuario.rolUsuario,
+        permisos: (usuario.permisos ?? []) as Permiso[]
       }
     })
   })

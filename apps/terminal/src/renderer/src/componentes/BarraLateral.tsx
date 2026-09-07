@@ -1,4 +1,4 @@
-import type { SesionUsuario } from '@picaventa/shared'
+import { tienePermiso, type SesionUsuario } from '@picaventa/shared'
 import type { Vista } from '../pantallas/PantallaPrincipal'
 
 interface Props {
@@ -71,13 +71,29 @@ const ITEMS: { vista: Vista; etiqueta: string; icono: keyof typeof ICONOS; soloA
   { vista: 'negocio', etiqueta: 'Ajustes del negocio', icono: 'negocio', soloAdmin: true }
 ]
 
+// El acceso a Catálogo ya no es puramente "solo admin": un cajero con
+// cualquier permiso relacionado con catálogo (cargar inventario, crear o
+// eliminar productos/categorías) también puede entrar, aunque solo vea las
+// partes de esa pantalla para las que tiene permiso.
+const PERMISOS_CATALOGO = [
+  'cargarInventario',
+  'crearProductos',
+  'eliminarProductos',
+  'crearCategorias',
+  'eliminarCategorias'
+] as const
+
 export default function BarraLateral({ sesion, vista, onNavegar }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
+  const puedeVerCatalogo = esAdmin || PERMISOS_CATALOGO.some((permiso) => tienePermiso(sesion, permiso))
 
   return (
     <nav className="group relative z-20 flex w-16 shrink-0 flex-col overflow-hidden bg-onix py-4 transition-[width] duration-200 ease-out hover:w-56">
       <div className="flex flex-col gap-1 px-2">
-        {ITEMS.filter((item) => esAdmin || !item.soloAdmin).map((item) => {
+        {ITEMS.filter((item) => {
+          if (item.vista === 'catalogo') return puedeVerCatalogo
+          return esAdmin || !item.soloAdmin
+        }).map((item) => {
           const Icono = ICONOS[item.icono]!
           const activo = vista === item.vista
           return (

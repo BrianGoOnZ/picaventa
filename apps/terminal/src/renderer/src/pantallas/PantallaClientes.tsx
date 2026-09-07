@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { Cliente, SesionUsuario } from '@picaventa/shared'
+import { tienePermiso, type Cliente, type SesionUsuario } from '@picaventa/shared'
 import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO, colorAvatar } from '../lib/estilos'
 import { confirmarEliminar } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
@@ -12,6 +12,8 @@ const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito
 
 export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
+  const puedeCrear = tienePermiso(sesion, 'crearClientes')
+  const puedeEliminar = tienePermiso(sesion, 'eliminarClientes')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [cargando, setCargando] = useState(true)
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
@@ -111,7 +113,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <h1 className="text-2xl font-bold text-neutral-900">Clientes</h1>
 
-      {(esAdmin || idEditando === null) && (
+      {(esAdmin || (idEditando === null && puedeCrear)) && (
         <form
           ref={formularioRef}
           onSubmit={manejarEnviar}
@@ -230,22 +232,22 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
                         Abonar
                       </button>
                       {esAdmin && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => manejarEditar(cliente)}
-                            className={BOTON_SECUNDARIO}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void manejarEliminar(cliente)}
-                            className={BOTON_PELIGRO}
-                          >
-                            Eliminar
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => manejarEditar(cliente)}
+                          className={BOTON_SECUNDARIO}
+                        >
+                          Editar
+                        </button>
+                      )}
+                      {(esAdmin || puedeEliminar) && (
+                        <button
+                          type="button"
+                          onClick={() => void manejarEliminar(cliente)}
+                          className={BOTON_PELIGRO}
+                        >
+                          Eliminar
+                        </button>
                       )}
                     </div>
                   </div>

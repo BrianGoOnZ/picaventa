@@ -1,5 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { RolUsuario, UsuarioResumen } from '@picaventa/shared'
+import {
+  ETIQUETAS_PERMISOS,
+  PERMISOS_DISPONIBLES,
+  type Permiso,
+  type RolUsuario,
+  type UsuarioResumen
+} from '@picaventa/shared'
 import { useToast } from '../lib/ToastContext'
 
 export default function PantallaGestionUsuarios(): React.JSX.Element {
@@ -10,9 +16,16 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
   const [password, setPassword] = useState('')
   const [pin, setPin] = useState('')
   const [rol, setRol] = useState<RolUsuario>('cajero')
+  const [permisos, setPermisos] = useState<Permiso[]>([])
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const { mostrarToast } = useToast()
+
+  function alternarPermiso(permiso: Permiso): void {
+    setPermisos((actual) =>
+      actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]
+    )
+  }
 
   async function cargarUsuarios(): Promise<void> {
     const resultado = await window.picaventa.listarUsuarios()
@@ -29,7 +42,14 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
     setEnviando(true)
     setError('')
 
-    const resultado = await window.picaventa.crearUsuario({ nombre, correo, password, pin, rol })
+    const resultado = await window.picaventa.crearUsuario({
+      nombre,
+      correo,
+      password,
+      pin,
+      rol,
+      permisos: rol === 'cajero' ? permisos : []
+    })
 
     if (resultado.ok) {
       setNombre('')
@@ -37,6 +57,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
       setPassword('')
       setPin('')
       setRol('cajero')
+      setPermisos([])
       await cargarUsuarios()
       mostrarToast('Usuario registrado')
     } else {
@@ -107,6 +128,26 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
               <option value="administrador">Administrador</option>
             </select>
           </label>
+          {rol === 'cajero' && (
+            <div className="col-span-2 rounded-md border border-borde bg-arena p-3">
+              <p className="mb-2 text-xs font-semibold text-texto-secundario">
+                Permisos del cajero — las ganancias y reportes financieros siempre son exclusivos
+                del administrador, sin importar estos permisos.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {PERMISOS_DISPONIBLES.map((permiso) => (
+                  <label key={permiso} className="flex items-center gap-2 text-sm text-onix">
+                    <input
+                      type="checkbox"
+                      checked={permisos.includes(permiso)}
+                      onChange={() => alternarPermiso(permiso)}
+                    />
+                    {ETIQUETAS_PERMISOS[permiso]}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         <button
@@ -133,10 +174,17 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                 key={usuario.idUsuario}
                 className="flex items-center justify-between rounded-lg border border-borde p-3 text-sm"
               >
-                <span className="text-onix">
-                  {usuario.nombreUsuario} — {usuario.correoUsuario}
-                </span>
-                <span className="rounded-full bg-arena px-2 py-0.5 text-xs capitalize text-texto-secundario">
+                <div className="min-w-0 flex-1">
+                  <p className="text-onix">
+                    {usuario.nombreUsuario} — {usuario.correoUsuario}
+                  </p>
+                  {usuario.rolUsuario === 'cajero' && usuario.permisos.length > 0 && (
+                    <p className="mt-1 text-xs text-texto-secundario">
+                      {usuario.permisos.map((permiso) => ETIQUETAS_PERMISOS[permiso]).join(' · ')}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-full bg-arena px-2 py-0.5 text-xs capitalize text-texto-secundario">
                   {usuario.rolUsuario}
                 </span>
               </li>

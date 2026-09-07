@@ -28,6 +28,7 @@ import {
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
+  type ResultadoHistorialEntradas,
   type ResultadoListaCategorias,
   type ResultadoListaClientes,
   type ResultadoListaProductos,
@@ -68,7 +69,8 @@ import {
   crearProducto,
   editarProducto,
   eliminarProducto,
-  registrarEntradaInventario
+  registrarEntradaInventario,
+  obtenerHistorialEntradas
 } from './catalogo-cliente'
 import {
   crearVenta,
@@ -346,6 +348,12 @@ export function registrarManejadoresIpc(): void {
       return registrarEntradaInventario(config, id, datos)
     }
   )
+
+  ipcMain.handle(CANALES_IPC.catalogoHistorialEntradas, (): Promise<ResultadoHistorialEntradas> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerHistorialEntradas(config)
+  })
 
   ipcMain.handle(
     CANALES_IPC.ventasCrear,

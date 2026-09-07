@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type {
-  Categoria,
-  Cliente,
-  DatosNegocio,
-  Producto,
-  UnidadMedida,
-  VentaDetallada
+import {
+  tienePermiso,
+  type Categoria,
+  type Cliente,
+  type DatosNegocio,
+  type Producto,
+  type SesionUsuario,
+  type UnidadMedida,
+  type VentaDetallada
 } from '@picaventa/shared'
 import PantallaApartados from './PantallaApartados'
 import TarjetaProducto from '../componentes/TarjetaProducto'
@@ -31,7 +33,12 @@ interface TicketPendiente {
   clienteNombre?: string
 }
 
-export default function PantallaVenta(): React.JSX.Element {
+interface Props {
+  sesion: SesionUsuario
+}
+
+export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
+  const puedeCrearClientes = tienePermiso(sesion, 'crearClientes')
   const [vista, setVista] = useState<'venta' | 'apartados'>('venta')
   const [carrito, setCarrito] = useState<LineaCarrito[]>([])
   const [textoBusqueda, setTextoBusqueda] = useState('')
@@ -681,13 +688,15 @@ export default function PantallaVenta(): React.JSX.Element {
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  onClick={() => setMostrarNuevoCliente(true)}
-                  className="self-start rounded-md border border-borde px-3 py-1.5 text-xs"
-                >
-                  + Nuevo cliente
-                </button>
+                {puedeCrearClientes && (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarNuevoCliente(true)}
+                    className="self-start rounded-md border border-borde px-3 py-1.5 text-xs"
+                  >
+                    + Nuevo cliente
+                  </button>
+                )}
               </div>
             </label>
           )}

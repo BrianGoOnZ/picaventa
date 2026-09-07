@@ -23,6 +23,7 @@ import {
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
+  type ResultadoHistorialEntradas,
   type ResultadoListaCategorias,
   type ResultadoListaClientes,
   type ResultadoListaProductos,
@@ -118,6 +119,9 @@ const api = {
     id: number,
     datos: DatosEntradaInventario
   ): Promise<ResultadoProducto> => ipcRenderer.invoke(CANALES_IPC.catalogoRegistrarEntrada, id, datos),
+
+  obtenerHistorialEntradas: (): Promise<ResultadoHistorialEntradas> =>
+    ipcRenderer.invoke(CANALES_IPC.catalogoHistorialEntradas),
 
   crearVenta: (datos: DatosCrearVenta): Promise<ResultadoCrearVenta> =>
     ipcRenderer.invoke(CANALES_IPC.ventasCrear, datos),

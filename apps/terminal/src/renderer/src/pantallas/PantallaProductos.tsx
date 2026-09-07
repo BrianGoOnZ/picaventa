@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { IMAGEN_PRODUCTO_MAX_BYTES, type Categoria, type Producto, type UnidadMedida } from '@picaventa/shared'
+import {
+  IMAGEN_PRODUCTO_MAX_BYTES,
+  tienePermiso,
+  type Categoria,
+  type Producto,
+  type SesionUsuario,
+  type UnidadMedida
+} from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarEliminar } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
+
+interface Props {
+  sesion: SesionUsuario
+}
 
 const FORMULARIO_VACIO = {
   nombreProducto: '',
@@ -15,7 +26,9 @@ const FORMULARIO_VACIO = {
   idCategoria: ''
 }
 
-export default function PantallaProductos(): React.JSX.Element {
+export default function PantallaProductos({ sesion }: Props): React.JSX.Element {
+  const puedeCrear = tienePermiso(sesion, 'crearProductos')
+  const puedeEliminar = tienePermiso(sesion, 'eliminarProductos')
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [cargando, setCargando] = useState(true)
@@ -139,8 +152,12 @@ export default function PantallaProductos(): React.JSX.Element {
     return categorias.find((c) => c.idCategoria === idCategoria)?.nombreCategoria ?? '—'
   }
 
+  const esAdmin = sesion.rolUsuario === 'administrador'
+  const mostrarFormulario = esAdmin || (puedeCrear && idEditando === null)
+
   return (
     <div className="flex flex-col gap-4">
+      {mostrarFormulario && (
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
@@ -283,6 +300,7 @@ export default function PantallaProductos(): React.JSX.Element {
           </button>
         </div>
       </form>
+      )}
 
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
         <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -347,20 +365,24 @@ export default function PantallaProductos(): React.JSX.Element {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => manejarEditar(producto)}
-                      className={BOTON_SECUNDARIO}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void manejarEliminar(producto)}
-                      className={BOTON_PELIGRO}
-                    >
-                      Eliminar
-                    </button>
+                    {esAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => manejarEditar(producto)}
+                        className={BOTON_SECUNDARIO}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {(esAdmin || puedeEliminar) && (
+                      <button
+                        type="button"
+                        onClick={() => void manejarEliminar(producto)}
+                        className={BOTON_PELIGRO}
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </li>
               )
