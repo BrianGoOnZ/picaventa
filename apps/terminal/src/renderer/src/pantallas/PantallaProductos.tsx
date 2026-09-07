@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { Categoria, Producto, UnidadMedida } from '@picaventa/shared'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { IMAGEN_PRODUCTO_MAX_BYTES, type Categoria, type Producto, type UnidadMedida } from '@picaventa/shared'
 
 const FORMULARIO_VACIO = {
   nombreProducto: '',
@@ -19,9 +19,27 @@ export default function PantallaProductos(): React.JSX.Element {
   const [buscar, setBuscar] = useState('')
   const [soloStockBajo, setSoloStockBajo] = useState(false)
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
+  const [imagenDatos, setImagenDatos] = useState<string | undefined>(undefined)
   const [idEditando, setIdEditando] = useState<number | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+
+  function manejarArchivoImagen(evento: ChangeEvent<HTMLInputElement>): void {
+    const archivo = evento.target.files?.[0]
+    if (!archivo) return
+
+    if (archivo.size > IMAGEN_PRODUCTO_MAX_BYTES) {
+      setError('La foto no debe pesar más de 200 KB')
+      return
+    }
+
+    const lector = new FileReader()
+    lector.onload = () => {
+      setImagenDatos(lector.result as string)
+      setError('')
+    }
+    lector.readAsDataURL(archivo)
+  }
 
   async function cargarProductos(): Promise<void> {
     const resultado = await window.picaventa.listarProductos({
@@ -56,12 +74,14 @@ export default function PantallaProductos(): React.JSX.Element {
       stockMinimo: producto.stockMinimo.toString(),
       idCategoria: producto.idCategoria?.toString() ?? ''
     })
+    setImagenDatos(producto.imagenDatos)
     setError('')
   }
 
   function cancelarEdicion(): void {
     setIdEditando(null)
     setFormulario(FORMULARIO_VACIO)
+    setImagenDatos(undefined)
     setError('')
   }
 
@@ -78,7 +98,8 @@ export default function PantallaProductos(): React.JSX.Element {
       unidadMedida: formulario.unidadMedida,
       stockActual: Number(formulario.stockActual),
       stockMinimo: Number(formulario.stockMinimo),
-      idCategoria: formulario.idCategoria ? Number(formulario.idCategoria) : undefined
+      idCategoria: formulario.idCategoria ? Number(formulario.idCategoria) : undefined,
+      imagenDatos
     }
 
     const resultado =
@@ -146,13 +167,35 @@ export default function PantallaProductos(): React.JSX.Element {
                     key={producto.idProducto}
                     className="flex items-center justify-between py-2 text-sm"
                   >
-                    <span className="text-neutral-800">
-                      {producto.nombreProducto}{' '}
-                      <span className="text-neutral-500">({nombreCategoria(producto.idCategoria)})</span>
-                      {' — $'}
-                      {producto.precioVenta.toFixed(2)} —{' '}
-                      <span className={stockBajo ? 'font-semibold text-red-600' : ''}>
-                        stock: {producto.stockActual} {producto.unidadMedida}
+                    <span className="flex items-center gap-2 text-neutral-800">
+                      {producto.imagenDatos ? (
+                        <img
+                          src={producto.imagenDatos}
+                          alt=""
+                          className="h-8 w-8 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-semibold text-white"
+                          style={{
+                            backgroundColor:
+                              categorias.find((c) => c.idCategoria === producto.idCategoria)
+                                ?.colorCategoria ?? '#57534E'
+                          }}
+                        >
+                          {producto.nombreProducto.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span>
+                        {producto.nombreProducto}{' '}
+                        <span className="text-neutral-500">
+                          ({nombreCategoria(producto.idCategoria)})
+                        </span>
+                        {' — $'}
+                        {producto.precioVenta.toFixed(2)} —{' '}
+                        <span className={stockBajo ? 'font-semibold text-red-600' : ''}>
+                          stock: {producto.stockActual} {producto.unidadMedida}
+                        </span>
                       </span>
                     </span>
                     <span className="flex gap-2">
@@ -197,6 +240,24 @@ export default function PantallaProductos(): React.JSX.Element {
             }
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
+        </label>
+        <label className="col-span-2 text-sm font-medium text-neutral-700">
+          Foto (opcional, máx. 200 KB) — si no se sube, se muestra un color por categoría
+          <div className="mt-1 flex items-center gap-3">
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              onChange={manejarArchivoImagen}
+              className="flex-1 text-sm"
+            />
+            {imagenDatos && (
+              <img
+                src={imagenDatos}
+                alt=""
+                className="h-12 w-12 rounded border border-neutral-200 object-cover"
+              />
+            )}
+          </div>
         </label>
         <label className="text-sm font-medium text-neutral-700">
           Código de barras
@@ -300,7 +361,7 @@ export default function PantallaProductos(): React.JSX.Element {
           <button
             type="submit"
             disabled={enviando}
-            className="flex-1 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {enviando ? 'Guardando...' : idEditando === null ? 'Agregar' : 'Guardar'}
           </button>

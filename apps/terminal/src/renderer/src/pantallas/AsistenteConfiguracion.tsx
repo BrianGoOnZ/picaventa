@@ -139,7 +139,7 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
           <button
             type="submit"
             disabled={enviando}
-            className="flex-1 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {enviando ? 'Configurando base de datos...' : 'Configurar y continuar'}
           </button>
@@ -210,7 +210,7 @@ function FormularioTerminal({ onVolver, onConfigurado }: PropsFormulario): React
           <button
             type="submit"
             disabled={enviando || !host}
-            className="flex-1 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {enviando ? 'Probando conexión...' : 'Probar conexión y guardar'}
           </button>

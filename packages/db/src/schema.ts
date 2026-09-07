@@ -25,7 +25,11 @@ const cantidad = (nombre: string) => numeric(nombre, { precision: 12, scale: 3 }
 
 export const categoria = pgTable('categoria', {
   idCategoria: serial('id_categoria').primaryKey(),
-  nombreCategoria: text('nombre_categoria').notNull()
+  nombreCategoria: text('nombre_categoria').notNull(),
+  // Color de fondo para las tarjetas de Punto de Venta cuando el producto
+  // no tiene foto propia — se asigna uno por rotación al crear la
+  // categoría, y el administrador lo puede cambiar después.
+  colorCategoria: text('color_categoria').notNull().default('#7C5B45')
 })
 
 export const producto = pgTable('producto', {
@@ -37,7 +41,10 @@ export const producto = pgTable('producto', {
   unidadMedida: unidadMedidaEnum('unidad_medida').notNull().default('pieza'),
   stockActual: cantidad('stock_actual').notNull().default('0'),
   stockMinimo: cantidad('stock_minimo').notNull().default('0'),
-  idCategoria: integer('id_categoria').references(() => categoria.idCategoria)
+  idCategoria: integer('id_categoria').references(() => categoria.idCategoria),
+  // Igual que el logo del negocio: imagen embebida en base64, no una ruta
+  // de archivo (servidor y cajas no comparten sistema de archivos).
+  imagenDatos: text('imagen_datos')
 })
 
 export const proveedor = pgTable('proveedor', {

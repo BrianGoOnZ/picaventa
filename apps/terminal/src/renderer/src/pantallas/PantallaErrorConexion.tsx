@@ -28,7 +28,7 @@ export default function PantallaErrorConexion({
           <button
             type="button"
             onClick={onReintentar}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white"
           >
             Reintentar
           </button>

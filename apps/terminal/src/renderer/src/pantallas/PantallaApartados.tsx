@@ -58,7 +58,7 @@ export default function PantallaApartados({ onVolver, onReanudar }: Props): Reac
                   <button
                     type="button"
                     onClick={() => void manejarReanudar(v.idVenta)}
-                    className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-md bg-cobre hover:bg-cobre-oscuro px-3 py-1.5 text-xs font-semibold text-white"
                   >
                     Reanudar
                   </button>

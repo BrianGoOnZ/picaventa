@@ -3,12 +3,11 @@ import type { Cliente, SesionUsuario } from '@picaventa/shared'
 
 interface Props {
   sesion: SesionUsuario
-  onVolver: () => void
 }
 
 const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito: '' }
 
-export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX.Element {
+export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [cargando, setCargando] = useState(true)
@@ -100,18 +99,8 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
-      <div className="w-full max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Clientes</h1>
-          <button
-            type="button"
-            onClick={onVolver}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-          >
-            Volver
-          </button>
-        </div>
+    <div className="mx-auto w-full max-w-2xl">
+      <h1 className="mb-6 text-2xl font-bold text-neutral-900">Clientes</h1>
 
         <div className="mb-6 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-4">
           {cargando ? (
@@ -184,7 +173,7 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
                         <button
                           type="submit"
                           disabled={enviando}
-                          className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white"
+                          className="rounded-md bg-cobre hover:bg-cobre-oscuro px-3 py-1 text-xs font-semibold text-white"
                         >
                           Registrar
                         </button>
@@ -271,14 +260,13 @@ export default function PantallaClientes({ sesion, onVolver }: Props): React.JSX
               <button
                 type="submit"
                 disabled={enviando}
-                className="flex-1 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {enviando ? 'Guardando...' : idEditando === null ? 'Agregar' : 'Guardar'}
               </button>
             </div>
           </form>
         )}
-      </div>
     </div>
   )
 }

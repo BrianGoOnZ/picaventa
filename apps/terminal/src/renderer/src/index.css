@@ -1,1 +1,70 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Fraunces';
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/Fraunces-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Libre Franklin';
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/LibreFranklin-Variable.woff2') format('woff2');
+}
+
+@theme {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Libre Franklin', 'Segoe UI', system-ui, sans-serif;
+
+  /* Identidad de marca */
+  --color-onix: #1a1614;
+  --color-cobre: #b4531f;
+  --color-cobre-oscuro: #8f4118;
+  --color-arena: #f5f0e8;
+  --color-tarjeta: #ffffff;
+  --color-texto-secundario: #57534e;
+  --color-borde: #e0d9ce;
+
+  /* Estado (reservados, no decorativos) */
+  --color-exito: #15803d;
+  --color-alerta: #f59e0b;
+  --color-peligro: #dc2626;
+  --color-foco: #2563eb;
+
+  /* El resto de las pantallas usa la escala neutral-* de Tailwind de forma
+     consistente por rol (fondos de página, bordes, texto secundario,
+     encabezados) — se remapea aquí para que toda la app tome la nueva
+     paleta sin reescribir cada clase una por una. */
+  --color-neutral-50: var(--color-arena);
+  --color-neutral-100: var(--color-arena);
+  --color-neutral-200: var(--color-borde);
+  --color-neutral-300: var(--color-borde);
+  --color-neutral-400: var(--color-cobre);
+  --color-neutral-500: var(--color-texto-secundario);
+  --color-neutral-600: var(--color-texto-secundario);
+  --color-neutral-700: var(--color-texto-secundario);
+  --color-neutral-800: var(--color-onix);
+  --color-neutral-900: var(--color-onix);
+}
+
+body {
+  background: var(--color-arena);
+  color: var(--color-onix);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+}

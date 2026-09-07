@@ -1,11 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LOGO_MAX_BYTES } from '@picaventa/shared'
 
-interface Props {
-  onVolver: () => void
-}
-
-export default function PantallaConfiguracionNegocio({ onVolver }: Props): React.JSX.Element {
+export default function PantallaConfiguracionNegocio(): React.JSX.Element {
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [direccionNegocio, setDireccionNegocio] = useState('')
   const [telefonoNegocio, setTelefonoNegocio] = useState('')
@@ -67,26 +63,12 @@ export default function PantallaConfiguracionNegocio({ onVolver }: Props): React
   }
 
   if (cargando) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-100">
-        <p className="text-sm text-neutral-500">Cargando...</p>
-      </div>
-    )
+    return <p className="text-sm text-neutral-500">Cargando...</p>
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
-      <div className="w-full max-w-lg">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Configuración del negocio</h1>
-          <button
-            type="button"
-            onClick={onVolver}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-          >
-            Volver
-          </button>
-        </div>
+    <div className="mx-auto w-full max-w-lg">
+      <h1 className="mb-6 text-2xl font-bold text-neutral-900">Configuración del negocio</h1>
 
         <form
           onSubmit={manejarEnviar}
@@ -141,12 +123,11 @@ export default function PantallaConfiguracionNegocio({ onVolver }: Props): React
           <button
             type="submit"
             disabled={guardando}
-            className="mt-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-2 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {guardando ? 'Guardando...' : 'Guardar'}
           </button>
         </form>
-      </div>
     </div>
   )
 }

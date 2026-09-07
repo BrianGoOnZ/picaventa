@@ -5,6 +5,8 @@ export default function PantallaCategorias(): React.JSX.Element {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [cargando, setCargando] = useState(true)
   const [nombreCategoria, setNombreCategoria] = useState('')
+  const [colorCategoria, setColorCategoria] = useState('#7C5B45')
+  const [colorTocado, setColorTocado] = useState(false)
   const [idEditando, setIdEditando] = useState<number | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
@@ -22,12 +24,15 @@ export default function PantallaCategorias(): React.JSX.Element {
   function manejarEditar(categoria: Categoria): void {
     setIdEditando(categoria.idCategoria)
     setNombreCategoria(categoria.nombreCategoria)
+    setColorCategoria(categoria.colorCategoria)
+    setColorTocado(true)
     setError('')
   }
 
   function cancelarEdicion(): void {
     setIdEditando(null)
     setNombreCategoria('')
+    setColorTocado(false)
     setError('')
   }
 
@@ -36,10 +41,13 @@ export default function PantallaCategorias(): React.JSX.Element {
     setEnviando(true)
     setError('')
 
+    // En una categoría nueva, si el administrador no tocó el selector de
+    // color se deja que el servidor asigne uno por rotación.
+    const datos = { nombreCategoria, colorCategoria: colorTocado ? colorCategoria : undefined }
     const resultado =
       idEditando === null
-        ? await window.picaventa.crearCategoria({ nombreCategoria })
-        : await window.picaventa.editarCategoria(idEditando, { nombreCategoria })
+        ? await window.picaventa.crearCategoria(datos)
+        : await window.picaventa.editarCategoria(idEditando, datos)
 
     if (resultado.ok) {
       cancelarEdicion()
@@ -76,7 +84,13 @@ export default function PantallaCategorias(): React.JSX.Element {
                 key={categoria.idCategoria}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="text-neutral-800">{categoria.nombreCategoria}</span>
+                <span className="flex items-center gap-2 text-neutral-800">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: categoria.colorCategoria }}
+                  />
+                  {categoria.nombreCategoria}
+                </span>
                 <span className="flex gap-2">
                   <button
                     type="button"
@@ -113,6 +127,18 @@ export default function PantallaCategorias(): React.JSX.Element {
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
+        <label className="text-sm font-medium text-neutral-700">
+          Color
+          <input
+            type="color"
+            value={colorCategoria}
+            onChange={(evento) => {
+              setColorCategoria(evento.target.value)
+              setColorTocado(true)
+            }}
+            className="mt-1 block h-9 w-12 rounded-md border border-neutral-300"
+          />
+        </label>
         {idEditando !== null && (
           <button
             type="button"
@@ -125,7 +151,7 @@ export default function PantallaCategorias(): React.JSX.Element {
         <button
           type="submit"
           disabled={enviando}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {idEditando === null ? 'Agregar' : 'Guardar'}
         </button>

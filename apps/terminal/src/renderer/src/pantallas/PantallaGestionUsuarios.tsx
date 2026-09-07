@@ -1,11 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { RolUsuario, UsuarioResumen } from '@picaventa/shared'
 
-interface Props {
-  onVolver: () => void
-}
-
-export default function PantallaGestionUsuarios({ onVolver }: Props): React.JSX.Element {
+export default function PantallaGestionUsuarios(): React.JSX.Element {
   const [usuarios, setUsuarios] = useState<UsuarioResumen[]>([])
   const [cargando, setCargando] = useState(true)
   const [nombre, setNombre] = useState('')
@@ -47,20 +43,10 @@ export default function PantallaGestionUsuarios({ onVolver }: Props): React.JSX.
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
-      <div className="w-full max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Gestionar usuarios</h1>
-          <button
-            type="button"
-            onClick={onVolver}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-          >
-            Volver
-          </button>
-        </div>
+    <div className="mx-auto w-full max-w-2xl">
+      <h1 className="mb-6 text-2xl font-bold text-neutral-900">Gestionar usuarios</h1>
 
-        <div className="mb-6 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="mb-6 rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">Usuarios registrados</h2>
           {cargando ? (
             <p className="text-sm text-neutral-500">Cargando...</p>
@@ -151,12 +137,11 @@ export default function PantallaGestionUsuarios({ onVolver }: Props): React.JSX.
           <button
             type="submit"
             disabled={enviando || pin.length !== 4}
-            className="mt-4 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-4 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {enviando ? 'Creando...' : 'Registrar usuario'}
           </button>
         </form>
-      </div>
     </div>
   )
 }

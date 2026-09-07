@@ -48,7 +48,7 @@ export default function PantallaBloqueo({ nombreUsuario, onDesbloqueado }: Props
           <button
             type="submit"
             disabled={enviando || pin.length !== 4}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {enviando ? 'Verificando...' : 'Desbloquear'}
           </button>

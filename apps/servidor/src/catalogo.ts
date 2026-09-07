@@ -1,7 +1,12 @@
 import { Router, type Request } from 'express'
-import { eq, lte, ilike, and, type SQL } from 'drizzle-orm'
+import { eq, lte, ilike, and, count, type SQL } from 'drizzle-orm'
 import { categoria, producto, type crearConexion } from '@picaventa/db'
-import { datosCategoriaSchema, datosProductoSchema, type Producto } from '@picaventa/shared'
+import {
+  datosCategoriaSchema,
+  datosProductoSchema,
+  PALETA_COLORES_CATEGORIA,
+  type Producto
+} from '@picaventa/shared'
 import { verificarJwt, requiereAdministrador } from './auth.js'
 
 type Db = ReturnType<typeof crearConexion>
@@ -25,7 +30,8 @@ function filaAProducto(fila: typeof producto.$inferSelect): Producto {
     unidadMedida: fila.unidadMedida,
     stockActual: Number(fila.stockActual),
     stockMinimo: Number(fila.stockMinimo),
-    idCategoria: fila.idCategoria ?? undefined
+    idCategoria: fila.idCategoria ?? undefined,
+    imagenDatos: fila.imagenDatos ?? undefined
   }
 }
 
@@ -48,7 +54,16 @@ export function crearRutasCatalogo(): Router {
     }
 
     const db = obtenerDb(req)
-    const [fila] = await db.insert(categoria).values(datos.data).returning()
+    let colorCategoria = datos.data.colorCategoria
+    if (!colorCategoria) {
+      const [fila] = await db.select({ total: count() }).from(categoria)
+      colorCategoria = PALETA_COLORES_CATEGORIA[(fila?.total ?? 0) % PALETA_COLORES_CATEGORIA.length]
+    }
+
+    const [fila] = await db
+      .insert(categoria)
+      .values({ nombreCategoria: datos.data.nombreCategoria, colorCategoria })
+      .returning()
     if (!fila) {
       res.status(500).json({ ok: false, error: 'No se pudo crear la categoría' })
       return
@@ -143,7 +158,8 @@ export function crearRutasCatalogo(): Router {
           unidadMedida: datos.data.unidadMedida,
           stockActual: datos.data.stockActual.toString(),
           stockMinimo: datos.data.stockMinimo.toString(),
-          idCategoria: datos.data.idCategoria
+          idCategoria: datos.data.idCategoria,
+          imagenDatos: datos.data.imagenDatos
         })
         .returning()
 
@@ -182,7 +198,8 @@ export function crearRutasCatalogo(): Router {
           unidadMedida: datos.data.unidadMedida,
           stockActual: datos.data.stockActual.toString(),
           stockMinimo: datos.data.stockMinimo.toString(),
-          idCategoria: datos.data.idCategoria
+          idCategoria: datos.data.idCategoria,
+          imagenDatos: datos.data.imagenDatos
         })
         .where(eq(producto.idProducto, id))
         .returning()

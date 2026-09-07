@@ -4,11 +4,10 @@ import PantallaReportes from './PantallaReportes'
 
 interface Props {
   sesion: SesionUsuario
-  onVolver: () => void
   onCerrarSesion: () => void
 }
 
-export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props): React.JSX.Element {
+export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
   const [tab, setTab] = useState<'corte' | 'reportes'>('corte')
 
   // Retiro/gasto
@@ -68,7 +67,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
 
   if (resumen) {
     return (
-      <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-onix/80 p-8">
         <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6">
           <h1 className="mb-4 text-xl font-bold text-neutral-900">Resumen del turno</h1>
           <dl className="space-y-1 text-sm text-neutral-700">
@@ -120,7 +119,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
           <button
             type="button"
             onClick={onCerrarSesion}
-            className="mt-4 w-full rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+            className="mt-4 w-full rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white"
           >
             Entendido, cerrar sesión
           </button>
@@ -130,18 +129,8 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
   }
 
   return (
-    <div className="flex h-screen justify-center overflow-y-auto bg-neutral-100 p-8">
-      <div className="w-full max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Corte de caja</h1>
-          <button
-            type="button"
-            onClick={onVolver}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-          >
-            Volver
-          </button>
-        </div>
+    <div className="mx-auto w-full max-w-2xl">
+      <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
         {sesion.rolUsuario === 'administrador' && (
           <div className="mb-4 flex gap-2">
@@ -149,7 +138,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
               type="button"
               onClick={() => setTab('corte')}
               className={`rounded-md px-4 py-2 text-sm ${
-                tab === 'corte' ? 'bg-neutral-900 text-white' : 'border border-neutral-300'
+                tab === 'corte' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
               }`}
             >
               Corte de caja
@@ -158,7 +147,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
               type="button"
               onClick={() => setTab('reportes')}
               className={`rounded-md px-4 py-2 text-sm ${
-                tab === 'reportes' ? 'bg-neutral-900 text-white' : 'border border-neutral-300'
+                tab === 'reportes' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
               }`}
             >
               Reportes
@@ -238,7 +227,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
               <button
                 type="submit"
                 disabled={enviandoMovimiento || pinMovimiento.length !== 4}
-                className="mt-3 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="mt-3 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {enviandoMovimiento ? 'Registrando...' : 'Registrar'}
               </button>
@@ -272,7 +261,7 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
                   <button
                     type="submit"
                     disabled={enviandoCierre}
-                    className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    className="rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     {enviandoCierre ? 'Generando...' : 'Generar corte y cerrar sesión'}
                   </button>
@@ -282,7 +271,6 @@ export default function PantallaCaja({ sesion, onVolver, onCerrarSesion }: Props
             </div>
           </div>
         )}
-      </div>
     </div>
   )
 }
