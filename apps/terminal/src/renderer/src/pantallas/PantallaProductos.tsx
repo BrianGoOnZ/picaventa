@@ -8,8 +8,22 @@ import {
   type UnidadMedida
 } from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
-import { confirmarEliminar } from '../lib/confirmar'
+import { confirmarEliminar, confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
+import {
+  descargarPlantillaProductos,
+  exportarProductosAExcel,
+  parsearProductosDesdeExcel,
+  validarFilaProducto,
+  type FilaProductoValidada
+} from '../lib/excelProductos'
+
+interface ResultadoImportacion {
+  fila: number
+  nombreProducto: string
+  ok: boolean
+  mensaje: string
+}
 
 interface Props {
   sesion: SesionUsuario
@@ -41,6 +55,13 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [error, setError] = useState('')
   const { mostrarToast } = useToast()
   const formularioRef = useRef<HTMLFormElement>(null)
+
+  const [exportando, setExportando] = useState(false)
+  const [leyendoExcel, setLeyendoExcel] = useState(false)
+  const [filasParaImportar, setFilasParaImportar] = useState<FilaProductoValidada[]>([])
+  const [importando, setImportando] = useState(false)
+  const [resultadosImportacion, setResultadosImportacion] = useState<ResultadoImportacion[]>([])
+  const inputExcelRef = useRef<HTMLInputElement>(null)
 
   function manejarArchivoImagen(evento: ChangeEvent<HTMLInputElement>): void {
     const archivo = evento.target.files?.[0]
@@ -152,11 +173,241 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
     return categorias.find((c) => c.idCategoria === idCategoria)?.nombreCategoria ?? '—'
   }
 
+  async function manejarExportar(): Promise<void> {
+    setExportando(true)
+    // Se exporta el catálogo completo, sin importar el filtro/búsqueda activo
+    // en pantalla, para que el análisis no se quede con una lista parcial sin
+    // que el administrador se dé cuenta.
+    const resultado = await window.picaventa.listarProductos({})
+    if (resultado.ok) {
+      await exportarProductosAExcel(resultado.productos, categorias)
+      mostrarToast(`${resultado.productos.length} productos exportados`)
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setExportando(false)
+  }
+
+  async function manejarSeleccionArchivoExcel(evento: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!archivo) return
+
+    setLeyendoExcel(true)
+    setResultadosImportacion([])
+    try {
+      const filasExcel = await parsearProductosDesdeExcel(archivo)
+      const productosActuales = await window.picaventa.listarProductos({})
+      const validadas = filasExcel.map((fila) =>
+        validarFilaProducto(fila, categorias, productosActuales.ok ? productosActuales.productos : [])
+      )
+      setFilasParaImportar(validadas)
+      if (validadas.length === 0) {
+        mostrarToast('El archivo no tiene filas con datos', 'error')
+      }
+    } catch (err) {
+      console.error('Error al leer el Excel de importación:', err)
+      mostrarToast('No se pudo leer el archivo — verifica que sea un .xlsx válido', 'error')
+    }
+    setLeyendoExcel(false)
+  }
+
+  function quitarFilaImportar(fila: number): void {
+    setFilasParaImportar((actual) => actual.filter((f) => f.fila !== fila))
+  }
+
+  async function confirmarImportacion(): Promise<void> {
+    const filasValidas = filasParaImportar.filter((f) => !f.error)
+    if (filasValidas.length === 0) return
+
+    const confirmado = await confirmarCritico({
+      titulo: `¿Importar ${filasValidas.length} producto${filasValidas.length === 1 ? '' : 's'}?`,
+      texto: 'Se crearán o actualizarán los productos según lo indicado en cada fila. Revisa la lista antes de continuar.',
+      textoConfirmar: 'Sí, importar',
+      colorConfirmar: '#15803D'
+    })
+    if (!confirmado) return
+
+    setImportando(true)
+    const resultados: ResultadoImportacion[] = []
+
+    for (const fila of filasValidas) {
+      const datos = {
+        nombreProducto: fila.nombreProducto,
+        codigoBarras: fila.codigoBarras,
+        precioCompra: fila.precioCompra,
+        precioVenta: fila.precioVenta,
+        unidadMedida: fila.unidadMedida,
+        stockActual: fila.stockActual,
+        stockMinimo: fila.stockMinimo,
+        idCategoria: fila.idCategoria
+      }
+      const resultado =
+        fila.accion === 'actualizar' && fila.idProductoExistente
+          ? await window.picaventa.editarProducto(fila.idProductoExistente, datos)
+          : await window.picaventa.crearProducto(datos)
+
+      resultados.push({
+        fila: fila.fila,
+        nombreProducto: fila.nombreProducto,
+        ok: resultado.ok,
+        mensaje: resultado.ok
+          ? fila.accion === 'actualizar'
+            ? 'Actualizado'
+            : 'Creado'
+          : resultado.error
+      })
+    }
+
+    setResultadosImportacion(resultados)
+    setFilasParaImportar([])
+    setImportando(false)
+    await cargarProductos()
+
+    const exitosos = resultados.filter((r) => r.ok).length
+    const fallidos = resultados.length - exitosos
+    mostrarToast(
+      fallidos === 0
+        ? `${exitosos} producto${exitosos === 1 ? '' : 's'} importado${exitosos === 1 ? '' : 's'} correctamente`
+        : `${exitosos} importado${exitosos === 1 ? '' : 's'}, ${fallidos} con error`,
+      fallidos === 0 ? 'exito' : 'error'
+    )
+  }
+
   const esAdmin = sesion.rolUsuario === 'administrador'
   const mostrarFormulario = esAdmin || (puedeCrear && idEditando === null)
 
   return (
     <div className="flex flex-col gap-4">
+      {esAdmin && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-1 text-sm font-semibold text-texto-secundario">Excel del catálogo</h2>
+          <p className="mb-3 text-xs text-texto-secundario">
+            Exporta o carga muchos productos a la vez sin tener que capturarlos uno por uno. Esta
+            función es exclusiva de administrador, ya que el archivo incluye precio de compra y de
+            venta juntos.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void descargarPlantillaProductos()}
+              className={BOTON_SECUNDARIO}
+            >
+              Descargar plantilla
+            </button>
+            <button
+              type="button"
+              onClick={() => void manejarExportar()}
+              disabled={exportando}
+              className={BOTON_SECUNDARIO}
+            >
+              {exportando ? 'Exportando...' : 'Exportar a Excel'}
+            </button>
+            <button
+              type="button"
+              onClick={() => inputExcelRef.current?.click()}
+              disabled={leyendoExcel}
+              className={BOTON_SECUNDARIO}
+            >
+              {leyendoExcel ? 'Leyendo archivo...' : 'Importar desde Excel'}
+            </button>
+            <input
+              ref={inputExcelRef}
+              type="file"
+              accept=".xlsx"
+              onChange={(evento) => void manejarSeleccionArchivoExcel(evento)}
+              className="hidden"
+            />
+          </div>
+        </div>
+      )}
+
+      {filasParaImportar.length > 0 && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-texto-secundario">
+              Revisar antes de importar ({filasParaImportar.length})
+            </h2>
+            <button
+              type="button"
+              onClick={() => void confirmarImportacion()}
+              disabled={importando || filasParaImportar.every((f) => !!f.error)}
+              className="rounded-md bg-exito px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {importando ? 'Importando...' : 'Confirmar e importar'}
+            </button>
+          </div>
+          <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+            {filasParaImportar.map((fila) => (
+              <li
+                key={fila.fila}
+                className={`rounded-lg border p-3 text-sm ${fila.error ? 'border-peligro bg-peligro/5' : 'border-borde'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="shrink-0 text-xs text-texto-secundario">Fila {fila.fila}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-onix">
+                    {fila.nombreProducto || '(sin nombre)'}
+                  </span>
+                  {!fila.error && (
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        fila.accion === 'actualizar' ? 'bg-alerta/10 text-alerta' : 'bg-exito/10 text-exito'
+                      }`}
+                    >
+                      {fila.accion === 'actualizar' ? `Actualiza #${fila.idProductoExistente}` : 'Nuevo'}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => quitarFilaImportar(fila.fila)}
+                    className="shrink-0 text-xs text-peligro underline"
+                  >
+                    Quitar
+                  </button>
+                </div>
+                {fila.error && <p className="mt-1 text-xs font-medium text-peligro">{fila.error}</p>}
+                {!fila.error && fila.advertencias.length > 0 && (
+                  <p className="mt-1 text-xs text-alerta">{fila.advertencias.join(' · ')}</p>
+                )}
+                {!fila.error && (
+                  <p className="mt-1 text-xs text-texto-secundario">
+                    ${fila.precioVenta.toFixed(2)} · stock {fila.stockActual} {fila.unidadMedida}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {resultadosImportacion.length > 0 && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+            Resultado de la última importación ({resultadosImportacion.length})
+          </h2>
+          <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+            {resultadosImportacion.map((resultado) => (
+              <li
+                key={resultado.fila}
+                className={`flex items-center justify-between rounded-lg border p-3 text-sm ${
+                  resultado.ok ? 'border-borde' : 'border-peligro bg-peligro/5'
+                }`}
+              >
+                <span className="flex items-center gap-2 text-onix">
+                  <span className={resultado.ok ? 'text-exito' : 'text-peligro'}>
+                    {resultado.ok ? '✓' : '✗'}
+                  </span>
+                  Fila {resultado.fila} — {resultado.nombreProducto}
+                </span>
+                <span className={resultado.ok ? 'text-texto-secundario' : 'font-medium text-peligro'}>
+                  {resultado.mensaje}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {mostrarFormulario && (
       <form
         ref={formularioRef}
