@@ -4,6 +4,7 @@ import {
   type ConfigLocal,
   type CredencialesLogin,
   type DatosAbono,
+  type DatosActualizarPermisos,
   type DatosCategoria,
   type DatosCliente,
   type DatosConfigurarServidor,
@@ -15,6 +16,7 @@ import {
   type DatosNuevoUsuario,
   type DatosProducto,
   type FiltrosProductos,
+  type ResultadoActualizarPermisos,
   type ResultadoAuth,
   type ResultadoCategoria,
   type ResultadoCliente,
@@ -84,6 +86,12 @@ const api = {
 
   crearUsuario: (datos: DatosCrearUsuario): Promise<ResultadoCrearUsuario> =>
     ipcRenderer.invoke(CANALES_IPC.authCrearUsuario, datos),
+
+  actualizarPermisosUsuario: (
+    id: number,
+    datos: DatosActualizarPermisos
+  ): Promise<ResultadoActualizarPermisos> =>
+    ipcRenderer.invoke(CANALES_IPC.authActualizarPermisos, id, datos),
 
   obtenerNegocio: (): Promise<ResultadoObtenerNegocio> =>
     ipcRenderer.invoke(CANALES_IPC.negocioObtener),

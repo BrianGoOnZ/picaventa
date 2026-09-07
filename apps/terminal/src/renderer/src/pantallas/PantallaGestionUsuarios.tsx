@@ -21,10 +21,45 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
   const [error, setError] = useState('')
   const { mostrarToast } = useToast()
 
+  const [idEditandoPermisos, setIdEditandoPermisos] = useState<number | null>(null)
+  const [permisosEdicion, setPermisosEdicion] = useState<Permiso[]>([])
+  const [guardandoPermisos, setGuardandoPermisos] = useState(false)
+
   function alternarPermiso(permiso: Permiso): void {
     setPermisos((actual) =>
       actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]
     )
+  }
+
+  function alternarPermisoEdicion(permiso: Permiso): void {
+    setPermisosEdicion((actual) =>
+      actual.includes(permiso) ? actual.filter((p) => p !== permiso) : [...actual, permiso]
+    )
+  }
+
+  function abrirEdicionPermisos(usuario: UsuarioResumen): void {
+    setIdEditandoPermisos(usuario.idUsuario)
+    setPermisosEdicion(usuario.permisos)
+  }
+
+  function cancelarEdicionPermisos(): void {
+    setIdEditandoPermisos(null)
+    setPermisosEdicion([])
+  }
+
+  async function guardarPermisosEdicion(idUsuario: number): Promise<void> {
+    setGuardandoPermisos(true)
+    const resultado = await window.picaventa.actualizarPermisosUsuario(idUsuario, {
+      permisos: permisosEdicion
+    })
+    if (resultado.ok) {
+      await cargarUsuarios()
+      cancelarEdicionPermisos()
+      mostrarToast('Permisos actualizados — se aplican la próxima vez que ese usuario inicie sesión')
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setGuardandoPermisos(false)
   }
 
   async function cargarUsuarios(): Promise<void> {
@@ -170,23 +205,74 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
         ) : (
           <ul className="flex flex-col gap-2">
             {usuarios.map((usuario) => (
-              <li
-                key={usuario.idUsuario}
-                className="flex items-center justify-between rounded-lg border border-borde p-3 text-sm"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-onix">
-                    {usuario.nombreUsuario} — {usuario.correoUsuario}
-                  </p>
-                  {usuario.rolUsuario === 'cajero' && usuario.permisos.length > 0 && (
-                    <p className="mt-1 text-xs text-texto-secundario">
-                      {usuario.permisos.map((permiso) => ETIQUETAS_PERMISOS[permiso]).join(' · ')}
+              <li key={usuario.idUsuario} className="rounded-lg border border-borde p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-onix">
+                      {usuario.nombreUsuario} — {usuario.correoUsuario}
                     </p>
-                  )}
+                    {usuario.rolUsuario === 'cajero' && usuario.permisos.length > 0 && (
+                      <p className="mt-1 text-xs text-texto-secundario">
+                        {usuario.permisos.map((permiso) => ETIQUETAS_PERMISOS[permiso]).join(' · ')}
+                      </p>
+                    )}
+                    {usuario.rolUsuario === 'cajero' && usuario.permisos.length === 0 && (
+                      <p className="mt-1 text-xs text-texto-secundario">Sin permisos otorgados</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full bg-arena px-2 py-0.5 text-xs capitalize text-texto-secundario">
+                      {usuario.rolUsuario}
+                    </span>
+                    {usuario.rolUsuario === 'cajero' && idEditandoPermisos !== usuario.idUsuario && (
+                      <button
+                        type="button"
+                        onClick={() => abrirEdicionPermisos(usuario)}
+                        className="rounded-md border border-borde px-2.5 py-1 text-xs font-medium text-texto-secundario hover:bg-arena"
+                      >
+                        Editar permisos
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className="shrink-0 rounded-full bg-arena px-2 py-0.5 text-xs capitalize text-texto-secundario">
-                  {usuario.rolUsuario}
-                </span>
+
+                {idEditandoPermisos === usuario.idUsuario && (
+                  <div className="mt-3 rounded-md border border-borde bg-arena p-3">
+                    <p className="mb-2 text-xs font-semibold text-texto-secundario">
+                      Permisos de {usuario.nombreUsuario} — las ganancias y reportes financieros
+                      siguen siendo exclusivos del administrador.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PERMISOS_DISPONIBLES.map((permiso) => (
+                        <label key={permiso} className="flex items-center gap-2 text-sm text-onix">
+                          <input
+                            type="checkbox"
+                            checked={permisosEdicion.includes(permiso)}
+                            onChange={() => alternarPermisoEdicion(permiso)}
+                          />
+                          {ETIQUETAS_PERMISOS[permiso]}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelarEdicionPermisos}
+                        className="rounded-md border border-borde bg-tarjeta px-3 py-1.5 text-xs font-medium text-texto-secundario hover:bg-arena"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={guardandoPermisos}
+                        onClick={() => void guardarPermisosEdicion(usuario.idUsuario)}
+                        className="rounded-md bg-cobre px-3 py-1.5 text-xs font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+                      >
+                        {guardandoPermisos ? 'Guardando...' : 'Guardar permisos'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

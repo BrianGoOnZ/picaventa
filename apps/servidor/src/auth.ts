@@ -5,6 +5,7 @@ import { eq, count } from 'drizzle-orm'
 import { usuarios, type crearConexion } from '@picaventa/db'
 import {
   credencialesLoginSchema,
+  datosActualizarPermisosSchema,
   datosCrearUsuarioSchema,
   datosNuevoUsuarioSchema,
   datosReautenticacionSchema,
@@ -247,6 +248,57 @@ export function crearRutasAuth(): Router {
       }
     })
   })
+
+  // Un administrador puede agregar o quitar permisos de un cajero ya
+  // existente en cualquier momento (no solo al crearlo). No aplica a un
+  // administrador: ya tiene todo implícitamente vía tienePermiso().
+  router.put(
+    '/usuarios/:id/permisos',
+    verificarJwt,
+    requiereAdministrador,
+    async (req, res) => {
+      const datos = datosActualizarPermisosSchema.safeParse(req.body)
+      if (!datos.success) {
+        res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+        return
+      }
+
+      const id = Number(req.params.id)
+      const db = obtenerDb(req)
+      const [existente] = await db.select().from(usuarios).where(eq(usuarios.idUsuario, id))
+
+      if (!existente) {
+        res.status(404).json({ ok: false, error: 'Usuario no encontrado' })
+        return
+      }
+      if (existente.rolUsuario !== 'cajero') {
+        res.status(400).json({ ok: false, error: 'Los permisos solo aplican a usuarios con rol de cajero' })
+        return
+      }
+
+      const [usuario] = await db
+        .update(usuarios)
+        .set({ permisos: datos.data.permisos })
+        .where(eq(usuarios.idUsuario, id))
+        .returning()
+
+      if (!usuario) {
+        res.status(500).json({ ok: false, error: 'No se pudieron actualizar los permisos' })
+        return
+      }
+
+      res.json({
+        ok: true,
+        usuario: {
+          idUsuario: usuario.idUsuario,
+          nombreUsuario: usuario.nombreUsuario,
+          correoUsuario: usuario.correoUsuario,
+          rolUsuario: usuario.rolUsuario,
+          permisos: (usuario.permisos ?? []) as Permiso[]
+        }
+      })
+    }
+  )
 
   return router
 }

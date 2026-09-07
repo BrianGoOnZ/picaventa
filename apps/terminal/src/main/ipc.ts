@@ -9,6 +9,7 @@ import {
   type ConfigLocal,
   type CredencialesLogin,
   type DatosAbono,
+  type DatosActualizarPermisos,
   type DatosCategoria,
   type DatosCliente,
   type DatosCrearUsuario,
@@ -20,6 +21,7 @@ import {
   type DatosNuevoUsuario,
   type DatosProducto,
   type FiltrosProductos,
+  type ResultadoActualizarPermisos,
   type ResultadoAuth,
   type ResultadoCategoria,
   type ResultadoCliente,
@@ -57,7 +59,8 @@ import {
   reautenticar,
   cerrarSesionRemota,
   listarUsuarios,
-  crearUsuario
+  crearUsuario,
+  actualizarPermisosUsuario
 } from './auth-cliente'
 import { obtenerNegocio, guardarNegocio } from './negocio-cliente'
 import {
@@ -253,6 +256,15 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return crearUsuario(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.authActualizarPermisos,
+    (_evento, id: number, datos: DatosActualizarPermisos): Promise<ResultadoActualizarPermisos> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return actualizarPermisosUsuario(config, id, datos)
     }
   )
 

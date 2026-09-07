@@ -64,10 +64,17 @@ export const datosCrearUsuarioSchema = datosNuevoUsuarioSchema.extend({
   permisos: z.array(z.enum(PERMISOS_DISPONIBLES)).default([])
 })
 
+// Para cuando un administrador ajusta los permisos de un cajero ya
+// existente (agregar o quitar), sin tocar el resto de sus datos.
+export const datosActualizarPermisosSchema = z.object({
+  permisos: z.array(z.enum(PERMISOS_DISPONIBLES))
+})
+
 export type CredencialesLogin = z.infer<typeof credencialesLoginSchema>
 export type DatosNuevoUsuario = z.infer<typeof datosNuevoUsuarioSchema>
 export type DatosReautenticacion = z.infer<typeof datosReautenticacionSchema>
 export type DatosCrearUsuario = z.infer<typeof datosCrearUsuarioSchema>
+export type DatosActualizarPermisos = z.infer<typeof datosActualizarPermisosSchema>
 
 export interface RespuestaEstadoAuth {
   hayUsuarios: boolean
@@ -112,5 +119,9 @@ export type ResultadoListaUsuarios =
   | { ok: false; error: string }
 
 export type ResultadoCrearUsuario =
+  | { ok: true; usuario: UsuarioResumen }
+  | { ok: false; error: string }
+
+export type ResultadoActualizarPermisos =
   | { ok: true; usuario: UsuarioResumen }
   | { ok: false; error: string }

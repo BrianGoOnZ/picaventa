@@ -1,9 +1,11 @@
 import type {
   ConfigLocal,
   CredencialesLogin,
+  DatosActualizarPermisos,
   DatosCrearUsuario,
   DatosNuevoUsuario,
   RespuestaEstadoAuth,
+  ResultadoActualizarPermisos,
   ResultadoAuth,
   ResultadoCrearUsuario,
   ResultadoListaUsuarios,
@@ -76,5 +78,19 @@ export function crearUsuario(
   return solicitarJson(
     `${obtenerUrlBase(config)}/auth/usuarios`,
     opcionesJson('POST', datos, token)
+  )
+}
+
+export function actualizarPermisosUsuario(
+  config: ConfigLocal,
+  id: number,
+  datos: DatosActualizarPermisos
+): Promise<ResultadoActualizarPermisos> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(
+    `${obtenerUrlBase(config)}/auth/usuarios/${id}/permisos`,
+    opcionesJson('PUT', datos, token)
   )
 }
