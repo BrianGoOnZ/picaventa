@@ -6,6 +6,7 @@ import type {
   FiltrosProductos,
   ResultadoCategoria,
   ResultadoHistorialEntradas,
+  ResultadoHistorialPrecios,
   ResultadoListaCategorias,
   ResultadoListaProductos,
   ResultadoOperacion,
@@ -122,6 +123,14 @@ export function obtenerHistorialEntradas(config: ConfigLocal): Promise<Resultado
   const token = obtenerToken()
   if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
   return solicitarJson(`${obtenerUrlBase(config)}/productos/entradas/historial`, {
+    headers: encabezadoAuth()
+  })
+}
+
+export function obtenerHistorialPrecios(config: ConfigLocal): Promise<ResultadoHistorialPrecios> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/productos/historial-precios`, {
     headers: encabezadoAuth()
   })
 }

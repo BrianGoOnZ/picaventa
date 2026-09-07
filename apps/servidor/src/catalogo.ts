@@ -1,6 +1,13 @@
 import { Router, type Request } from 'express'
 import { eq, lte, ilike, and, count, desc, sql, type SQL } from 'drizzle-orm'
-import { categoria, producto, entradaInventario, usuarios, type crearConexion } from '@picaventa/db'
+import {
+  categoria,
+  producto,
+  entradaInventario,
+  historicoPrecio,
+  usuarios,
+  type crearConexion
+} from '@picaventa/db'
 import {
   datosCategoriaSchema,
   datosEntradaInventarioSchema,
@@ -194,8 +201,15 @@ export function crearRutasCatalogo(): Router {
 
     const id = Number(req.params.id)
     const db = obtenerDb(req)
+    const payload = (req as RequestAutenticado).usuarioToken as PayloadJwt
 
     try {
+      const [existente] = await db.select().from(producto).where(eq(producto.idProducto, id))
+      if (!existente) {
+        res.status(404).json({ ok: false, error: 'Producto no encontrado' })
+        return
+      }
+
       const [fila] = await db
         .update(producto)
         .set({
@@ -216,6 +230,19 @@ export function crearRutasCatalogo(): Router {
         res.status(404).json({ ok: false, error: 'Producto no encontrado' })
         return
       }
+
+      // RNF-05: trazabilidad de cambios de precio de venta — solo se
+      // registra cuando el precio realmente cambió, no en cada edición.
+      const precioAnterior = Number(existente.precioVenta)
+      if (precioAnterior !== datos.data.precioVenta) {
+        await db.insert(historicoPrecio).values({
+          idProducto: id,
+          precioAnterior: precioAnterior.toString(),
+          precioNuevo: datos.data.precioVenta.toString(),
+          idUsuario: payload.idUsuario
+        })
+      }
+
       res.json({ ok: true, producto: filaAProducto(fila) })
     } catch (err) {
       if (codigoError(err) === '23505') {
@@ -303,6 +330,36 @@ export function crearRutasCatalogo(): Router {
         stockAnterior: Number(fila.stockAnterior),
         stockNuevo: Number(fila.stockNuevo),
         fechaEntrada: fila.fechaEntrada.toISOString()
+      }))
+    })
+  })
+
+  router.get('/productos/historial-precios', verificarJwt, requiereAdministrador, async (req, res) => {
+    const db = obtenerDb(req)
+    const filas = await db
+      .select({
+        idHistoricoPrecio: historicoPrecio.idHistoricoPrecio,
+        idProducto: historicoPrecio.idProducto,
+        nombreProducto: producto.nombreProducto,
+        precioAnterior: historicoPrecio.precioAnterior,
+        precioNuevo: historicoPrecio.precioNuevo,
+        idUsuario: historicoPrecio.idUsuario,
+        nombreUsuario: usuarios.nombreUsuario,
+        fechaCambio: historicoPrecio.fechaCambio
+      })
+      .from(historicoPrecio)
+      .innerJoin(producto, eq(historicoPrecio.idProducto, producto.idProducto))
+      .innerJoin(usuarios, eq(historicoPrecio.idUsuario, usuarios.idUsuario))
+      .orderBy(desc(historicoPrecio.fechaCambio))
+      .limit(300)
+
+    res.json({
+      ok: true,
+      cambios: filas.map((fila) => ({
+        ...fila,
+        precioAnterior: Number(fila.precioAnterior),
+        precioNuevo: Number(fila.precioNuevo),
+        fechaCambio: fila.fechaCambio.toISOString()
       }))
     })
   })

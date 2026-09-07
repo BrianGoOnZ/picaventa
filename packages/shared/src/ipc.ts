@@ -31,6 +31,7 @@ export const CANALES_IPC = {
   catalogoEliminarProducto: 'catalogo:eliminar-producto',
   catalogoRegistrarEntrada: 'catalogo:registrar-entrada',
   catalogoHistorialEntradas: 'catalogo:historial-entradas',
+  catalogoHistorialPrecios: 'catalogo:historial-precios',
 
   ventasCrear: 'ventas:crear',
   ventasListar: 'ventas:listar',

@@ -93,6 +93,24 @@ export type ResultadoHistorialEntradas =
   | { ok: true; entradas: EntradaInventarioHistorial[] }
   | { ok: false; error: string }
 
+// Auditoría de cambios de precio de venta (RNF-05): quién cambió el precio
+// de qué producto, de cuánto a cuánto y cuándo. Solo se registra cuando el
+// precio de venta realmente cambia al editar el producto.
+export interface CambioPrecioHistorial {
+  idHistoricoPrecio: number
+  idProducto: number
+  nombreProducto: string
+  precioAnterior: number
+  precioNuevo: number
+  idUsuario: number
+  nombreUsuario: string
+  fechaCambio: string
+}
+
+export type ResultadoHistorialPrecios =
+  | { ok: true; cambios: CambioPrecioHistorial[] }
+  | { ok: false; error: string }
+
 export type ResultadoOperacion = { ok: true } | { ok: false; error: string }
 
 export type ResultadoListaCategorias =

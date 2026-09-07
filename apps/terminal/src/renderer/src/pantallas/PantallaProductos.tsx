@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import {
   IMAGEN_PRODUCTO_MAX_BYTES,
   tienePermiso,
+  type CambioPrecioHistorial,
   type Categoria,
   type Producto,
   type SesionUsuario,
@@ -62,6 +63,10 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [importando, setImportando] = useState(false)
   const [resultadosImportacion, setResultadosImportacion] = useState<ResultadoImportacion[]>([])
   const inputExcelRef = useRef<HTMLInputElement>(null)
+
+  const [mostrarHistorialPrecios, setMostrarHistorialPrecios] = useState(false)
+  const [historialPrecios, setHistorialPrecios] = useState<CambioPrecioHistorial[]>([])
+  const [cargandoHistorialPrecios, setCargandoHistorialPrecios] = useState(false)
 
   function manejarArchivoImagen(evento: ChangeEvent<HTMLInputElement>): void {
     const archivo = evento.target.files?.[0]
@@ -151,6 +156,10 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
       cancelarEdicion()
       await cargarProductos()
       mostrarToast(creando ? 'Producto agregado' : 'Producto actualizado')
+      if (mostrarHistorialPrecios) {
+        const actualizado = await window.picaventa.obtenerHistorialPrecios()
+        if (actualizado.ok) setHistorialPrecios(actualizado.cambios)
+      }
     } else {
       setError(resultado.error)
     }
@@ -186,6 +195,18 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
       mostrarToast(resultado.error, 'error')
     }
     setExportando(false)
+  }
+
+  async function alternarHistorialPrecios(): Promise<void> {
+    if (mostrarHistorialPrecios) {
+      setMostrarHistorialPrecios(false)
+      return
+    }
+    setMostrarHistorialPrecios(true)
+    setCargandoHistorialPrecios(true)
+    const resultado = await window.picaventa.obtenerHistorialPrecios()
+    if (resultado.ok) setHistorialPrecios(resultado.cambios)
+    setCargandoHistorialPrecios(false)
   }
 
   async function manejarSeleccionArchivoExcel(evento: ChangeEvent<HTMLInputElement>): Promise<void> {
@@ -318,7 +339,58 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
               onChange={(evento) => void manejarSeleccionArchivoExcel(evento)}
               className="hidden"
             />
+            <button
+              type="button"
+              onClick={() => void alternarHistorialPrecios()}
+              className={BOTON_SECUNDARIO}
+            >
+              {mostrarHistorialPrecios ? 'Ocultar historial de precios' : 'Ver historial de precios'}
+            </button>
           </div>
+        </div>
+      )}
+
+      {mostrarHistorialPrecios && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+            Historial de cambios de precio — quién editó qué (RNF-05)
+          </h2>
+          {cargandoHistorialPrecios ? (
+            <p className="text-sm text-texto-secundario">Cargando...</p>
+          ) : historialPrecios.length === 0 ? (
+            <p className="text-sm text-texto-secundario">Aún no se ha registrado ningún cambio de precio.</p>
+          ) : (
+            <div className="max-h-96 overflow-y-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-xs text-texto-secundario">
+                    <th className="pb-2 pr-3 font-medium">Fecha</th>
+                    <th className="pb-2 pr-3 font-medium">Producto</th>
+                    <th className="pb-2 pr-3 font-medium">Quién</th>
+                    <th className="pb-2 font-medium">Precio antes → después</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historialPrecios.map((cambio) => (
+                    <tr key={cambio.idHistoricoPrecio} className="border-t border-borde">
+                      <td className="py-2 pr-3 text-texto-secundario">
+                        {new Date(cambio.fechaCambio).toLocaleString('es-MX', {
+                          dateStyle: 'short',
+                          timeStyle: 'short'
+                        })}
+                      </td>
+                      <td className="py-2 pr-3 text-onix">{cambio.nombreProducto}</td>
+                      <td className="py-2 pr-3 text-onix">{cambio.nombreUsuario}</td>
+                      <td className="py-2 text-texto-secundario">
+                        ${cambio.precioAnterior.toFixed(2)} →{' '}
+                        <span className="font-semibold text-onix">${cambio.precioNuevo.toFixed(2)}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
