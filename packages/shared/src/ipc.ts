@@ -32,5 +32,11 @@ export const CANALES_IPC = {
   ventasCrear: 'ventas:crear',
   ventasListar: 'ventas:listar',
   ventasObtener: 'ventas:obtener',
-  ventasCancelarPausada: 'ventas:cancelar-pausada'
+  ventasCancelarPausada: 'ventas:cancelar-pausada',
+
+  clientesListar: 'clientes:listar',
+  clientesCrear: 'clientes:crear',
+  clientesEditar: 'clientes:editar',
+  clientesEliminar: 'clientes:eliminar',
+  clientesRegistrarAbono: 'clientes:registrar-abono'
 } as const

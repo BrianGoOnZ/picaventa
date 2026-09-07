@@ -16,7 +16,14 @@ interface Props {
   total: number
   metodoPago: string
   efectivoRecibido?: number
+  clienteNombre?: string
   onCerrar: () => void
+}
+
+const NOMBRES_METODO_PAGO: Record<string, string> = {
+  efectivo: 'Efectivo',
+  tarjeta: 'Tarjeta',
+  fiado: 'Fiado'
 }
 
 export default function TicketVenta({
@@ -27,6 +34,7 @@ export default function TicketVenta({
   total,
   metodoPago,
   efectivoRecibido,
+  clienteNombre,
   onCerrar
 }: Props): React.JSX.Element {
   const cambio = efectivoRecibido !== undefined ? efectivoRecibido - total : undefined
@@ -74,9 +82,8 @@ export default function TicketVenta({
             <span>TOTAL</span>
             <span>${total.toFixed(2)}</span>
           </div>
-          <p className="mt-1">
-            Método de pago: {metodoPago === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
-          </p>
+          <p className="mt-1">Método de pago: {NOMBRES_METODO_PAGO[metodoPago] ?? metodoPago}</p>
+          {clienteNombre && <p>Cliente: {clienteNombre}</p>}
           {efectivoRecibido !== undefined && (
             <>
               <p>Recibido: ${efectivoRecibido.toFixed(2)}</p>

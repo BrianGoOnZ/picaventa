@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import type { DatosNegocio, Producto, UnidadMedida, VentaDetallada } from '@picaventa/shared'
+import type { Cliente, DatosNegocio, Producto, UnidadMedida, VentaDetallada } from '@picaventa/shared'
 import PantallaApartados from './PantallaApartados'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
 
@@ -19,6 +19,7 @@ interface TicketPendiente {
   total: number
   metodoPago: string
   efectivoRecibido?: number
+  clienteNombre?: string
 }
 
 export default function PantallaVenta(): React.JSX.Element {
@@ -26,8 +27,10 @@ export default function PantallaVenta(): React.JSX.Element {
   const [carrito, setCarrito] = useState<LineaCarrito[]>([])
   const [textoBusqueda, setTextoBusqueda] = useState('')
   const [resultados, setResultados] = useState<Producto[]>([])
-  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta'>('efectivo')
+  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'fiado'>('efectivo')
   const [efectivoRecibido, setEfectivoRecibido] = useState('')
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [idClienteSeleccionado, setIdClienteSeleccionado] = useState<number | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const [negocio, setNegocio] = useState<DatosNegocio | null>(null)
@@ -37,6 +40,9 @@ export default function PantallaVenta(): React.JSX.Element {
     void window.picaventa.obtenerNegocio().then((resultado) => {
       if (resultado.ok) setNegocio(resultado.negocio)
     })
+    void window.picaventa.listarClientes().then((resultado) => {
+      if (resultado.ok) setClientes(resultado.clientes)
+    })
   }, [])
 
   const total = carrito.reduce(
@@ -45,6 +51,17 @@ export default function PantallaVenta(): React.JSX.Element {
   )
   const efectivoNumero = Number(efectivoRecibido) || 0
   const cambio = metodoPago === 'efectivo' ? efectivoNumero - total : undefined
+
+  const clienteSeleccionado =
+    metodoPago === 'fiado'
+      ? (clientes.find((c) => c.idCliente === idClienteSeleccionado) ?? null)
+      : null
+  const clienteYaBloqueado =
+    clienteSeleccionado !== null && clienteSeleccionado.saldoActual > clienteSeleccionado.limiteCredito
+  const clienteExcederiaConEstaVenta =
+    clienteSeleccionado !== null &&
+    !clienteYaBloqueado &&
+    clienteSeleccionado.saldoActual + total > clienteSeleccionado.limiteCredito
 
   function agregarAlCarrito(producto: Producto): void {
     setCarrito((actual) => {
@@ -110,6 +127,7 @@ export default function PantallaVenta(): React.JSX.Element {
     setCarrito([])
     setEfectivoRecibido('')
     setMetodoPago('efectivo')
+    setIdClienteSeleccionado(null)
     setError('')
   }
 
@@ -118,6 +136,16 @@ export default function PantallaVenta(): React.JSX.Element {
     if (metodoPago === 'efectivo' && efectivoNumero < total) {
       setError('El efectivo recibido es menor al total')
       return
+    }
+    if (metodoPago === 'fiado') {
+      if (!idClienteSeleccionado) {
+        setError('Debe seleccionar un cliente para vender a fiado')
+        return
+      }
+      if (clienteYaBloqueado) {
+        setError('Este cliente ya excede su límite de crédito — debe abonar antes de comprar a fiado')
+        return
+      }
     }
 
     setEnviando(true)
@@ -130,7 +158,8 @@ export default function PantallaVenta(): React.JSX.Element {
         descuento: l.descuento
       })),
       metodoPago,
-      estado: 'activa'
+      estado: 'activa',
+      idCliente: metodoPago === 'fiado' ? (idClienteSeleccionado ?? undefined) : undefined
     })
 
     if (resultado.ok) {
@@ -146,7 +175,8 @@ export default function PantallaVenta(): React.JSX.Element {
         })),
         total: resultado.total,
         metodoPago,
-        efectivoRecibido: metodoPago === 'efectivo' ? efectivoNumero : undefined
+        efectivoRecibido: metodoPago === 'efectivo' ? efectivoNumero : undefined,
+        clienteNombre: clienteSeleccionado?.nombreCliente
       })
       limpiarVenta()
     } else {
@@ -157,6 +187,11 @@ export default function PantallaVenta(): React.JSX.Element {
 
   async function manejarPausar(): Promise<void> {
     if (carrito.length === 0) return
+    if (metodoPago === 'fiado' && !idClienteSeleccionado) {
+      setError('Debe seleccionar un cliente para vender a fiado')
+      return
+    }
+
     setEnviando(true)
     setError('')
 
@@ -167,7 +202,8 @@ export default function PantallaVenta(): React.JSX.Element {
         descuento: l.descuento
       })),
       metodoPago,
-      estado: 'pausada'
+      estado: 'pausada',
+      idCliente: metodoPago === 'fiado' ? (idClienteSeleccionado ?? undefined) : undefined
     })
 
     if (resultado.ok) {
@@ -211,6 +247,7 @@ export default function PantallaVenta(): React.JSX.Element {
         total={ticket.total}
         metodoPago={ticket.metodoPago}
         efectivoRecibido={ticket.efectivoRecibido}
+        clienteNombre={ticket.clienteNombre}
         onCerrar={() => setTicket(null)}
       />
     )
@@ -319,16 +356,20 @@ export default function PantallaVenta(): React.JSX.Element {
       </div>
 
       <div className="mt-4 flex items-end justify-between gap-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="flex items-end gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <label className="text-sm font-medium text-neutral-700">
             Método de pago
             <select
               value={metodoPago}
-              onChange={(evento) => setMetodoPago(evento.target.value as 'efectivo' | 'tarjeta')}
+              onChange={(evento) => {
+                setMetodoPago(evento.target.value as 'efectivo' | 'tarjeta' | 'fiado')
+                setIdClienteSeleccionado(null)
+              }}
               className="mt-1 block rounded-md border border-neutral-300 px-3 py-2 text-sm"
             >
               <option value="efectivo">Efectivo</option>
               <option value="tarjeta">Tarjeta</option>
+              <option value="fiado">Fiado</option>
             </select>
           </label>
           {metodoPago === 'efectivo' && (
@@ -349,6 +390,37 @@ export default function PantallaVenta(): React.JSX.Element {
               Cambio: <span className="font-semibold">${cambio >= 0 ? cambio.toFixed(2) : '—'}</span>
             </p>
           )}
+          {metodoPago === 'fiado' && (
+            <label className="text-sm font-medium text-neutral-700">
+              Cliente
+              <select
+                value={idClienteSeleccionado ?? ''}
+                onChange={(evento) =>
+                  setIdClienteSeleccionado(evento.target.value ? Number(evento.target.value) : null)
+                }
+                className="mt-1 block w-56 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              >
+                <option value="">Selecciona un cliente...</option>
+                {clientes.map((c) => (
+                  <option key={c.idCliente} value={c.idCliente}>
+                    {c.nombreCliente} (debe ${c.saldoActual.toFixed(2)} de ${c.limiteCredito.toFixed(2)})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {clienteYaBloqueado && (
+            <p className="max-w-xs pb-2 text-sm font-semibold text-red-600">
+              Este cliente ya excede su límite de crédito — debe abonar antes de poder comprar a
+              fiado de nuevo.
+            </p>
+          )}
+          {clienteExcederiaConEstaVenta && (
+            <p className="max-w-xs pb-2 text-sm text-amber-700">
+              Esta venta hará que el cliente exceda su límite. Se le permite esta vez, pero no
+              podrá volver a comprar a fiado hasta que pague.
+            </p>
+          )}
         </div>
 
         <div className="text-right">
@@ -357,7 +429,11 @@ export default function PantallaVenta(): React.JSX.Element {
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              disabled={enviando || carrito.length === 0}
+              disabled={
+                enviando ||
+                carrito.length === 0 ||
+                (metodoPago === 'fiado' && (!idClienteSeleccionado || clienteYaBloqueado))
+              }
               onClick={() => void manejarPausar()}
               className="rounded-md border border-neutral-300 px-4 py-2 text-sm disabled:opacity-50"
             >
@@ -365,7 +441,11 @@ export default function PantallaVenta(): React.JSX.Element {
             </button>
             <button
               type="button"
-              disabled={enviando || carrito.length === 0}
+              disabled={
+                enviando ||
+                carrito.length === 0 ||
+                (metodoPago === 'fiado' && (!idClienteSeleccionado || clienteYaBloqueado))
+              }
               onClick={() => void manejarCobrar()}
               className="rounded-md bg-neutral-900 px-6 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >

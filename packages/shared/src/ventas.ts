@@ -8,11 +8,17 @@ export const lineaCarritoSchema = z.object({
 })
 export type LineaCarrito = z.infer<typeof lineaCarritoSchema>
 
-export const datosCrearVentaSchema = z.object({
-  lineas: z.array(lineaCarritoSchema).min(1),
-  metodoPago: z.string().min(1),
-  estado: z.enum(['activa', 'pausada']).default('activa')
-})
+export const datosCrearVentaSchema = z
+  .object({
+    lineas: z.array(lineaCarritoSchema).min(1),
+    metodoPago: z.string().min(1),
+    estado: z.enum(['activa', 'pausada']).default('activa'),
+    idCliente: z.number().int().positive().optional()
+  })
+  .refine((datos) => datos.metodoPago !== 'fiado' || datos.idCliente !== undefined, {
+    message: 'Debe seleccionar un cliente para vender a fiado',
+    path: ['idCliente']
+  })
 export type DatosCrearVenta = z.infer<typeof datosCrearVentaSchema>
 
 export type EstadoVenta = 'activa' | 'pausada' | 'cancelada'
@@ -24,6 +30,7 @@ export interface Venta {
   total: number
   metodoPago: string
   estadoVenta: EstadoVenta
+  idCliente?: number
   idUsuario: number
 }
 

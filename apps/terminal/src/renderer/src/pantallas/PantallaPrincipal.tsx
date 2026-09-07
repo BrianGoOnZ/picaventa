@@ -4,6 +4,7 @@ import PantallaGestionUsuarios from './PantallaGestionUsuarios'
 import PantallaConfiguracionNegocio from './PantallaConfiguracionNegocio'
 import PantallaCatalogo from './PantallaCatalogo'
 import PantallaVenta from './PantallaVenta'
+import PantallaClientes from './PantallaClientes'
 
 interface Props {
   config: ConfigLocal
@@ -16,9 +17,9 @@ export default function PantallaPrincipal({
   sesion,
   onCerrarSesion
 }: Props): React.JSX.Element {
-  const [vista, setVista] = useState<'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta'>(
-    'inicio'
-  )
+  const [vista, setVista] = useState<
+    'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes'
+  >('inicio')
   const [productosStockBajo, setProductosStockBajo] = useState(0)
 
   useEffect(() => {
@@ -39,6 +40,10 @@ export default function PantallaPrincipal({
 
   if (vista === 'catalogo') {
     return <PantallaCatalogo onVolver={() => setVista('inicio')} />
+  }
+
+  if (vista === 'clientes') {
+    return <PantallaClientes sesion={sesion} onVolver={() => setVista('inicio')} />
   }
 
   if (vista === 'venta') {
@@ -100,6 +105,13 @@ export default function PantallaPrincipal({
           className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
         >
           Punto de venta
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista('clientes')}
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
+        >
+          Clientes
         </button>
         {sesion.rolUsuario === 'administrador' && (
           <>

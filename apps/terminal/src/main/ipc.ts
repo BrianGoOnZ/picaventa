@@ -8,7 +8,9 @@ import {
   probarConexionServidorRemoto,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosAbono,
   type DatosCategoria,
+  type DatosCliente,
   type DatosCrearUsuario,
   type DatosConfigurarServidor,
   type DatosCrearVenta,
@@ -18,11 +20,13 @@ import {
   type FiltrosProductos,
   type ResultadoAuth,
   type ResultadoCategoria,
+  type ResultadoCliente,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
   type ResultadoListaCategorias,
+  type ResultadoListaClientes,
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
@@ -63,6 +67,13 @@ import {
   obtenerVenta,
   cancelarVentaPausada
 } from './ventas-cliente'
+import {
+  listarClientes,
+  crearCliente,
+  editarCliente,
+  eliminarCliente,
+  registrarAbono
+} from './clientes-cliente'
 import { obtenerSesion } from './sesion'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -342,6 +353,48 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return cancelarVentaPausada(config, id)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.clientesListar, (): Promise<ResultadoListaClientes> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarClientes(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.clientesCrear,
+    (_evento, datos: DatosCliente): Promise<ResultadoCliente> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearCliente(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.clientesEditar,
+    (_evento, id: number, datos: DatosCliente): Promise<ResultadoCliente> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return editarCliente(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.clientesEliminar,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return eliminarCliente(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.clientesRegistrarAbono,
+    (_evento, id: number, datos: DatosAbono): Promise<ResultadoCliente> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return registrarAbono(config, id, datos)
     }
   )
 }

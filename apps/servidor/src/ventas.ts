@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express'
 import { eq, inArray } from 'drizzle-orm'
-import { venta, contiene, producto, type crearConexion } from '@picaventa/db'
+import { venta, contiene, producto, cliente, type crearConexion } from '@picaventa/db'
 import { datosCrearVentaSchema, type EstadoVenta, type PayloadJwt } from '@picaventa/shared'
 import { verificarJwt } from './auth.js'
 
@@ -19,6 +19,7 @@ function filaAVenta(fila: typeof venta.$inferSelect) {
     total: Number(fila.total),
     metodoPago: fila.metodoPago,
     estadoVenta: fila.estadoVenta,
+    idCliente: fila.idCliente ?? undefined,
     idUsuario: fila.idUsuario
   }
 }
@@ -104,6 +105,21 @@ export function crearRutasVentas(): Router {
           total += Number(p.precioVenta) * linea.cantidad - linea.descuento
         }
 
+        let clienteFiado: typeof cliente.$inferSelect | undefined
+        if (datos.data.metodoPago === 'fiado') {
+          const idCliente = datos.data.idCliente as number
+          const [fila] = await tx.select().from(cliente).where(eq(cliente.idCliente, idCliente))
+          if (!fila) throw new Error('Cliente no encontrado')
+          // Se permite exceder el límite una sola vez: si YA está sobre su
+          // límite de una venta anterior, se bloquea hasta que regularice.
+          if (Number(fila.saldoActual) > Number(fila.limiteCredito)) {
+            throw new Error(
+              `Este cliente ya excede su límite de crédito ($${Number(fila.saldoActual).toFixed(2)} de $${Number(fila.limiteCredito).toFixed(2)}) — debe abonar antes de poder comprar a fiado de nuevo.`
+            )
+          }
+          clienteFiado = fila
+        }
+
         const [nuevaVenta] = await tx
           .insert(venta)
           .values({
@@ -111,6 +127,7 @@ export function crearRutasVentas(): Router {
             total: total.toString(),
             metodoPago: datos.data.metodoPago,
             estadoVenta: datos.data.estado,
+            idCliente: datos.data.idCliente,
             idUsuario: payload.idUsuario
           })
           .returning()
@@ -141,6 +158,13 @@ export function crearRutasVentas(): Router {
               .set({ stockActual: (Number(p.stockActual) - linea.cantidad).toString() })
               .where(eq(producto.idProducto, linea.idProducto))
           }
+        }
+
+        if (datos.data.estado === 'activa' && clienteFiado) {
+          await tx
+            .update(cliente)
+            .set({ saldoActual: (Number(clienteFiado.saldoActual) + total).toString() })
+            .where(eq(cliente.idCliente, clienteFiado.idCliente))
         }
 
         return { idVenta: nuevaVenta.idVenta, folio, total }

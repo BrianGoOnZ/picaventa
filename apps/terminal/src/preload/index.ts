@@ -3,7 +3,9 @@ import {
   CANALES_IPC,
   type ConfigLocal,
   type CredencialesLogin,
+  type DatosAbono,
   type DatosCategoria,
+  type DatosCliente,
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
@@ -13,11 +15,13 @@ import {
   type FiltrosProductos,
   type ResultadoAuth,
   type ResultadoCategoria,
+  type ResultadoCliente,
   type ResultadoConexion,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
   type ResultadoListaCategorias,
+  type ResultadoListaClientes,
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
@@ -112,7 +116,22 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.ventasObtener, id),
 
   cancelarVentaPausada: (id: number): Promise<ResultadoOperacion> =>
-    ipcRenderer.invoke(CANALES_IPC.ventasCancelarPausada, id)
+    ipcRenderer.invoke(CANALES_IPC.ventasCancelarPausada, id),
+
+  listarClientes: (): Promise<ResultadoListaClientes> =>
+    ipcRenderer.invoke(CANALES_IPC.clientesListar),
+
+  crearCliente: (datos: DatosCliente): Promise<ResultadoCliente> =>
+    ipcRenderer.invoke(CANALES_IPC.clientesCrear, datos),
+
+  editarCliente: (id: number, datos: DatosCliente): Promise<ResultadoCliente> =>
+    ipcRenderer.invoke(CANALES_IPC.clientesEditar, id, datos),
+
+  eliminarCliente: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.clientesEliminar, id),
+
+  registrarAbono: (id: number, datos: DatosAbono): Promise<ResultadoCliente> =>
+    ipcRenderer.invoke(CANALES_IPC.clientesRegistrarAbono, id, datos)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)
