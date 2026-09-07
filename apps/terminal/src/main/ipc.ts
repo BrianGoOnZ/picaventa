@@ -29,6 +29,7 @@ import {
   type ResultadoCorteCaja,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
+  type ResultadoEstadoRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
   type ResultadoHistorialPrecios,
@@ -43,6 +44,7 @@ import {
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
+  type ResultadoRespaldoManual,
   type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
   type ResultadoVentasPorCajero,
@@ -63,7 +65,7 @@ import {
   crearUsuario,
   actualizarPermisosUsuario
 } from './auth-cliente'
-import { obtenerNegocio, guardarNegocio } from './negocio-cliente'
+import { obtenerNegocio, guardarNegocio, obtenerEstadoRespaldo, respaldarAhora } from './negocio-cliente'
 import {
   listarCategorias,
   crearCategoria,
@@ -284,6 +286,18 @@ export function registrarManejadoresIpc(): void {
       return guardarNegocio(config, datos)
     }
   )
+
+  ipcMain.handle(CANALES_IPC.negocioEstadoRespaldo, (): Promise<ResultadoEstadoRespaldo> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerEstadoRespaldo(config)
+  })
+
+  ipcMain.handle(CANALES_IPC.negocioRespaldarAhora, (): Promise<ResultadoRespaldoManual> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return respaldarAhora(config)
+  })
 
   ipcMain.handle(CANALES_IPC.catalogoListarCategorias, (): Promise<ResultadoListaCategorias> => {
     const config = obtenerConfig()

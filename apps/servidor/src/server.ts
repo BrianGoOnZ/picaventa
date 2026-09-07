@@ -9,11 +9,16 @@ import { crearRutasCatalogo } from './catalogo.js'
 import { crearRutasVentas } from './ventas.js'
 import { crearRutasClientes } from './clientes.js'
 import { crearRutasCaja } from './caja.js'
+import { crearRutasRespaldo, programarRespaldoDiario, type ProgramadorRespaldo } from './respaldo.js'
 
 export interface OpcionesServidor {
   postgresUrl: string
   jwtSecret: string
   puerto?: number
+  // Si se pasa, se activa el respaldo automático diario (RNF-06) — solo
+  // tiene sentido en la instancia que corre con rol de Servidor, ya que es
+  // la única con la base de datos completa.
+  carpetaRespaldos?: string
 }
 
 export interface ServidorActivo {
@@ -32,6 +37,12 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
   // base64 embebido en el body JSON
   app.use(express.json({ limit: '2mb' }))
 
+  let programadorRespaldo: ProgramadorRespaldo | undefined
+  if (opciones.carpetaRespaldos) {
+    programadorRespaldo = programarRespaldoDiario(opciones.postgresUrl, opciones.carpetaRespaldos)
+    app.locals.programadorRespaldo = programadorRespaldo
+  }
+
   const httpServer = createServer(app)
   const io = new ServidorSocket(httpServer)
 
@@ -41,6 +52,7 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
 
   app.use('/auth', crearRutasAuth())
   app.use('/negocio', crearRutasNegocio())
+  app.use('/negocio/respaldo', crearRutasRespaldo())
   app.use(crearRutasCatalogo())
   app.use('/ventas', crearRutasVentas())
   app.use('/clientes', crearRutasClientes())
@@ -51,6 +63,7 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
   return {
     puerto,
     cerrar: async () => {
+      programadorRespaldo?.detener()
       io.close()
       await new Promise<void>((resolve, reject) => {
         httpServer.close((err) => (err ? reject(err) : resolve()))

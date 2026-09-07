@@ -68,7 +68,7 @@ export default function PantallaPrincipal({
 
         <main className="min-h-0 flex-1 overflow-y-auto p-6">
           {vista === 'usuarios' && <PantallaGestionUsuarios />}
-          {vista === 'negocio' && <PantallaConfiguracionNegocio />}
+          {vista === 'negocio' && <PantallaConfiguracionNegocio config={config} />}
           {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}
           {vista === 'clientes' && <PantallaClientes sesion={sesion} />}
           {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}

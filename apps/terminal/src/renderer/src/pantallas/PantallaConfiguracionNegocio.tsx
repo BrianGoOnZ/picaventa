@@ -1,8 +1,12 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { LOGO_MAX_BYTES } from '@picaventa/shared'
+import { LOGO_MAX_BYTES, type ConfigLocal, type EstadoRespaldo } from '@picaventa/shared'
 import { useToast } from '../lib/ToastContext'
 
-export default function PantallaConfiguracionNegocio(): React.JSX.Element {
+interface Props {
+  config: ConfigLocal
+}
+
+export default function PantallaConfiguracionNegocio({ config }: Props): React.JSX.Element {
   const [nombreNegocio, setNombreNegocio] = useState('')
   const [direccionNegocio, setDireccionNegocio] = useState('')
   const [telefonoNegocio, setTelefonoNegocio] = useState('')
@@ -11,6 +15,30 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const { mostrarToast } = useToast()
+
+  const [estadoRespaldo, setEstadoRespaldo] = useState<EstadoRespaldo | null>(null)
+  const [respaldoDisponible, setRespaldoDisponible] = useState(false)
+  const [respaldando, setRespaldando] = useState(false)
+
+  async function cargarEstadoRespaldo(): Promise<void> {
+    const resultado = await window.picaventa.obtenerEstadoRespaldo()
+    if (resultado.ok) {
+      setRespaldoDisponible(resultado.disponible)
+      setEstadoRespaldo(resultado.ultimoEstado)
+    }
+  }
+
+  async function manejarRespaldarAhora(): Promise<void> {
+    setRespaldando(true)
+    const resultado = await window.picaventa.respaldarAhora()
+    if (resultado.ok) {
+      setEstadoRespaldo(resultado.estado)
+      mostrarToast(resultado.estado.ok ? 'Respaldo generado correctamente' : resultado.estado.error ?? 'Error al respaldar', resultado.estado.ok ? 'exito' : 'error')
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setRespaldando(false)
+  }
 
   useEffect(() => {
     void (async () => {
@@ -23,6 +51,11 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
       }
       setCargando(false)
     })()
+
+    if (config.modo === 'servidor') {
+      void cargarEstadoRespaldo()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function manejarArchivo(evento: ChangeEvent<HTMLInputElement>): void {
@@ -127,6 +160,48 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
             {guardando ? 'Guardando...' : 'Guardar'}
           </button>
         </form>
+
+        {config.modo === 'servidor' && (
+          <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+            <h2 className="mb-1 text-sm font-semibold text-neutral-700">
+              Respaldo automático de la base de datos (RNF-06)
+            </h2>
+            <p className="mb-3 text-xs text-neutral-500">
+              Corre solo en esta computadora (rol de Servidor) todos los días a las 3:00 a.m. Se
+              conserva un respaldo local por cada uno de los últimos 30 días.
+            </p>
+            {!respaldoDisponible ? (
+              <p className="text-sm text-neutral-500">
+                El respaldo automático no está disponible en este momento.
+              </p>
+            ) : (
+              <>
+                {estadoRespaldo ? (
+                  <p className="mb-3 text-sm">
+                    Último respaldo:{' '}
+                    <span className={estadoRespaldo.ok ? 'text-green-700' : 'font-medium text-red-600'}>
+                      {new Date(estadoRespaldo.fecha).toLocaleString('es-MX', {
+                        dateStyle: 'short',
+                        timeStyle: 'short'
+                      })}{' '}
+                      {estadoRespaldo.ok ? '✓' : `— error: ${estadoRespaldo.error}`}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mb-3 text-sm text-neutral-500">Aún no se ha generado ningún respaldo.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void manejarRespaldarAhora()}
+                  disabled={respaldando}
+                  className="rounded-md border border-neutral-300 px-4 py-2 text-sm disabled:opacity-50"
+                >
+                  {respaldando ? 'Respaldando...' : 'Respaldar ahora'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
     </div>
   )
 }

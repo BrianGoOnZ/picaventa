@@ -24,6 +24,7 @@ import {
   type ResultadoCorteCaja,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
+  type ResultadoEstadoRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
   type ResultadoHistorialPrecios,
@@ -39,6 +40,7 @@ import {
   type ResultadoProducto,
   type ResultadoReautenticacion,
   type ResultadoReporteVentas,
+  type ResultadoRespaldoManual,
   type ResultadoVentaDetallada,
   type ResultadoVentasPorCajero,
   type ResultadoVentasPorDia,
@@ -99,6 +101,12 @@ const api = {
 
   guardarNegocio: (datos: DatosNegocio): Promise<ResultadoGuardarNegocio> =>
     ipcRenderer.invoke(CANALES_IPC.negocioGuardar, datos),
+
+  obtenerEstadoRespaldo: (): Promise<ResultadoEstadoRespaldo> =>
+    ipcRenderer.invoke(CANALES_IPC.negocioEstadoRespaldo),
+
+  respaldarAhora: (): Promise<ResultadoRespaldoManual> =>
+    ipcRenderer.invoke(CANALES_IPC.negocioRespaldarAhora),
 
   listarCategorias: (): Promise<ResultadoListaCategorias> =>
     ipcRenderer.invoke(CANALES_IPC.catalogoListarCategorias),
