@@ -12,7 +12,7 @@ export default function PantallaApartados({ onVolver, onReanudar }: Props): Reac
   const [error, setError] = useState('')
 
   useEffect(() => {
-    void window.picaventa.listarVentas('pausada').then((resultado) => {
+    void window.picaventa.listarVentas({ estado: 'pausada' }).then((resultado) => {
       if (resultado.ok) setVentas(resultado.ventas)
       setCargando(false)
     })

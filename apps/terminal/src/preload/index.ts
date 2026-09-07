@@ -5,31 +5,37 @@ import {
   type CredencialesLogin,
   type DatosAbono,
   type DatosActualizarPermisos,
+  type DatosCancelarVenta,
   type DatosCategoria,
   type DatosCliente,
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
+  type DatosDevolucion,
   type DatosEntradaInventario,
   type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
   type FiltrosProductos,
+  type FiltrosVentas,
   type ResultadoActualizarPermisos,
   type ResultadoAuth,
+  type ResultadoCancelarVenta,
   type ResultadoCategoria,
   type ResultadoCliente,
   type ResultadoConexion,
   type ResultadoCorteCaja,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
+  type ResultadoDevolucion,
   type ResultadoEstadoRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
   type ResultadoHistorialPrecios,
   type ResultadoListaCategorias,
   type ResultadoListaClientes,
+  type ResultadoListaDevoluciones,
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
@@ -146,14 +152,23 @@ const api = {
   crearVenta: (datos: DatosCrearVenta): Promise<ResultadoCrearVenta> =>
     ipcRenderer.invoke(CANALES_IPC.ventasCrear, datos),
 
-  listarVentas: (estado?: string): Promise<ResultadoListaVentas> =>
-    ipcRenderer.invoke(CANALES_IPC.ventasListar, estado),
+  listarVentas: (filtros?: FiltrosVentas): Promise<ResultadoListaVentas> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasListar, filtros),
 
   obtenerVenta: (id: number): Promise<ResultadoVentaDetallada> =>
     ipcRenderer.invoke(CANALES_IPC.ventasObtener, id),
 
   cancelarVentaPausada: (id: number): Promise<ResultadoOperacion> =>
     ipcRenderer.invoke(CANALES_IPC.ventasCancelarPausada, id),
+
+  cancelarVentaActiva: (id: number, datos: DatosCancelarVenta): Promise<ResultadoCancelarVenta> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasCancelarActiva, id, datos),
+
+  registrarDevolucion: (id: number, datos: DatosDevolucion): Promise<ResultadoDevolucion> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasRegistrarDevolucion, id, datos),
+
+  listarDevoluciones: (id: number): Promise<ResultadoListaDevoluciones> =>
+    ipcRenderer.invoke(CANALES_IPC.ventasListarDevoluciones, id),
 
   listarClientes: (): Promise<ResultadoListaClientes> =>
     ipcRenderer.invoke(CANALES_IPC.clientesListar),

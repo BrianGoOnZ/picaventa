@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { ResumenCorteCaja, SesionUsuario } from '@picaventa/shared'
 import PantallaReportes from './PantallaReportes'
+import PantallaHistorialVentas from './PantallaHistorialVentas'
 import { useToast } from '../lib/ToastContext'
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
-  const [tab, setTab] = useState<'corte' | 'reportes'>('corte')
+  const [tab, setTab] = useState<'corte' | 'reportes' | 'ventas'>('corte')
   const { mostrarToast } = useToast()
 
   // Retiro/gasto
@@ -129,7 +130,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className={`mx-auto w-full ${tab === 'ventas' ? 'max-w-5xl' : 'max-w-2xl'}`}>
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
         {sesion.rolUsuario === 'administrador' && (
@@ -152,10 +153,21 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
             >
               Reportes
             </button>
+            <button
+              type="button"
+              onClick={() => setTab('ventas')}
+              className={`rounded-md px-4 py-2 text-sm ${
+                tab === 'ventas' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+              }`}
+            >
+              Ventas
+            </button>
           </div>
         )}
 
-        {tab === 'reportes' && sesion.rolUsuario === 'administrador' ? (
+        {tab === 'ventas' && sesion.rolUsuario === 'administrador' ? (
+          <PantallaHistorialVentas />
+        ) : tab === 'reportes' && sesion.rolUsuario === 'administrador' ? (
           <PantallaReportes />
         ) : (
           <div className="flex flex-col gap-4">
