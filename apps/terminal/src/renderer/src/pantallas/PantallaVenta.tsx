@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import {
+  calcularDescuentoPromocion,
+  promocionAplicaAProducto,
   tienePermiso,
   type Categoria,
   type Cliente,
   type DatosNegocio,
   type Producto,
+  type PromocionActiva,
   type SesionUsuario,
   type UnidadMedida,
   type VentaDetallada
@@ -44,6 +47,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const [textoBusqueda, setTextoBusqueda] = useState('')
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [promocionesActivas, setPromocionesActivas] = useState<PromocionActiva[]>([])
   const [categoriaFiltro, setCategoriaFiltro] = useState<number | 'todas'>('todas')
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'fiado'>('efectivo')
   const [efectivoRecibido, setEfectivoRecibido] = useState('')
@@ -74,6 +78,11 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     })
     void window.picaventa.listarProductos().then((resultado) => {
       if (resultado.ok) setProductos(resultado.productos)
+    })
+    // RF-21: se traen las promociones activas para aplicarlas solas al
+    // agregar un producto al carrito, sin que el cajero tenga que acordarse.
+    void window.picaventa.listarPromocionesActivas().then((resultado) => {
+      if (resultado.ok) setPromocionesActivas(resultado.promociones)
     })
   }, [])
 
@@ -107,6 +116,16 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     !clienteYaBloqueado &&
     clienteSeleccionado.saldoActual + total > clienteSeleccionado.limiteCredito
 
+  // RF-21: promoción automática — se recalcula con cada escaneo/clic (no solo
+  // al crear la línea), para que un 2x1 detecte correctamente cuando la
+  // cantidad acumulada ya completa un par.
+  function descuentoPromocionParaCantidad(producto: Producto, cantidad: number): number {
+    const promo = promocionesActivas.find((p) =>
+      promocionAplicaAProducto(p, producto.idProducto, producto.idCategoria)
+    )
+    return promo ? calcularDescuentoPromocion(promo, producto.precioVenta, cantidad) : 0
+  }
+
   function agregarAlCarrito(producto: Producto): void {
     // Forma funcional de setCarrito: si se agregan dos productos en el mismo
     // tick (dos clics muy seguidos, o el lector de código de barras mandando
@@ -117,7 +136,12 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     setCarrito((actual) => {
       const indiceExistente = actual.findIndex((l) => l.idProducto === producto.idProducto)
       if (indiceExistente !== -1) {
-        return actual.map((l, i) => (i === indiceExistente ? { ...l, cantidad: l.cantidad + 1 } : l))
+        const nuevaCantidad = actual[indiceExistente]!.cantidad + 1
+        return actual.map((l, i) =>
+          i === indiceExistente
+            ? { ...l, cantidad: nuevaCantidad, descuento: descuentoPromocionParaCantidad(producto, nuevaCantidad) }
+            : l
+        )
       }
       return [
         ...actual,
@@ -127,7 +151,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
           unidadMedida: producto.unidadMedida,
           precioVenta: producto.precioVenta,
           cantidad: 1,
-          descuento: 0
+          descuento: descuentoPromocionParaCantidad(producto, 1)
         }
       ]
     })

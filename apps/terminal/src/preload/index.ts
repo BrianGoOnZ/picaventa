@@ -8,15 +8,19 @@ import {
   type DatosCancelarVenta,
   type DatosCategoria,
   type DatosCliente,
+  type DatosCompra,
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
   type DatosDevolucion,
   type DatosEntradaInventario,
+  type DatosMerma,
   type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
+  type DatosPromocion,
+  type DatosProveedor,
   type FiltrosProductos,
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
@@ -24,19 +28,25 @@ import {
   type ResultadoCancelarVenta,
   type ResultadoCategoria,
   type ResultadoCliente,
+  type ResultadoCompraDetallada,
   type ResultadoConexion,
   type ResultadoCorteCaja,
+  type ResultadoCrearCompra,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoDevolucion,
   type ResultadoEstadoRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
+  type ResultadoHistorialMermas,
   type ResultadoHistorialPrecios,
   type ResultadoListaCategorias,
   type ResultadoListaClientes,
+  type ResultadoListaCompras,
   type ResultadoListaDevoluciones,
   type ResultadoListaProductos,
+  type ResultadoListaProveedores,
+  type ResultadoListaPromociones,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
   type ResultadoListaCortes,
@@ -44,7 +54,11 @@ import {
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
+  type ResultadoPromocion,
+  type ResultadoPromocionesActivas,
+  type ResultadoProveedor,
   type ResultadoReautenticacion,
+  type ResultadoRegistrarMerma,
   type ResultadoReporteVentas,
   type ResultadoRespaldoManual,
   type ResultadoVentaDetallada,
@@ -204,7 +218,48 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.cajaVentasPorCajero, desde, hasta),
 
   listarCortes: (limite: number): Promise<ResultadoListaCortes> =>
-    ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite)
+    ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite),
+
+  listarProveedores: (): Promise<ResultadoListaProveedores> =>
+    ipcRenderer.invoke(CANALES_IPC.proveedoresListar),
+
+  crearProveedor: (datos: DatosProveedor): Promise<ResultadoProveedor> =>
+    ipcRenderer.invoke(CANALES_IPC.proveedoresCrear, datos),
+
+  editarProveedor: (id: number, datos: DatosProveedor): Promise<ResultadoProveedor> =>
+    ipcRenderer.invoke(CANALES_IPC.proveedoresEditar, id, datos),
+
+  eliminarProveedor: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.proveedoresEliminar, id),
+
+  crearCompra: (datos: DatosCompra): Promise<ResultadoCrearCompra> =>
+    ipcRenderer.invoke(CANALES_IPC.comprasCrear, datos),
+
+  listarCompras: (): Promise<ResultadoListaCompras> => ipcRenderer.invoke(CANALES_IPC.comprasListar),
+
+  obtenerCompra: (id: number): Promise<ResultadoCompraDetallada> =>
+    ipcRenderer.invoke(CANALES_IPC.comprasObtener, id),
+
+  registrarMerma: (idProducto: number, datos: DatosMerma): Promise<ResultadoRegistrarMerma> =>
+    ipcRenderer.invoke(CANALES_IPC.mermasRegistrar, idProducto, datos),
+
+  obtenerHistorialMermas: (): Promise<ResultadoHistorialMermas> =>
+    ipcRenderer.invoke(CANALES_IPC.mermasHistorial),
+
+  listarPromociones: (): Promise<ResultadoListaPromociones> =>
+    ipcRenderer.invoke(CANALES_IPC.promocionesListar),
+
+  listarPromocionesActivas: (): Promise<ResultadoPromocionesActivas> =>
+    ipcRenderer.invoke(CANALES_IPC.promocionesListarActivas),
+
+  crearPromocion: (datos: DatosPromocion): Promise<ResultadoPromocion> =>
+    ipcRenderer.invoke(CANALES_IPC.promocionesCrear, datos),
+
+  editarPromocion: (id: number, datos: DatosPromocion): Promise<ResultadoPromocion> =>
+    ipcRenderer.invoke(CANALES_IPC.promocionesEditar, id, datos),
+
+  eliminarPromocion: (id: number): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.promocionesEliminar, id)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)

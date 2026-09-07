@@ -3,8 +3,10 @@ import { tienePermiso, type SesionUsuario } from '@picaventa/shared'
 import PantallaCategorias from './PantallaCategorias'
 import PantallaProductos from './PantallaProductos'
 import PantallaEntradaInventario from './PantallaEntradaInventario'
+import PantallaAjusteInventario from './PantallaAjusteInventario'
+import PantallaPromociones from './PantallaPromociones'
 
-type Tab = 'productos' | 'categorias' | 'entradas'
+type Tab = 'productos' | 'categorias' | 'entradas' | 'ajustes' | 'promociones'
 
 interface Props {
   sesion: SesionUsuario
@@ -60,11 +62,35 @@ export default function PantallaCatalogo({ sesion }: Props): React.JSX.Element {
             Entradas de mercancía
           </button>
         )}
+        {esAdmin && (
+          <button
+            type="button"
+            onClick={() => setTab('ajustes')}
+            className={`rounded-md px-4 py-2 text-sm ${
+              tab === 'ajustes' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+            }`}
+          >
+            Mermas y ajustes
+          </button>
+        )}
+        {esAdmin && (
+          <button
+            type="button"
+            onClick={() => setTab('promociones')}
+            className={`rounded-md px-4 py-2 text-sm ${
+              tab === 'promociones' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+            }`}
+          >
+            Promociones
+          </button>
+        )}
       </div>
 
       {tab === 'productos' && puedeProductos && <PantallaProductos sesion={sesion} />}
       {tab === 'categorias' && puedeCategorias && <PantallaCategorias sesion={sesion} />}
       {tab === 'entradas' && puedeEntradas && <PantallaEntradaInventario sesion={sesion} />}
+      {tab === 'ajustes' && esAdmin && <PantallaAjusteInventario />}
+      {tab === 'promociones' && esAdmin && <PantallaPromociones />}
     </div>
   )
 }

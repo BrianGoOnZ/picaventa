@@ -58,10 +58,13 @@ export const proveedor = pgTable('proveedor', {
 
 export const compra = pgTable('compra', {
   idCompra: serial('id_compra').primaryKey(),
-  fechaCompra: date('fecha_compra').notNull().defaultNow(),
+  fechaCompra: timestamp('fecha_compra', { withTimezone: true }).notNull().defaultNow(),
   idProveedor: integer('id_proveedor')
     .notNull()
-    .references(() => proveedor.idProveedor)
+    .references(() => proveedor.idProveedor),
+  idUsuario: integer('id_usuario')
+    .notNull()
+    .references(() => usuarios.idUsuario)
 })
 
 export const detalleCompra = pgTable(
@@ -101,13 +104,17 @@ export const merma = pgTable('merma', {
   idMerma: serial('id_merma').primaryKey(),
   motivoMerma: text('motivo_merma').notNull(),
   tipoMerma: tipoMermaEnum('tipo_merma').notNull(),
+  // Para 'merma' siempre es la cantidad perdida (positiva). Para 'ajuste'
+  // (conteo físico) es la diferencia con signo entre el conteo real y el
+  // stock que el sistema tenía antes (puede ser positiva o negativa).
   cantidadMerma: cantidad('cantidad_merma').notNull(),
   idProducto: integer('id_producto')
     .notNull()
     .references(() => producto.idProducto),
   idUsuario: integer('id_usuario')
     .notNull()
-    .references(() => usuarios.idUsuario)
+    .references(() => usuarios.idUsuario),
+  fechaMerma: timestamp('fecha_merma', { withTimezone: true }).notNull().defaultNow()
 })
 
 export const usuarios = pgTable('usuarios', {
@@ -242,7 +249,14 @@ export const promocion = pgTable('promocion', {
   nombrePromocion: text('nombre_promocion').notNull(),
   // Texto libre (no enum): RF-21 dice "2x1, precios por mayoreo, etc." — el
   // catálogo de tipos de promoción puede crecer sin requerir una migración.
+  // La aplicación valida que sea uno de los valores calculables conocidos
+  // (ver PERMISOS/tipoDescuentoValores en @picaventa/shared).
   tipoPromocion: text('tipo_promocion').notNull(),
+  // Solo aplica a 'porcentaje' (0-100) y 'montoFijo' (por unidad); 'dosPorUno'
+  // no lo usa, el descuento se calcula solo de la cantidad.
+  valorDescuento: dinero('valor_descuento'),
+  // Permite desactivar una promoción sin borrar su historial de uso.
+  activa: boolean('activa').notNull().default(true),
   descripcionPromocion: text('descripcion_promocion'),
   fechaInicioPromocion: date('fecha_inicio_promocion').notNull(),
   fechaFinPromocion: date('fecha_fin_promocion').notNull(),

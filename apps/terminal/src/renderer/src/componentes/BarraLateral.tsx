@@ -58,6 +58,12 @@ const ICONOS: Record<string, (props: { className?: string }) => React.JSX.Elemen
         'M12 4.2v1.9M12 17.9v1.9M19.8 12h-1.9M6.1 12H4.2M17.3 6.7l-1.35 1.35M8.05 15.95 6.7 17.3M17.3 17.3l-1.35-1.35M8.05 8.05 6.7 6.7'
       )}
     </svg>
+  ),
+  compras: ({ className }) => (
+    <svg viewBox="0 0 24 24" className={className}>
+      {trazo('M3.5 6h2.5l2.7 11.2A1.8 1.8 0 0 0 10.6 18.6h7.4a1.8 1.8 0 0 0 1.75-1.4L21 8.5H7.2')}
+      {trazo('M9 21.5h.01M17 21.5h.01')}
+    </svg>
   )
 }
 
@@ -67,6 +73,7 @@ const ITEMS: { vista: Vista; etiqueta: string; icono: keyof typeof ICONOS; soloA
   { vista: 'clientes', etiqueta: 'Clientes', icono: 'clientes' },
   { vista: 'caja', etiqueta: 'Corte de caja', icono: 'caja' },
   { vista: 'catalogo', etiqueta: 'Catálogo', icono: 'catalogo', soloAdmin: true },
+  { vista: 'compras', etiqueta: 'Compras y proveedores', icono: 'compras', soloAdmin: true },
   { vista: 'usuarios', etiqueta: 'Usuarios', icono: 'usuarios', soloAdmin: true },
   { vista: 'negocio', etiqueta: 'Ajustes del negocio', icono: 'negocio', soloAdmin: true }
 ]

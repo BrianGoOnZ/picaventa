@@ -55,5 +55,23 @@ export const CANALES_IPC = {
   cajaReporteVentas: 'caja:reporte-ventas',
   cajaVentasPorDia: 'caja:ventas-por-dia',
   cajaVentasPorCajero: 'caja:ventas-por-cajero',
-  cajaListarCortes: 'caja:listar-cortes'
+  cajaListarCortes: 'caja:listar-cortes',
+
+  proveedoresListar: 'proveedores:listar',
+  proveedoresCrear: 'proveedores:crear',
+  proveedoresEditar: 'proveedores:editar',
+  proveedoresEliminar: 'proveedores:eliminar',
+
+  comprasCrear: 'compras:crear',
+  comprasListar: 'compras:listar',
+  comprasObtener: 'compras:obtener',
+
+  mermasRegistrar: 'mermas:registrar',
+  mermasHistorial: 'mermas:historial',
+
+  promocionesListar: 'promociones:listar',
+  promocionesListarActivas: 'promociones:listar-activas',
+  promocionesCrear: 'promociones:crear',
+  promocionesEditar: 'promociones:editar',
+  promocionesEliminar: 'promociones:eliminar'
 } as const

@@ -13,15 +13,19 @@ import {
   type DatosCategoria,
   type DatosCancelarVenta,
   type DatosCliente,
+  type DatosCompra,
   type DatosCrearUsuario,
   type DatosConfigurarServidor,
   type DatosCrearVenta,
   type DatosDevolucion,
   type DatosEntradaInventario,
+  type DatosMerma,
   type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
+  type DatosPromocion,
+  type DatosProveedor,
   type FiltrosProductos,
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
@@ -29,19 +33,25 @@ import {
   type ResultadoCancelarVenta,
   type ResultadoCategoria,
   type ResultadoCliente,
+  type ResultadoCompraDetallada,
   type ResultadoConexion,
   type ResultadoCorteCaja,
+  type ResultadoCrearCompra,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoDevolucion,
   type ResultadoEstadoRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
+  type ResultadoHistorialMermas,
   type ResultadoHistorialPrecios,
   type ResultadoListaCategorias,
   type ResultadoListaClientes,
+  type ResultadoListaCompras,
   type ResultadoListaDevoluciones,
   type ResultadoListaProductos,
+  type ResultadoListaProveedores,
+  type ResultadoListaPromociones,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
   type ResultadoMovimientoCaja,
@@ -49,7 +59,11 @@ import {
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
+  type ResultadoPromocion,
+  type ResultadoPromocionesActivas,
+  type ResultadoProveedor,
   type ResultadoReautenticacion,
+  type ResultadoRegistrarMerma,
   type ResultadoRespaldoManual,
   type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
@@ -61,6 +75,23 @@ import {
 import { probarConexionPostgres, aplicarMigraciones, aprovisionarBaseDatos } from '@picaventa/db'
 import { obtenerConfig, guardarConfig, borrarConfig } from './config-store'
 import { arrancarServidorEmbebido } from './servidor-embebido'
+import {
+  listarProveedores,
+  crearProveedor,
+  editarProveedor,
+  eliminarProveedor,
+  crearCompra,
+  listarCompras,
+  obtenerCompra
+} from './proveedores-cliente'
+import { registrarMerma, obtenerHistorialMermas } from './mermas-cliente'
+import {
+  listarPromociones,
+  listarPromocionesActivas,
+  crearPromocion,
+  editarPromocion,
+  eliminarPromocion
+} from './promociones-cliente'
 import {
   obtenerEstadoInicial,
   crearPrimerUsuario,
@@ -558,6 +589,117 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return listarCortes(config, limite)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.proveedoresListar, (): Promise<ResultadoListaProveedores> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarProveedores(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.proveedoresCrear,
+    (_evento, datos: DatosProveedor): Promise<ResultadoProveedor> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearProveedor(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.proveedoresEditar,
+    (_evento, id: number, datos: DatosProveedor): Promise<ResultadoProveedor> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return editarProveedor(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.proveedoresEliminar,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return eliminarProveedor(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.comprasCrear,
+    (_evento, datos: DatosCompra): Promise<ResultadoCrearCompra> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearCompra(config, datos)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.comprasListar, (): Promise<ResultadoListaCompras> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarCompras(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.comprasObtener,
+    (_evento, id: number): Promise<ResultadoCompraDetallada> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerCompra(config, id)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.mermasRegistrar,
+    (_evento, idProducto: number, datos: DatosMerma): Promise<ResultadoRegistrarMerma> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return registrarMerma(config, idProducto, datos)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.mermasHistorial, (): Promise<ResultadoHistorialMermas> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerHistorialMermas(config)
+  })
+
+  ipcMain.handle(CANALES_IPC.promocionesListar, (): Promise<ResultadoListaPromociones> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarPromociones(config)
+  })
+
+  ipcMain.handle(CANALES_IPC.promocionesListarActivas, (): Promise<ResultadoPromocionesActivas> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarPromocionesActivas(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.promocionesCrear,
+    (_evento, datos: DatosPromocion): Promise<ResultadoPromocion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return crearPromocion(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.promocionesEditar,
+    (_evento, id: number, datos: DatosPromocion): Promise<ResultadoPromocion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return editarPromocion(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.promocionesEliminar,
+    (_evento, id: number): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return eliminarPromocion(config, id)
     }
   )
 }

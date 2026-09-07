@@ -8,8 +8,17 @@ import PantallaVenta from './PantallaVenta'
 import PantallaClientes from './PantallaClientes'
 import PantallaCaja from './PantallaCaja'
 import PantallaDashboardAdmin from './PantallaDashboardAdmin'
+import PantallaComprasProveedores from './PantallaComprasProveedores'
 
-export type Vista = 'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes' | 'caja'
+export type Vista =
+  | 'inicio'
+  | 'usuarios'
+  | 'negocio'
+  | 'catalogo'
+  | 'venta'
+  | 'clientes'
+  | 'caja'
+  | 'compras'
 
 interface Props {
   config: ConfigLocal
@@ -70,6 +79,7 @@ export default function PantallaPrincipal({
           {vista === 'usuarios' && <PantallaGestionUsuarios />}
           {vista === 'negocio' && <PantallaConfiguracionNegocio config={config} />}
           {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}
+          {vista === 'compras' && sesion.rolUsuario === 'administrador' && <PantallaComprasProveedores />}
           {vista === 'clientes' && <PantallaClientes sesion={sesion} />}
           {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}
           {vista === 'venta' && <PantallaVenta sesion={sesion} />}
