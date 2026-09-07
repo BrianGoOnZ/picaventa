@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LOGO_MAX_BYTES } from '@picaventa/shared'
+import { useToast } from '../lib/ToastContext'
 
 export default function PantallaConfiguracionNegocio(): React.JSX.Element {
   const [nombreNegocio, setNombreNegocio] = useState('')
@@ -9,7 +10,7 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
-  const [guardado, setGuardado] = useState(false)
+  const { mostrarToast } = useToast()
 
   useEffect(() => {
     void (async () => {
@@ -45,7 +46,6 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
     evento.preventDefault()
     setGuardando(true)
     setError('')
-    setGuardado(false)
 
     const resultado = await window.picaventa.guardarNegocio({
       nombreNegocio,
@@ -55,7 +55,7 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
     })
 
     if (resultado.ok) {
-      setGuardado(true)
+      mostrarToast('Datos del negocio guardados')
     } else {
       setError(resultado.error)
     }
@@ -119,7 +119,6 @@ export default function PantallaConfiguracionNegocio(): React.JSX.Element {
             />
           )}
           {error && <p className="text-sm text-red-600">{error}</p>}
-          {guardado && <p className="text-sm text-green-700">Guardado correctamente.</p>}
           <button
             type="submit"
             disabled={guardando}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { ResumenCorteCaja, SesionUsuario } from '@picaventa/shared'
 import PantallaReportes from './PantallaReportes'
+import { useToast } from '../lib/ToastContext'
 
 interface Props {
   sesion: SesionUsuario
@@ -9,6 +10,7 @@ interface Props {
 
 export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
   const [tab, setTab] = useState<'corte' | 'reportes'>('corte')
+  const { mostrarToast } = useToast()
 
   // Retiro/gasto
   const [tipoMovimiento, setTipoMovimiento] = useState<'retiro' | 'gasto'>('retiro')
@@ -17,7 +19,6 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   const [pinMovimiento, setPinMovimiento] = useState('')
   const [enviandoMovimiento, setEnviandoMovimiento] = useState(false)
   const [errorMovimiento, setErrorMovimiento] = useState('')
-  const [movimientoOk, setMovimientoOk] = useState(false)
 
   // Cierre de turno
   const [mostrarCierre, setMostrarCierre] = useState(false)
@@ -30,7 +31,6 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
     evento.preventDefault()
     setEnviandoMovimiento(true)
     setErrorMovimiento('')
-    setMovimientoOk(false)
 
     const resultado = await window.picaventa.registrarMovimientoCaja({
       tipo: tipoMovimiento,
@@ -43,7 +43,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
       setMontoMovimiento('')
       setConceptoMovimiento('')
       setPinMovimiento('')
-      setMovimientoOk(true)
+      mostrarToast(tipoMovimiento === 'retiro' ? 'Retiro registrado' : 'Gasto registrado')
     } else {
       setErrorMovimiento(resultado.error)
     }
@@ -220,9 +220,6 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
               </div>
               {errorMovimiento && (
                 <p className="mt-2 text-sm text-red-600">{errorMovimiento}</p>
-              )}
-              {movimientoOk && (
-                <p className="mt-2 text-sm text-green-700">Registrado correctamente.</p>
               )}
               <button
                 type="submit"

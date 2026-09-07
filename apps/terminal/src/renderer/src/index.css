@@ -68,3 +68,36 @@ h2 {
   outline: 2px solid var(--color-foco);
   outline-offset: 1px;
 }
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tema de SweetAlert2 (confirmaciones críticas) para que combine con el
+   resto de la app en vez de verse como un diálogo genérico del navegador. */
+.sw-popup {
+  font-family: var(--font-sans);
+  border-radius: 0.75rem;
+}
+.swal2-title {
+  font-family: var(--font-display);
+  color: var(--color-onix);
+  font-size: 1.25rem;
+}
+.swal2-html-container {
+  color: var(--color-texto-secundario);
+}
+.swal2-confirm,
+.swal2-cancel {
+  border-radius: 0.375rem !important;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  box-shadow: none !important;
+}

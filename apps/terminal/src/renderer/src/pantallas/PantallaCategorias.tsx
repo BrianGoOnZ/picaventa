@@ -1,5 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Categoria } from '@picaventa/shared'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
+import { confirmarEliminar } from '../lib/confirmar'
+import { useToast } from '../lib/ToastContext'
 
 export default function PantallaCategorias(): React.JSX.Element {
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -10,6 +13,8 @@ export default function PantallaCategorias(): React.JSX.Element {
   const [idEditando, setIdEditando] = useState<number | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const { mostrarToast } = useToast()
+  const formularioRef = useRef<HTMLFormElement>(null)
 
   async function cargar(): Promise<void> {
     const resultado = await window.picaventa.listarCategorias()
@@ -27,6 +32,7 @@ export default function PantallaCategorias(): React.JSX.Element {
     setColorCategoria(categoria.colorCategoria)
     setColorTocado(true)
     setError('')
+    formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function cancelarEdicion(): void {
@@ -41,17 +47,18 @@ export default function PantallaCategorias(): React.JSX.Element {
     setEnviando(true)
     setError('')
 
+    const creando = idEditando === null
     // En una categoría nueva, si el administrador no tocó el selector de
     // color se deja que el servidor asigne uno por rotación.
     const datos = { nombreCategoria, colorCategoria: colorTocado ? colorCategoria : undefined }
-    const resultado =
-      idEditando === null
-        ? await window.picaventa.crearCategoria(datos)
-        : await window.picaventa.editarCategoria(idEditando, datos)
+    const resultado = creando
+      ? await window.picaventa.crearCategoria(datos)
+      : await window.picaventa.editarCategoria(idEditando, datos)
 
     if (resultado.ok) {
       cancelarEdicion()
       await cargar()
+      mostrarToast(creando ? 'Categoría agregada' : 'Categoría actualizada')
     } else {
       setError(resultado.error)
     }
@@ -59,63 +66,23 @@ export default function PantallaCategorias(): React.JSX.Element {
   }
 
   async function manejarEliminar(categoria: Categoria): Promise<void> {
-    if (!window.confirm(`¿Eliminar la categoría "${categoria.nombreCategoria}"?`)) return
+    if (!(await confirmarEliminar(categoria.nombreCategoria))) return
 
     const resultado = await window.picaventa.eliminarCategoria(categoria.idCategoria)
     if (resultado.ok) {
       await cargar()
+      mostrarToast('Categoría eliminada')
     } else {
-      setError(resultado.error)
+      mostrarToast(resultado.error, 'error')
     }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-700">Categorías</h2>
-        {cargando ? (
-          <p className="text-sm text-neutral-500">Cargando...</p>
-        ) : categorias.length === 0 ? (
-          <p className="text-sm text-neutral-500">No hay categorías.</p>
-        ) : (
-          <ul className="divide-y divide-neutral-100">
-            {categorias.map((categoria) => (
-              <li
-                key={categoria.idCategoria}
-                className="flex items-center justify-between py-2 text-sm"
-              >
-                <span className="flex items-center gap-2 text-neutral-800">
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: categoria.colorCategoria }}
-                  />
-                  {categoria.nombreCategoria}
-                </span>
-                <span className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => manejarEditar(categoria)}
-                    className="text-xs text-neutral-600 underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void manejarEliminar(categoria)}
-                    className="text-xs text-red-600 underline"
-                  >
-                    Eliminar
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       <form
+        ref={formularioRef}
         onSubmit={manejarEnviar}
-        className="flex items-end gap-2 rounded-lg border border-neutral-200 bg-white p-4"
+        className="flex items-end gap-2 rounded-lg border border-borde bg-tarjeta p-4"
       >
         <label className="flex-1 text-sm font-medium text-neutral-700">
           {idEditando === null ? 'Nueva categoría' : 'Editar categoría'}
@@ -140,23 +107,61 @@ export default function PantallaCategorias(): React.JSX.Element {
           />
         </label>
         {idEditando !== null && (
-          <button
-            type="button"
-            onClick={cancelarEdicion}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
-          >
+          <button type="button" onClick={cancelarEdicion} className={BOTON_SECUNDARIO}>
             Cancelar
           </button>
         )}
         <button
           type="submit"
           disabled={enviando}
-          className="rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
         >
           {idEditando === null ? 'Agregar' : 'Guardar'}
         </button>
       </form>
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+        <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+          Categorías registradas {categorias.length > 0 && `(${categorias.length})`}
+        </h2>
+        {cargando ? (
+          <p className="text-sm text-texto-secundario">Cargando...</p>
+        ) : categorias.length === 0 ? (
+          <p className="text-sm text-texto-secundario">Aún no hay categorías registradas.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {categorias.map((categoria) => (
+              <li
+                key={categoria.idCategoria}
+                className="flex items-center gap-3 rounded-lg border border-borde p-3 text-sm"
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full"
+                  style={{ backgroundColor: categoria.colorCategoria }}
+                />
+                <span className="flex-1 font-medium text-onix">{categoria.nombreCategoria}</span>
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => manejarEditar(categoria)}
+                    className={BOTON_SECUNDARIO}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void manejarEliminar(categoria)}
+                    className={BOTON_PELIGRO}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }

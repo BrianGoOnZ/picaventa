@@ -1,24 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Cliente, SesionUsuario } from '@picaventa/shared'
+import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO, colorAvatar } from '../lib/estilos'
+import { confirmarEliminar } from '../lib/confirmar'
+import { useToast } from '../lib/ToastContext'
 
 interface Props {
   sesion: SesionUsuario
 }
 
 const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito: '' }
-
-const COLORES_AVATAR = ['#7C5B45', '#6B7A4F', '#8C6A2E', '#8E5B4E', '#4F7A78', '#9C6B8E', '#5B6B7A', '#3F6B52']
-
-function colorAvatar(idCliente: number): string {
-  return COLORES_AVATAR[idCliente % COLORES_AVATAR.length]!
-}
-
-const BOTON_SECUNDARIO =
-  'rounded-md border border-borde bg-tarjeta px-3 py-1.5 text-xs font-medium text-texto-secundario hover:bg-arena'
-const BOTON_ACENTO =
-  'rounded-md border border-cobre px-3 py-1.5 text-xs font-medium text-cobre hover:bg-cobre hover:text-white'
-const BOTON_PELIGRO =
-  'rounded-md border border-peligro px-3 py-1.5 text-xs font-medium text-peligro hover:bg-peligro hover:text-white'
 
 export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
@@ -31,6 +21,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const formularioRef = useRef<HTMLFormElement>(null)
+  const { mostrarToast } = useToast()
 
   async function cargar(): Promise<void> {
     const resultado = await window.picaventa.listarClientes()
@@ -70,14 +61,15 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
       limiteCredito: Number(formulario.limiteCredito) || 0
     }
 
-    const resultado =
-      idEditando === null
-        ? await window.picaventa.crearCliente(datos)
-        : await window.picaventa.editarCliente(idEditando, datos)
+    const creando = idEditando === null
+    const resultado = creando
+      ? await window.picaventa.crearCliente(datos)
+      : await window.picaventa.editarCliente(idEditando, datos)
 
     if (resultado.ok) {
       cancelarEdicion()
       await cargar()
+      mostrarToast(creando ? 'Cliente agregado' : 'Cliente actualizado')
     } else {
       setError(resultado.error)
     }
@@ -85,12 +77,13 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   }
 
   async function manejarEliminar(cliente: Cliente): Promise<void> {
-    if (!window.confirm(`¿Eliminar a "${cliente.nombreCliente}"?`)) return
+    if (!(await confirmarEliminar(cliente.nombreCliente))) return
     const resultado = await window.picaventa.eliminarCliente(cliente.idCliente)
     if (resultado.ok) {
       await cargar()
+      mostrarToast('Cliente eliminado')
     } else {
-      setError(resultado.error)
+      mostrarToast(resultado.error, 'error')
     }
   }
 
@@ -107,6 +100,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
       setIdAbonando(null)
       setMontoAbono('')
       await cargar()
+      mostrarToast('Abono registrado')
     } else {
       setError(resultado.error)
     }
