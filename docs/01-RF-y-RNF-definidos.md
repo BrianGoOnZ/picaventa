@@ -71,7 +71,13 @@ Para este primer cliente, el alcance acordado incluye:
 6. Usuarios y permisos por cajero (RF-15)
 
 Quedan fuera de esta primera etapa (se pueden cotizar como fase 2 si el cliente lo pide más adelante):
-- Proveedores y compras (RF-14, RF-18)
-- Mermas y ajustes de inventario detallados (RF-10, RF-11) — se puede dejar como versión simple
-- Promociones (RF-21)
-- Cancelaciones/devoluciones completas (RF-17) — se puede dejar como versión simple
+- ~~Proveedores y compras (RF-14, RF-18)~~ — implementado.
+- ~~Mermas y ajustes de inventario detallados (RF-10, RF-11)~~ — implementado.
+- ~~Promociones (RF-21)~~ — implementado, con aplicación automática en el punto de venta.
+- ~~Cancelaciones/devoluciones completas (RF-17)~~ — implementado.
+
+Todo lo anterior quedó implementado y probado contra la base de datos real
+antes de la entrega, adelantado respecto al alcance original de fase 1.
+También se agregó, por seguridad y buenas prácticas no contempladas
+originalmente en el MVP: respaldo automático diario de la base de datos
+(RNF-06) y auditoría de cambios de precio de venta (RNF-05).
