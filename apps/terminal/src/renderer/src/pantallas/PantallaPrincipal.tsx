@@ -5,6 +5,7 @@ import PantallaConfiguracionNegocio from './PantallaConfiguracionNegocio'
 import PantallaCatalogo from './PantallaCatalogo'
 import PantallaVenta from './PantallaVenta'
 import PantallaClientes from './PantallaClientes'
+import PantallaCaja from './PantallaCaja'
 
 interface Props {
   config: ConfigLocal
@@ -18,7 +19,7 @@ export default function PantallaPrincipal({
   onCerrarSesion
 }: Props): React.JSX.Element {
   const [vista, setVista] = useState<
-    'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes'
+    'inicio' | 'usuarios' | 'negocio' | 'catalogo' | 'venta' | 'clientes' | 'caja'
   >('inicio')
   const [productosStockBajo, setProductosStockBajo] = useState(0)
 
@@ -44,6 +45,16 @@ export default function PantallaPrincipal({
 
   if (vista === 'clientes') {
     return <PantallaClientes sesion={sesion} onVolver={() => setVista('inicio')} />
+  }
+
+  if (vista === 'caja') {
+    return (
+      <PantallaCaja
+        sesion={sesion}
+        onVolver={() => setVista('inicio')}
+        onCerrarSesion={onCerrarSesion}
+      />
+    )
   }
 
   if (vista === 'venta') {
@@ -140,10 +151,10 @@ export default function PantallaPrincipal({
         )}
         <button
           type="button"
-          onClick={onCerrarSesion}
+          onClick={() => setVista('caja')}
           className="rounded-md border border-neutral-300 px-4 py-2 text-sm"
         >
-          Cerrar sesión
+          Corte de caja / Cerrar turno
         </button>
       </div>
     </div>

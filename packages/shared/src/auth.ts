@@ -52,6 +52,10 @@ export interface PayloadJwt {
   idUsuario: number
   nombreUsuario: string
   rolUsuario: RolUsuario
+  // Agregado automáticamente por jsonwebtoken al firmar — usado como inicio
+  // de turno para el corte de caja (RF-16): desde el login hasta "cerrar
+  // turno", nunca lo asignamos nosotros mismos.
+  iat?: number
 }
 
 export type ResultadoLogin =

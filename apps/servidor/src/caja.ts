@@ -1,0 +1,229 @@
+import { Router, type Request } from 'express'
+import bcrypt from 'bcrypt'
+import { eq, and, gte, lte } from 'drizzle-orm'
+import {
+  venta,
+  contiene,
+  producto,
+  movimientoCaja,
+  corteCaja,
+  usuarios,
+  type crearConexion
+} from '@picaventa/db'
+import {
+  datosMovimientoCajaSchema,
+  datosCorteCajaSchema,
+  type DesgloseMetodoPago,
+  type PayloadJwt
+} from '@picaventa/shared'
+import { verificarJwt, requiereAdministrador } from './auth.js'
+
+type Db = ReturnType<typeof crearConexion>
+type RequestAutenticado = Request & { usuarioToken?: PayloadJwt }
+
+function obtenerDb(req: Request): Db {
+  return req.app.locals.db as Db
+}
+
+function desgloseVacio(): DesgloseMetodoPago {
+  return { efectivo: 0, tarjeta: 0, fiado: 0 }
+}
+
+function sumarAlDesglose(desglose: DesgloseMetodoPago, metodoPago: string, monto: number): void {
+  if (metodoPago === 'efectivo' || metodoPago === 'tarjeta' || metodoPago === 'fiado') {
+    desglose[metodoPago] += monto
+  }
+}
+
+export function crearRutasCaja(): Router {
+  const router = Router()
+
+  router.post('/movimientos', verificarJwt, async (req, res) => {
+    const datos = datosMovimientoCajaSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (!payload) {
+      res.status(401).json({ ok: false, error: 'Sesión inválida' })
+      return
+    }
+
+    const db = obtenerDb(req)
+    const [usuario] = await db
+      .select()
+      .from(usuarios)
+      .where(eq(usuarios.idUsuario, payload.idUsuario))
+
+    if (!usuario || !(await bcrypt.compare(datos.data.pin, usuario.pinHash))) {
+      res.status(401).json({ ok: false, error: 'PIN incorrecto' })
+      return
+    }
+
+    await db.insert(movimientoCaja).values({
+      tipoMovimiento: datos.data.tipo,
+      montoMovimiento: datos.data.monto.toString(),
+      conceptoMovimiento: datos.data.concepto,
+      idUsuario: payload.idUsuario
+    })
+
+    res.status(201).json({ ok: true })
+  })
+
+  router.post('/cerrar-turno', verificarJwt, async (req, res) => {
+    const datos = datosCorteCajaSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (!payload || !payload.iat) {
+      res.status(401).json({ ok: false, error: 'Sesión inválida' })
+      return
+    }
+
+    const inicioTurno = new Date(payload.iat * 1000)
+    const db = obtenerDb(req)
+
+    const ventasTurno = await db
+      .select()
+      .from(venta)
+      .where(
+        and(
+          eq(venta.idUsuario, payload.idUsuario),
+          gte(venta.fechaVenta, inicioTurno),
+          eq(venta.estadoVenta, 'activa')
+        )
+      )
+
+    const ventasPorMetodo = desgloseVacio()
+    for (const v of ventasTurno) {
+      sumarAlDesglose(ventasPorMetodo, v.metodoPago, Number(v.total))
+    }
+    const totalVendido = ventasPorMetodo.efectivo + ventasPorMetodo.tarjeta + ventasPorMetodo.fiado
+
+    const movimientos = await db
+      .select()
+      .from(movimientoCaja)
+      .where(
+        and(
+          eq(movimientoCaja.idUsuario, payload.idUsuario),
+          gte(movimientoCaja.fechaMovimiento, inicioTurno)
+        )
+      )
+    const totalRetirosGastos = movimientos.reduce(
+      (acumulado, m) => acumulado + Number(m.montoMovimiento),
+      0
+    )
+
+    const totalEsperado = datos.data.fondoInicial + ventasPorMetodo.efectivo - totalRetirosGastos
+    const diferencia = datos.data.totalContadoSistema - totalEsperado
+
+    const [fila] = await db
+      .insert(corteCaja)
+      .values({
+        fondoInicial: datos.data.fondoInicial.toString(),
+        totalContadoSistema: datos.data.totalContadoSistema.toString(),
+        idUsuario: payload.idUsuario
+      })
+      .returning()
+
+    if (!fila) {
+      res.status(500).json({ ok: false, error: 'No se pudo generar el corte' })
+      return
+    }
+
+    res.status(201).json({
+      ok: true,
+      resumen: {
+        fechaInicio: inicioTurno.toISOString(),
+        fechaCorte: fila.fechaCorte,
+        fondoInicial: datos.data.fondoInicial,
+        ventasPorMetodo,
+        totalVendido,
+        totalRetirosGastos,
+        totalEsperado,
+        totalContadoSistema: datos.data.totalContadoSistema,
+        diferencia
+      }
+    })
+  })
+
+  router.get('/reportes/ventas', verificarJwt, requiereAdministrador, async (req, res) => {
+    const desde = req.query.desde ? new Date(String(req.query.desde)) : new Date(0)
+    const hasta = req.query.hasta ? new Date(String(req.query.hasta)) : new Date()
+
+    const db = obtenerDb(req)
+    const condicionPeriodo = and(
+      gte(venta.fechaVenta, desde),
+      lte(venta.fechaVenta, hasta),
+      eq(venta.estadoVenta, 'activa')
+    )
+
+    const ventasPeriodo = await db.select().from(venta).where(condicionPeriodo)
+    const porMetodo = desgloseVacio()
+    let totalVendido = 0
+    for (const v of ventasPeriodo) {
+      totalVendido += Number(v.total)
+      sumarAlDesglose(porMetodo, v.metodoPago, Number(v.total))
+    }
+
+    const lineas = await db
+      .select({
+        idProducto: contiene.idProducto,
+        nombreProducto: producto.nombreProducto,
+        precioCompra: producto.precioCompra,
+        cantidadVendida: contiene.cantidadVendida,
+        precioUnitarioVenta: contiene.precioUnitarioVenta,
+        descuentoAplicado: contiene.descuentoAplicado
+      })
+      .from(contiene)
+      .innerJoin(producto, eq(contiene.idProducto, producto.idProducto))
+      .innerJoin(venta, eq(contiene.idVenta, venta.idVenta))
+      .where(condicionPeriodo)
+
+    const porProducto = new Map<
+      number,
+      { nombreProducto: string; cantidad: number; ingresos: number; costoEstimado: number }
+    >()
+    for (const l of lineas) {
+      const acumulado = porProducto.get(l.idProducto) ?? {
+        nombreProducto: l.nombreProducto,
+        cantidad: 0,
+        ingresos: 0,
+        costoEstimado: 0
+      }
+      const cantidad = Number(l.cantidadVendida)
+      acumulado.cantidad += cantidad
+      acumulado.ingresos += Number(l.precioUnitarioVenta) * cantidad - Number(l.descuentoAplicado)
+      acumulado.costoEstimado += (l.precioCompra ? Number(l.precioCompra) : 0) * cantidad
+      porProducto.set(l.idProducto, acumulado)
+    }
+
+    const productos = [...porProducto.entries()]
+      .map(([idProducto, datos]) => ({
+        idProducto,
+        nombreProducto: datos.nombreProducto,
+        cantidad: datos.cantidad,
+        ingresos: datos.ingresos,
+        margenEstimado: datos.ingresos - datos.costoEstimado
+      }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+
+    res.json({
+      ok: true,
+      reporte: {
+        desde: desde.toISOString(),
+        hasta: hasta.toISOString(),
+        totalVendido,
+        porMetodo,
+        productos
+      }
+    })
+  })
+
+  return router
+}

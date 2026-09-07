@@ -1,4 +1,5 @@
 export * from './auth.js'
+export * from './caja.js'
 export * from './catalogo.js'
 export * from './clientes.js'
 export * from './config.js'

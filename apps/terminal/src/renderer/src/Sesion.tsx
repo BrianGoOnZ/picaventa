@@ -3,11 +3,12 @@ import { MINUTOS_INACTIVIDAD_DEFECTO, type ConfigLocal, type SesionUsuario } fro
 import { useInactividad } from './lib/useInactividad'
 import PantallaCrearPrimerUsuario from './pantallas/PantallaCrearPrimerUsuario'
 import PantallaLogin from './pantallas/PantallaLogin'
+import PantallaFondoInicial from './pantallas/PantallaFondoInicial'
 import PantallaBloqueo from './pantallas/PantallaBloqueo'
 import PantallaPrincipal from './pantallas/PantallaPrincipal'
 import PantallaConectando from './pantallas/PantallaConectando'
 
-type Estado = 'cargando' | 'crear-primer-usuario' | 'login' | 'autenticado'
+type Estado = 'cargando' | 'crear-primer-usuario' | 'login' | 'fondo-inicial' | 'autenticado'
 
 interface Props {
   config: ConfigLocal
@@ -35,6 +36,10 @@ export default function Sesion({ config }: Props): React.JSX.Element {
   const manejarSesionIniciada = useCallback((nuevaSesion: SesionUsuario) => {
     setSesion(nuevaSesion)
     setBloqueado(false)
+    setEstado('fondo-inicial')
+  }, [])
+
+  const manejarFondoInicialListo = useCallback(() => {
     setEstado('autenticado')
   }, [])
 
@@ -61,6 +66,12 @@ export default function Sesion({ config }: Props): React.JSX.Element {
 
   if (estado === 'login') {
     return <PantallaLogin onListo={manejarSesionIniciada} />
+  }
+
+  if (estado === 'fondo-inicial' && sesion) {
+    return (
+      <PantallaFondoInicial nombreUsuario={sesion.nombreUsuario} onListo={manejarFondoInicialListo} />
+    )
   }
 
   if (estado === 'autenticado' && sesion) {

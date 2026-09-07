@@ -14,6 +14,7 @@ import {
   type DatosCrearUsuario,
   type DatosConfigurarServidor,
   type DatosCrearVenta,
+  type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
@@ -22,6 +23,7 @@ import {
   type ResultadoCategoria,
   type ResultadoCliente,
   type ResultadoConexion,
+  type ResultadoCorteCaja,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
@@ -30,10 +32,12 @@ import {
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
+  type ResultadoMovimientoCaja,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
+  type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -74,6 +78,12 @@ import {
   eliminarCliente,
   registrarAbono
 } from './clientes-cliente'
+import {
+  registrarMovimientoCaja,
+  cerrarTurno,
+  obtenerReporteVentas,
+  establecerFondoInicialTurno
+} from './caja-cliente'
 import { obtenerSesion } from './sesion'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -395,6 +405,37 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return registrarAbono(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.cajaEstablecerFondoInicial, (_evento, monto: number): void => {
+    establecerFondoInicialTurno(monto)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.cajaRegistrarMovimiento,
+    (_evento, datos: DatosMovimientoCaja): Promise<ResultadoMovimientoCaja> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return registrarMovimientoCaja(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.cajaCerrarTurno,
+    (_evento, totalContadoSistema: number): Promise<ResultadoCorteCaja> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return cerrarTurno(config, totalContadoSistema)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.cajaReporteVentas,
+    (_evento, desde?: string, hasta?: string): Promise<ResultadoReporteVentas> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerReporteVentas(config, desde, hasta)
     }
   )
 }

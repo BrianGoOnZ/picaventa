@@ -8,6 +8,7 @@ import { crearRutasNegocio } from './negocio.js'
 import { crearRutasCatalogo } from './catalogo.js'
 import { crearRutasVentas } from './ventas.js'
 import { crearRutasClientes } from './clientes.js'
+import { crearRutasCaja } from './caja.js'
 
 export interface OpcionesServidor {
   postgresUrl: string
@@ -43,6 +44,7 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
   app.use(crearRutasCatalogo())
   app.use('/ventas', crearRutasVentas())
   app.use('/clientes', crearRutasClientes())
+  app.use('/caja', crearRutasCaja())
 
   await new Promise<void>((resolve) => httpServer.listen(puerto, resolve))
 

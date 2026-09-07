@@ -110,7 +110,7 @@ export const cliente = pgTable('cliente', {
 export const abono = pgTable('abono', {
   idAbono: serial('id_abono').primaryKey(),
   montoAbono: dinero('monto_abono').notNull(),
-  fechaAbono: timestamp('fecha_abono').notNull().defaultNow(),
+  fechaAbono: timestamp('fecha_abono', { withTimezone: true }).notNull().defaultNow(),
   idCliente: integer('id_cliente')
     .notNull()
     .references(() => cliente.idCliente)
@@ -119,7 +119,7 @@ export const abono = pgTable('abono', {
 export const venta = pgTable('venta', {
   idVenta: serial('id_venta').primaryKey(),
   folioVenta: text('folio_venta').notNull().unique(),
-  fechaVenta: timestamp('fecha_venta').notNull().defaultNow(),
+  fechaVenta: timestamp('fecha_venta', { withTimezone: true }).notNull().defaultNow(),
   // Tampoco está en 04-Base-de-datos-V1.md pero sí en 02-DER.md; sin este
   // campo no se puede calcular el corte de caja (RF-16) ni los reportes
   // de rentabilidad (RF-22).
@@ -165,7 +165,7 @@ export const devolucion = pgTable('devolucion', {
   idUsuario: integer('id_usuario')
     .notNull()
     .references(() => usuarios.idUsuario),
-  fechaDevolucion: timestamp('fecha_devolucion').notNull().defaultNow()
+  fechaDevolucion: timestamp('fecha_devolucion', { withTimezone: true }).notNull().defaultNow()
 })
 
 export const movimientoCaja = pgTable('movimiento_caja', {
@@ -173,7 +173,7 @@ export const movimientoCaja = pgTable('movimiento_caja', {
   tipoMovimiento: tipoMovimientoEnum('tipo_movimiento').notNull(),
   montoMovimiento: dinero('monto_movimiento').notNull(),
   conceptoMovimiento: text('concepto_movimiento').notNull(),
-  fechaMovimiento: timestamp('fecha_movimiento').notNull().defaultNow(),
+  fechaMovimiento: timestamp('fecha_movimiento', { withTimezone: true }).notNull().defaultNow(),
   idUsuario: integer('id_usuario')
     .notNull()
     .references(() => usuarios.idUsuario)
@@ -181,7 +181,7 @@ export const movimientoCaja = pgTable('movimiento_caja', {
 
 export const corteCaja = pgTable('corte_caja', {
   idCorte: serial('id_corte').primaryKey(),
-  fechaCorte: timestamp('fecha_corte').notNull().defaultNow(),
+  fechaCorte: timestamp('fecha_corte', { withTimezone: true }).notNull().defaultNow(),
   fondoInicial: dinero('fondo_inicial').notNull(),
   // total_esperado y diferencia (de 02-DER.md) no se guardan: se calculan a
   // partir de fondo_inicial + ventas del turno en el módulo de corte de caja,
@@ -224,7 +224,7 @@ export const historicoPrecio = pgTable('historico_precio', {
     .references(() => producto.idProducto),
   precioAnterior: dinero('precio_anterior').notNull(),
   precioNuevo: dinero('precio_nuevo').notNull(),
-  fechaCambio: timestamp('fecha_cambio').notNull().defaultNow(),
+  fechaCambio: timestamp('fecha_cambio', { withTimezone: true }).notNull().defaultNow(),
   idUsuario: integer('id_usuario')
     .notNull()
     .references(() => usuarios.idUsuario)
@@ -242,5 +242,5 @@ export const configuracionNegocio = pgTable('configuracion_negocio', {
   // Imagen del logo embebida directamente (base64), no una ruta de archivo:
   // servidor y cajas no comparten sistema de archivos, solo Postgres.
   logoDatos: text('logo_datos'),
-  fechaActualizacion: timestamp('fecha_actualizacion').notNull().defaultNow()
+  fechaActualizacion: timestamp('fecha_actualizacion', { withTimezone: true }).notNull().defaultNow()
 })

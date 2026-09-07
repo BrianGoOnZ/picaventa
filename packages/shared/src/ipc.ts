@@ -38,5 +38,10 @@ export const CANALES_IPC = {
   clientesCrear: 'clientes:crear',
   clientesEditar: 'clientes:editar',
   clientesEliminar: 'clientes:eliminar',
-  clientesRegistrarAbono: 'clientes:registrar-abono'
+  clientesRegistrarAbono: 'clientes:registrar-abono',
+
+  cajaEstablecerFondoInicial: 'caja:establecer-fondo-inicial',
+  cajaRegistrarMovimiento: 'caja:registrar-movimiento',
+  cajaCerrarTurno: 'caja:cerrar-turno',
+  cajaReporteVentas: 'caja:reporte-ventas'
 } as const

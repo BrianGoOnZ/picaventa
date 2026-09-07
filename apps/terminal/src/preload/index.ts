@@ -9,6 +9,7 @@ import {
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
+  type DatosMovimientoCaja,
   type DatosNegocio,
   type DatosNuevoUsuario,
   type DatosProducto,
@@ -17,6 +18,7 @@ import {
   type ResultadoCategoria,
   type ResultadoCliente,
   type ResultadoConexion,
+  type ResultadoCorteCaja,
   type ResultadoCrearUsuario,
   type ResultadoCrearVenta,
   type ResultadoGuardarNegocio,
@@ -25,10 +27,12 @@ import {
   type ResultadoListaProductos,
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
+  type ResultadoMovimientoCaja,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoReautenticacion,
+  type ResultadoReporteVentas,
   type ResultadoVentaDetallada,
   type RespuestaEstadoAuth,
   type SesionUsuario
@@ -131,7 +135,19 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.clientesEliminar, id),
 
   registrarAbono: (id: number, datos: DatosAbono): Promise<ResultadoCliente> =>
-    ipcRenderer.invoke(CANALES_IPC.clientesRegistrarAbono, id, datos)
+    ipcRenderer.invoke(CANALES_IPC.clientesRegistrarAbono, id, datos),
+
+  establecerFondoInicialTurno: (monto: number): Promise<void> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaEstablecerFondoInicial, monto),
+
+  registrarMovimientoCaja: (datos: DatosMovimientoCaja): Promise<ResultadoMovimientoCaja> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaRegistrarMovimiento, datos),
+
+  cerrarTurno: (totalContadoSistema: number): Promise<ResultadoCorteCaja> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaCerrarTurno, totalContadoSistema),
+
+  obtenerReporteVentas: (desde?: string, hasta?: string): Promise<ResultadoReporteVentas> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaReporteVentas, desde, hasta)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)
