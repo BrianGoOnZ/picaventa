@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReporteVentas, VentaPorCajero } from '@picaventa/shared'
-import { exportarReporteAExcel } from '../lib/excelReportes'
+import { exportarReportePdf } from '../lib/pdfReportes'
 import { useToast } from '../lib/ToastContext'
 
 function inicioDeHoy(): Date {
@@ -46,10 +46,10 @@ export default function PantallaReportes(): React.JSX.Element {
     setCargando(false)
   }
 
-  async function manejarExportar(): Promise<void> {
+  function manejarExportar(): void {
     if (!reporte) return
     setExportando(true)
-    await exportarReporteAExcel(reporte, ventasPorCajero, nombreNegocio)
+    exportarReportePdf(reporte, ventasPorCajero, nombreNegocio)
     mostrarToast('Reporte exportado')
     setExportando(false)
   }
@@ -131,11 +131,11 @@ export default function PantallaReportes(): React.JSX.Element {
             </p>
             <button
               type="button"
-              onClick={() => void manejarExportar()}
+              onClick={manejarExportar}
               disabled={exportando}
               className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50"
             >
-              {exportando ? 'Exportando...' : '📊 Exportar a Excel'}
+              {exportando ? 'Exportando...' : '📄 Exportar a PDF'}
             </button>
           </div>
           <div className="mb-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

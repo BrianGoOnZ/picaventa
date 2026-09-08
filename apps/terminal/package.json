@@ -20,6 +20,8 @@
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "node-thermal-printer": "^4.6.1",
     "postgres": "^3.4.9",
     "react": "^19.2.8",
