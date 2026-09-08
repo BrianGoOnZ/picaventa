@@ -73,5 +73,7 @@ export const CANALES_IPC = {
   promocionesListarActivas: 'promociones:listar-activas',
   promocionesCrear: 'promociones:crear',
   promocionesEditar: 'promociones:editar',
-  promocionesEliminar: 'promociones:eliminar'
+  promocionesEliminar: 'promociones:eliminar',
+
+  basculaLeerPeso: 'bascula:leer-peso'
 } as const

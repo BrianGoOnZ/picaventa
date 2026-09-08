@@ -69,6 +69,20 @@ h2 {
   outline-offset: 1px;
 }
 
+/* Sin flechitas de incremento/decremento en los campos numéricos: dar clic
+   ahí sube o baja de a un centavo/unidad mínima según el "step" del campo,
+   algo lento y contraintuitivo para el flujo rápido de una tienda — se
+   prefiere que el cajero siempre teclee el número directamente. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

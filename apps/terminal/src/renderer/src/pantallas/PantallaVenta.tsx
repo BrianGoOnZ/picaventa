@@ -66,6 +66,15 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const cantidadRefs = useRef<Map<number, HTMLInputElement>>(new Map())
   const idProductoAResaltarRef = useRef<number | null>(null)
 
+  // Productos a granel (kg): en vez de agregar 1 pieza directo, se pide el
+  // peso en una ventana aparte — a mano por ahora, y ya lista para que un
+  // día "Leer báscula" traiga el peso solo (ver main/bascula.ts).
+  const [productoParaPesar, setProductoParaPesar] = useState<Producto | null>(null)
+  const [pesoManual, setPesoManual] = useState('')
+  const [leyendoBascula, setLeyendoBascula] = useState(false)
+  const [errorBascula, setErrorBascula] = useState('')
+  const inputPesoRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     void window.picaventa.obtenerNegocio().then((resultado) => {
       if (resultado.ok) setNegocio(resultado.negocio)
@@ -126,7 +135,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     return promo ? calcularDescuentoPromocion(promo, producto.precioVenta, cantidad) : 0
   }
 
-  function agregarAlCarrito(producto: Producto): void {
+  function agregarAlCarritoConCantidad(producto: Producto, cantidadAAgregar: number): void {
     // Forma funcional de setCarrito: si se agregan dos productos en el mismo
     // tick (dos clics muy seguidos, o el lector de código de barras mandando
     // teclas más rápido de lo que React vuelve a renderizar), leer "carrito"
@@ -136,7 +145,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     setCarrito((actual) => {
       const indiceExistente = actual.findIndex((l) => l.idProducto === producto.idProducto)
       if (indiceExistente !== -1) {
-        const nuevaCantidad = actual[indiceExistente]!.cantidad + 1
+        const nuevaCantidad = actual[indiceExistente]!.cantidad + cantidadAAgregar
         return actual.map((l, i) =>
           i === indiceExistente
             ? { ...l, cantidad: nuevaCantidad, descuento: descuentoPromocionParaCantidad(producto, nuevaCantidad) }
@@ -150,14 +159,59 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
           nombreProducto: producto.nombreProducto,
           unidadMedida: producto.unidadMedida,
           precioVenta: producto.precioVenta,
-          cantidad: 1,
-          descuento: descuentoPromocionParaCantidad(producto, 1)
+          cantidad: cantidadAAgregar,
+          descuento: descuentoPromocionParaCantidad(producto, cantidadAAgregar)
         }
       ]
     })
     setTextoBusqueda('')
     setError('')
   }
+
+  function agregarAlCarrito(producto: Producto): void {
+    // A granel (kg): no se puede saber cuánto es "una unidad" sin pesarlo,
+    // así que en vez de agregar directo se abre la ventana de peso.
+    if (producto.unidadMedida === 'kg') {
+      setProductoParaPesar(producto)
+      setPesoManual('')
+      setErrorBascula('')
+      return
+    }
+    agregarAlCarritoConCantidad(producto, 1)
+  }
+
+  function confirmarPeso(): void {
+    if (!productoParaPesar) return
+    const peso = Number(pesoManual)
+    if (!peso || peso <= 0) return
+    agregarAlCarritoConCantidad(productoParaPesar, peso)
+    setProductoParaPesar(null)
+    setPesoManual('')
+  }
+
+  function cancelarPeso(): void {
+    setProductoParaPesar(null)
+    setPesoManual('')
+    setErrorBascula('')
+  }
+
+  async function leerDeBascula(): Promise<void> {
+    setLeyendoBascula(true)
+    setErrorBascula('')
+    const resultado = await window.picaventa.leerPesoBascula()
+    if (resultado.ok) {
+      setPesoManual(resultado.peso.toFixed(3))
+    } else {
+      setErrorBascula(resultado.error)
+    }
+    setLeyendoBascula(false)
+  }
+
+  useEffect(() => {
+    if (productoParaPesar) {
+      setTimeout(() => inputPesoRef.current?.focus(), 0)
+    }
+  }, [productoParaPesar])
 
   async function manejarBuscar(evento: KeyboardEvent<HTMLInputElement>): Promise<void> {
     if (evento.key !== 'Enter') return
@@ -359,6 +413,10 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   useEffect(() => {
     function manejarTeclado(evento: globalThis.KeyboardEvent): void {
       if (evento.key === 'Escape') {
+        if (productoParaPesar) {
+          cancelarPeso()
+          return
+        }
         if (ticket) {
           setTicket(null)
           return
@@ -384,7 +442,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
         return
       }
 
-      if (ticket || vista !== 'venta') return
+      if (ticket || vista !== 'venta' || productoParaPesar) return
 
       if (evento.key === 'F2') {
         evento.preventDefault()
@@ -461,7 +519,17 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
 
     document.addEventListener('keydown', manejarTeclado)
     return () => document.removeEventListener('keydown', manejarTeclado)
-  }, [ticket, mostrarNuevoCliente, vista, carrito, indiceSeleccionado, enviando, manejarCobrar, manejarPausar])
+  }, [
+    ticket,
+    mostrarNuevoCliente,
+    vista,
+    carrito,
+    indiceSeleccionado,
+    enviando,
+    manejarCobrar,
+    manejarPausar,
+    productoParaPesar
+  ])
 
   if (vista === 'apartados') {
     return (
@@ -489,7 +557,66 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="relative flex h-full gap-4">
+      {productoParaPesar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-onix/80 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-borde bg-tarjeta p-6 shadow-lg">
+            <p className="font-display text-lg font-semibold text-onix">{productoParaPesar.nombreProducto}</p>
+            <p className="mb-4 text-sm text-texto-secundario">
+              ${productoParaPesar.precioVenta.toFixed(2)} por kg — indica cuánto pesa
+            </p>
+
+            <label className="text-sm font-medium text-texto-secundario">
+              Peso (kg)
+              <input
+                ref={inputPesoRef}
+                type="number"
+                min="0.001"
+                step="0.001"
+                autoFocus
+                value={pesoManual}
+                onChange={(evento) => setPesoManual(evento.target.value)}
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Enter') {
+                    evento.preventDefault()
+                    confirmarPeso()
+                  }
+                }}
+                className="mt-1 w-full rounded-md border border-borde px-4 py-3 text-center text-lg tabular-nums text-onix"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => void leerDeBascula()}
+              disabled={leyendoBascula}
+              className="mt-3 w-full rounded-md border border-borde px-3 py-2 text-sm text-texto-secundario hover:bg-arena disabled:opacity-50"
+            >
+              {leyendoBascula ? 'Leyendo báscula...' : '⚖️ Leer báscula'}
+            </button>
+            {errorBascula && <p className="mt-2 text-xs text-alerta">{errorBascula}</p>}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={cancelarPeso}
+                className="flex-1 rounded-md border border-borde px-4 py-2 text-sm text-texto-secundario"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarPeso}
+                disabled={!Number(pesoManual) || Number(pesoManual) <= 0}
+                className="flex-1 rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Columna izquierda: búsqueda, categorías y cuadrícula de productos */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="mb-3 flex items-center gap-3">

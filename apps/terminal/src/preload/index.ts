@@ -50,6 +50,7 @@ import {
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
   type ResultadoListaCortes,
+  type ResultadoLecturaBascula,
   type ResultadoMovimientoCaja,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
@@ -259,7 +260,10 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.promocionesEditar, id, datos),
 
   eliminarPromocion: (id: number): Promise<ResultadoOperacion> =>
-    ipcRenderer.invoke(CANALES_IPC.promocionesEliminar, id)
+    ipcRenderer.invoke(CANALES_IPC.promocionesEliminar, id),
+
+  leerPesoBascula: (): Promise<ResultadoLecturaBascula> =>
+    ipcRenderer.invoke(CANALES_IPC.basculaLeerPeso)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)

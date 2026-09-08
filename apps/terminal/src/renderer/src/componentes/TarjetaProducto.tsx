@@ -42,6 +42,7 @@ export default function TarjetaProducto({
         </p>
         <p className="mt-auto font-display text-sm font-semibold tabular-nums text-cobre">
           ${producto.precioVenta.toFixed(2)}
+          {producto.unidadMedida === 'kg' && <span className="text-texto-secundario">/kg</span>}
         </p>
         {agotado && <p className="text-[10px] font-semibold uppercase text-peligro">Agotado</p>}
       </div>

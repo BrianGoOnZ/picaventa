@@ -57,6 +57,7 @@ import {
   type ResultadoMovimientoCaja,
   type ResultadoListaCortes,
   type ResultadoObtenerNegocio,
+  type ResultadoLecturaBascula,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoPromocion,
@@ -142,6 +143,7 @@ import {
   listarCortes
 } from './caja-cliente'
 import { obtenerSesion } from './sesion'
+import { leerPesoBascula } from './bascula'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
 // vez empaquetado por electron-vite (import.meta.url apunta al bundle, no al
@@ -702,4 +704,6 @@ export function registrarManejadoresIpc(): void {
       return eliminarPromocion(config, id)
     }
   )
+
+  ipcMain.handle(CANALES_IPC.basculaLeerPeso, (): Promise<ResultadoLecturaBascula> => leerPesoBascula())
 }
