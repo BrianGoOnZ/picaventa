@@ -255,17 +255,13 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     }
 
     if (hayTexto && (evento.key === 'ArrowLeft' || evento.key === 'ArrowRight')) {
-      // Izquierda/derecha solo se roban para moverse por la cuadrícula
-      // cuando el cursor de texto ya está en el extremo correspondiente —
-      // si no, se deja que muevan el cursor dentro de lo escrito, como
-      // siempre, para poder corregir un error de dedo sin salirse del campo.
-      const input = evento.currentTarget
-      const cursorAlInicio = input.selectionStart === 0 && input.selectionEnd === 0
-      const cursorAlFinal =
-        input.selectionStart === input.value.length && input.selectionEnd === input.value.length
-      const puedeNavegar = evento.key === 'ArrowLeft' ? cursorAlInicio : cursorAlFinal
-      if (!puedeNavegar || productosFiltrados.length === 0) return
-
+      // El cursor de texto en este campo nunca se mueve con las flechas —
+      // solo sirven para escribir y borrar. Antes se dejaba mover el cursor
+      // hasta que llegara al extremo del texto para recién ahí navegar la
+      // cuadrícula, pero eso se sentía como un retraso confuso (primero
+      // "no hace nada" varias veces y luego salta). Ahora cualquier flecha,
+      // en cualquier posición del cursor, mueve la cuadrícula de una vez.
+      if (productosFiltrados.length === 0) return
       evento.preventDefault()
       setIndiceResaltado((actual) => {
         const siguiente = evento.key === 'ArrowRight' ? actual + 1 : actual - 1
