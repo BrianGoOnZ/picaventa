@@ -63,6 +63,8 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const [ticket, setTicket] = useState<TicketPendiente | null>(null)
   const [indiceSeleccionado, setIndiceSeleccionado] = useState<number | null>(null)
   const inputBusquedaRef = useRef<HTMLInputElement>(null)
+  const [indiceResaltado, setIndiceResaltado] = useState(0)
+  const tarjetaRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const cantidadRefs = useRef<Map<number, HTMLInputElement>>(new Map())
   const idProductoAResaltarRef = useRef<number | null>(null)
 
@@ -106,6 +108,17 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
       return coincideCategoria && coincideTexto
     })
   }, [productos, categoriaFiltro, textoBusqueda])
+
+  // Cada vez que cambia el filtro (texto o categoría), el resaltado de
+  // teclado vuelve al primer resultado — así ↓/↑ siempre arrancan desde
+  // arriba de la lista que se ve en pantalla, no desde donde se quedó antes.
+  useEffect(() => {
+    setIndiceResaltado(0)
+  }, [productosFiltrados])
+
+  useEffect(() => {
+    tarjetaRefs.current.get(indiceResaltado)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [indiceResaltado])
 
   const total = carrito.reduce(
     (acumulado, linea) => acumulado + linea.cantidad * linea.precioVenta - linea.descuento,
@@ -214,6 +227,19 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   }, [productoParaPesar])
 
   async function manejarBuscar(evento: KeyboardEvent<HTMLInputElement>): Promise<void> {
+    // ↓/↑ mueven cuál de los resultados filtrados está resaltado, para
+    // elegirlo con Enter sin tener que escribir el nombre completo ni
+    // soltar el teclado para hacer clic.
+    if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
+      if (productosFiltrados.length === 0) return
+      evento.preventDefault()
+      setIndiceResaltado((actual) => {
+        const siguiente = evento.key === 'ArrowDown' ? actual + 1 : actual - 1
+        return Math.max(0, Math.min(siguiente, productosFiltrados.length - 1))
+      })
+      return
+    }
+
     if (evento.key !== 'Enter') return
     const texto = textoBusqueda.trim()
     if (!texto) return
@@ -225,10 +251,10 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
       return
     }
 
-    // Si el texto ya dejó un solo producto visible en la cuadrícula, Enter
-    // lo agrega directamente sin tener que dar clic.
-    if (productosFiltrados.length === 1) {
-      agregarAlCarrito(productosFiltrados[0]!)
+    // Agrega el resultado resaltado — si solo hay uno, es el único posible;
+    // si hay varios, es el que se ubicó con las flechas.
+    if (productosFiltrados[indiceResaltado]) {
+      agregarAlCarrito(productosFiltrados[indiceResaltado]!)
       return
     }
     setError(productosFiltrados.length === 0 ? 'No se encontró ningún producto' : '')
@@ -487,14 +513,17 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
         return
       }
 
-      // Se evita interferir con los campos numéricos de cantidad/descuento,
-      // que ya usan las flechas arriba/abajo para subir o bajar el valor.
+      // Se evita interferir con los campos numéricos de cantidad/descuento
+      // (ya usan las flechas para subir o bajar el valor) y con el buscador
+      // (ya usa las flechas para moverse entre los resultados filtrados).
       const activo = document.activeElement as HTMLInputElement | null
       const enCampoNumerico = activo?.tagName === 'INPUT' && activo.type === 'number'
+      const enBuscador = activo === inputBusquedaRef.current
 
       if (
         (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') &&
         !enCampoNumerico &&
+        !enBuscador &&
         carrito.length > 0
       ) {
         evento.preventDefault()
@@ -509,6 +538,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
       if (
         evento.key === 'Delete' &&
         !enCampoNumerico &&
+        !enBuscador &&
         indiceSeleccionado !== null &&
         carrito[indiceSeleccionado]
       ) {
@@ -643,6 +673,11 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
             Apartados <span className="text-texto-secundario">(F9)</span>
           </button>
         </div>
+        {textoBusqueda && productosFiltrados.length > 1 && (
+          <p className="-mt-2 mb-3 text-[10px] text-texto-secundario">
+            ↑↓ elige entre los resultados · Enter lo agrega
+          </p>
+        )}
 
         <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
           <button
@@ -684,16 +719,24 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
             </p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-3">
-              {productosFiltrados.map((producto) => (
-                <TarjetaProducto
+              {productosFiltrados.map((producto, indice) => (
+                <div
                   key={producto.idProducto}
-                  producto={producto}
-                  colorCategoria={
-                    (producto.idCategoria && colorPorCategoria.get(producto.idCategoria)) ||
-                    COLOR_SIN_CATEGORIA
-                  }
-                  onSeleccionar={agregarAlCarrito}
-                />
+                  ref={(el) => {
+                    if (el) tarjetaRefs.current.set(indice, el)
+                    else tarjetaRefs.current.delete(indice)
+                  }}
+                >
+                  <TarjetaProducto
+                    producto={producto}
+                    colorCategoria={
+                      (producto.idCategoria && colorPorCategoria.get(producto.idCategoria)) ||
+                      COLOR_SIN_CATEGORIA
+                    }
+                    resaltado={indice === indiceResaltado}
+                    onSeleccionar={agregarAlCarrito}
+                  />
+                </div>
               ))}
             </div>
           )}

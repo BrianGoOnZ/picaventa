@@ -3,12 +3,14 @@ import type { Producto } from '@picaventa/shared'
 interface Props {
   producto: Producto
   colorCategoria: string
+  resaltado?: boolean
   onSeleccionar: (producto: Producto) => void
 }
 
 export default function TarjetaProducto({
   producto,
   colorCategoria,
+  resaltado,
   onSeleccionar
 }: Props): React.JSX.Element {
   const agotado = producto.stockActual <= 0
@@ -18,7 +20,9 @@ export default function TarjetaProducto({
       type="button"
       onClick={() => onSeleccionar(producto)}
       disabled={agotado}
-      className="group flex flex-col overflow-hidden rounded-lg border border-borde bg-tarjeta text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md disabled:pointer-events-none disabled:opacity-40"
+      className={`group flex flex-col overflow-hidden rounded-lg border bg-tarjeta text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md disabled:pointer-events-none disabled:opacity-40 ${
+        resaltado ? 'border-cobre ring-2 ring-cobre' : 'border-borde'
+      }`}
     >
       {producto.imagenDatos ? (
         <img
