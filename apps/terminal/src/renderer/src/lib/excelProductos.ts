@@ -1,9 +1,7 @@
 import ExcelJS from 'exceljs'
 import { readSheet } from 'read-excel-file/browser'
 import type { Categoria, Producto, UnidadMedida } from '@picaventa/shared'
-
-const TIPO_MIME_XLSX =
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+import { TIPO_MIME_XLSX, descargarBlob } from './excel'
 
 const ENCABEZADOS = [
   'Nombre',
@@ -22,17 +20,6 @@ async function crearHojaBase(): Promise<{ workbook: ExcelJS.Workbook; hoja: Exce
   hoja.columns = ENCABEZADOS.map((encabezado) => ({ header: encabezado, width: 24 }))
   hoja.getRow(1).font = { bold: true }
   return { workbook, hoja }
-}
-
-function descargarBlob(blob: Blob, nombreArchivo: string): void {
-  const url = URL.createObjectURL(blob)
-  const enlace = document.createElement('a')
-  enlace.href = url
-  enlace.download = nombreArchivo
-  document.body.appendChild(enlace)
-  enlace.click()
-  document.body.removeChild(enlace)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export async function descargarPlantillaProductos(): Promise<void> {

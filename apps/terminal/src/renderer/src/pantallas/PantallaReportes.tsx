@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import type { ReporteVentas } from '@picaventa/shared'
+import { useEffect, useState } from 'react'
+import type { ReporteVentas, VentaPorCajero } from '@picaventa/shared'
+import { exportarReporteAExcel } from '../lib/excelReportes'
+import { useToast } from '../lib/ToastContext'
 
 function inicioDeHoy(): Date {
   const fecha = new Date()
@@ -13,20 +15,43 @@ export default function PantallaReportes(): React.JSX.Element {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [reporte, setReporte] = useState<ReporteVentas | null>(null)
+  const [ventasPorCajero, setVentasPorCajero] = useState<VentaPorCajero[]>([])
+  const [nombreNegocio, setNombreNegocio] = useState('PicaVenta')
+  const [exportando, setExportando] = useState(false)
+  const { mostrarToast } = useToast()
+
+  useEffect(() => {
+    void window.picaventa.obtenerNegocio().then((resultado) => {
+      if (resultado.ok && resultado.negocio) setNombreNegocio(resultado.negocio.nombreNegocio)
+    })
+  }, [])
 
   async function buscar(desdeIso: string, hastaIso: string): Promise<void> {
     setCargando(true)
     setError('')
-    const resultado = await window.picaventa.obtenerReporteVentas(
-      new Date(desdeIso).toISOString(),
-      new Date(`${hastaIso}T23:59:59`).toISOString()
-    )
+    const desdeCompleto = new Date(desdeIso).toISOString()
+    const hastaCompleto = new Date(`${hastaIso}T23:59:59`).toISOString()
+
+    const [resultado, resultadoCajeros] = await Promise.all([
+      window.picaventa.obtenerReporteVentas(desdeCompleto, hastaCompleto),
+      window.picaventa.obtenerVentasPorCajero(desdeCompleto, hastaCompleto)
+    ])
+
     if (resultado.ok) {
       setReporte(resultado.reporte)
     } else {
       setError(resultado.error)
     }
+    setVentasPorCajero(resultadoCajeros.ok ? resultadoCajeros.cajeros : [])
     setCargando(false)
+  }
+
+  async function manejarExportar(): Promise<void> {
+    if (!reporte) return
+    setExportando(true)
+    await exportarReporteAExcel(reporte, ventasPorCajero, nombreNegocio)
+    mostrarToast('Reporte exportado')
+    setExportando(false)
   }
 
   function atajo(dias: number): void {
@@ -99,6 +124,20 @@ export default function PantallaReportes(): React.JSX.Element {
 
       {reporte && (
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-neutral-500">
+              Periodo: {new Date(reporte.desde).toLocaleDateString('es-MX')} a{' '}
+              {new Date(reporte.hasta).toLocaleDateString('es-MX')}
+            </p>
+            <button
+              type="button"
+              onClick={() => void manejarExportar()}
+              disabled={exportando}
+              className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {exportando ? 'Exportando...' : '📊 Exportar a Excel'}
+            </button>
+          </div>
           <div className="mb-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
               <p className="text-neutral-500">Total vendido</p>
@@ -117,6 +156,20 @@ export default function PantallaReportes(): React.JSX.Element {
               <p className="text-lg font-semibold">${reporte.porMetodo.fiado.toFixed(2)}</p>
             </div>
           </div>
+
+          {ventasPorCajero.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold text-neutral-700">Ventas por cajero</h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {ventasPorCajero.map((c) => (
+                  <li key={c.idUsuario} className="flex justify-between border-t border-neutral-100 py-1">
+                    <span>{c.nombreUsuario}</span>
+                    <span className="font-medium">${c.total.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <h3 className="mb-2 text-sm font-semibold text-neutral-700">
             Productos más vendidos (margen aproximado)
