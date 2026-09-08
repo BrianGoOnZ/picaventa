@@ -64,7 +64,8 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const [indiceSeleccionado, setIndiceSeleccionado] = useState<number | null>(null)
   const inputBusquedaRef = useRef<HTMLInputElement>(null)
   const [indiceResaltado, setIndiceResaltado] = useState(0)
-  const tarjetaRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const tarjetaRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
+  const gridRef = useRef<HTMLDivElement>(null)
   const cantidadRefs = useRef<Map<number, HTMLInputElement>>(new Map())
   const idProductoAResaltarRef = useRef<number | null>(null)
 
@@ -117,8 +118,17 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   }, [productosFiltrados])
 
   useEffect(() => {
+    if (!textoBusqueda.trim()) return
     tarjetaRefs.current.get(indiceResaltado)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [indiceResaltado])
+  }, [indiceResaltado, textoBusqueda])
+
+  // Cuenta cuántas columnas tiene la cuadrícula EN ESTE momento (es
+  // responsiva, así que cambia con el tamaño de la ventana) para que ↑/↓
+  // se muevan una fila completa en vez de solo un producto.
+  function columnasDeLaCuadricula(): number {
+    if (!gridRef.current) return 1
+    return getComputedStyle(gridRef.current).gridTemplateColumns.split(' ').filter(Boolean).length || 1
+  }
 
   const total = carrito.reduce(
     (acumulado, linea) => acumulado + linea.cantidad * linea.precioVenta - linea.descuento,
@@ -227,14 +237,38 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   }, [productoParaPesar])
 
   async function manejarBuscar(evento: KeyboardEvent<HTMLInputElement>): Promise<void> {
-    // ↓/↑ mueven cuál de los resultados filtrados está resaltado, para
-    // elegirlo con Enter sin tener que escribir el nombre completo ni
-    // soltar el teclado para hacer clic.
-    if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
+    // Las flechas solo navegan los resultados una vez que hay algo escrito
+    // — mientras el buscador está vacío no hay nada que resaltar y el
+    // teclado se comporta normal (sin esto, ↑/↓/←/→ interferirían incluso
+    // antes de filtrar algo).
+    const hayTexto = textoBusqueda.trim().length > 0
+
+    if (hayTexto && (evento.key === 'ArrowDown' || evento.key === 'ArrowUp')) {
       if (productosFiltrados.length === 0) return
       evento.preventDefault()
+      const columnas = columnasDeLaCuadricula()
       setIndiceResaltado((actual) => {
-        const siguiente = evento.key === 'ArrowDown' ? actual + 1 : actual - 1
+        const siguiente = evento.key === 'ArrowDown' ? actual + columnas : actual - columnas
+        return Math.max(0, Math.min(siguiente, productosFiltrados.length - 1))
+      })
+      return
+    }
+
+    if (hayTexto && (evento.key === 'ArrowLeft' || evento.key === 'ArrowRight')) {
+      // Izquierda/derecha solo se roban para moverse por la cuadrícula
+      // cuando el cursor de texto ya está en el extremo correspondiente —
+      // si no, se deja que muevan el cursor dentro de lo escrito, como
+      // siempre, para poder corregir un error de dedo sin salirse del campo.
+      const input = evento.currentTarget
+      const cursorAlInicio = input.selectionStart === 0 && input.selectionEnd === 0
+      const cursorAlFinal =
+        input.selectionStart === input.value.length && input.selectionEnd === input.value.length
+      const puedeNavegar = evento.key === 'ArrowLeft' ? cursorAlInicio : cursorAlFinal
+      if (!puedeNavegar || productosFiltrados.length === 0) return
+
+      evento.preventDefault()
+      setIndiceResaltado((actual) => {
+        const siguiente = evento.key === 'ArrowRight' ? actual + 1 : actual - 1
         return Math.max(0, Math.min(siguiente, productosFiltrados.length - 1))
       })
       return
@@ -675,7 +709,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
         </div>
         {textoBusqueda && productosFiltrados.length > 1 && (
           <p className="-mt-2 mb-3 text-[10px] text-texto-secundario">
-            ↑↓ elige entre los resultados · Enter lo agrega
+            ↑↓←→ elige entre los resultados · Enter lo agrega
           </p>
         )}
 
@@ -718,25 +752,22 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
               No se encontraron productos.
             </p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-3">
+            <div ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-3">
               {productosFiltrados.map((producto, indice) => (
-                <div
+                <TarjetaProducto
                   key={producto.idProducto}
-                  ref={(el) => {
+                  producto={producto}
+                  colorCategoria={
+                    (producto.idCategoria && colorPorCategoria.get(producto.idCategoria)) ||
+                    COLOR_SIN_CATEGORIA
+                  }
+                  resaltado={!!textoBusqueda.trim() && indice === indiceResaltado}
+                  onSeleccionar={agregarAlCarrito}
+                  cardRef={(el) => {
                     if (el) tarjetaRefs.current.set(indice, el)
                     else tarjetaRefs.current.delete(indice)
                   }}
-                >
-                  <TarjetaProducto
-                    producto={producto}
-                    colorCategoria={
-                      (producto.idCategoria && colorPorCategoria.get(producto.idCategoria)) ||
-                      COLOR_SIN_CATEGORIA
-                    }
-                    resaltado={indice === indiceResaltado}
-                    onSeleccionar={agregarAlCarrito}
-                  />
-                </div>
+                />
               ))}
             </div>
           )}

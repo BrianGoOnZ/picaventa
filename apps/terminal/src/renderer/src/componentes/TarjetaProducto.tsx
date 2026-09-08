@@ -5,18 +5,21 @@ interface Props {
   colorCategoria: string
   resaltado?: boolean
   onSeleccionar: (producto: Producto) => void
+  cardRef?: (el: HTMLButtonElement | null) => void
 }
 
 export default function TarjetaProducto({
   producto,
   colorCategoria,
   resaltado,
-  onSeleccionar
+  onSeleccionar,
+  cardRef
 }: Props): React.JSX.Element {
   const agotado = producto.stockActual <= 0
 
   return (
     <button
+      ref={cardRef}
       type="button"
       onClick={() => onSeleccionar(producto)}
       disabled={agotado}
