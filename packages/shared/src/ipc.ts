@@ -6,6 +6,8 @@ export const CANALES_IPC = {
   configurarServidor: 'config:configurar-servidor',
   configurarTerminal: 'config:configurar-terminal',
   iniciarServidorDesdeConfig: 'servidor:iniciar-desde-config',
+  respaldosElegirCarpeta: 'respaldos:elegir-carpeta',
+  respaldosRestablecerCarpeta: 'respaldos:restablecer-carpeta',
 
   authEstadoInicial: 'auth:estado-inicial',
   authCrearPrimerUsuario: 'auth:crear-primer-usuario',

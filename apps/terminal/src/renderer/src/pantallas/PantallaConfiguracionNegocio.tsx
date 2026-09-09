@@ -32,6 +32,10 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
   const [pinRestaurar, setPinRestaurar] = useState('')
   const [restaurando, setRestaurando] = useState(false)
   const [errorRestaurar, setErrorRestaurar] = useState('')
+  const [carpetaRespaldos, setCarpetaRespaldos] = useState(
+    config.modo === 'servidor' ? config.carpetaRespaldos : undefined
+  )
+  const [cambiandoCarpeta, setCambiandoCarpeta] = useState(false)
 
   async function cargarEstadoRespaldo(): Promise<void> {
     const resultado = await window.picaventa.obtenerEstadoRespaldo()
@@ -83,6 +87,32 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
 
     setErrorRestaurar(resultado.error)
     setRestaurando(false)
+  }
+
+  async function manejarElegirCarpeta(): Promise<void> {
+    setCambiandoCarpeta(true)
+    const resultado = await window.picaventa.elegirCarpetaRespaldos()
+    if (resultado.ok) {
+      if (resultado.carpeta) {
+        setCarpetaRespaldos(resultado.carpeta)
+        mostrarToast('Carpeta guardada — reinicia la app para que el respaldo automático la use')
+      }
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setCambiandoCarpeta(false)
+  }
+
+  async function manejarRestablecerCarpeta(): Promise<void> {
+    setCambiandoCarpeta(true)
+    const resultado = await window.picaventa.restablecerCarpetaRespaldos()
+    if (resultado.ok) {
+      setCarpetaRespaldos(undefined)
+      mostrarToast('Se restableció la carpeta por defecto — reinicia la app para aplicarlo')
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setCambiandoCarpeta(false)
   }
 
   useEffect(() => {
@@ -225,6 +255,38 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
               Corre solo en esta computadora (rol de Servidor) todos los días a las 3:00 a.m. Se
               conserva un respaldo local por cada uno de los últimos 30 días.
             </p>
+
+            <div className="mb-4 rounded-md border border-neutral-200 bg-neutral-50 p-3">
+              <p className="text-xs font-medium text-neutral-700">Carpeta de respaldos</p>
+              <p className="mt-0.5 break-all text-xs text-neutral-500">
+                {carpetaRespaldos ?? 'Carpeta por defecto de la aplicación'}
+              </p>
+              <p className="mt-1 text-xs text-neutral-400">
+                Si eliges una carpeta sincronizada con OneDrive o Google Drive, el respaldo también
+                queda en la nube automáticamente. El cambio aplica hasta que reinicies la app.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void manejarElegirCarpeta()}
+                  disabled={cambiandoCarpeta}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Elegir carpeta...
+                </button>
+                {carpetaRespaldos && (
+                  <button
+                    type="button"
+                    onClick={() => void manejarRestablecerCarpeta()}
+                    disabled={cambiandoCarpeta}
+                    className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs disabled:opacity-50"
+                  >
+                    Usar carpeta por defecto
+                  </button>
+                )}
+              </div>
+            </div>
+
             {!respaldoDisponible ? (
               <p className="text-sm text-neutral-500">
                 El respaldo automático no está disponible en este momento.

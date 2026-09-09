@@ -35,6 +35,7 @@ import {
   type ResultadoCliente,
   type ResultadoCompraDetallada,
   type ResultadoConexion,
+  type ResultadoElegirCarpetaRespaldos,
   type ResultadoCorteCaja,
   type ResultadoCrearCompra,
   type ResultadoCrearUsuario,
@@ -155,6 +156,12 @@ const api = {
 
   restaurarRespaldo: (datos: DatosRestaurarRespaldo): Promise<ResultadoRestaurarRespaldo> =>
     ipcRenderer.invoke(CANALES_IPC.negocioRestaurarRespaldo, datos),
+
+  elegirCarpetaRespaldos: (): Promise<ResultadoElegirCarpetaRespaldos> =>
+    ipcRenderer.invoke(CANALES_IPC.respaldosElegirCarpeta),
+
+  restablecerCarpetaRespaldos: (): Promise<ResultadoOperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.respaldosRestablecerCarpeta),
 
   listarCategorias: (): Promise<ResultadoListaCategorias> =>
     ipcRenderer.invoke(CANALES_IPC.catalogoListarCategorias),

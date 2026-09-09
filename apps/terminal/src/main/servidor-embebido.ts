@@ -7,7 +7,8 @@ let servidorActivo: ServidorActivo | null = null
 export async function arrancarServidorEmbebido(
   postgresUrl: string,
   jwtSecret: string,
-  puerto?: number
+  puerto?: number,
+  carpetaRespaldos?: string
 ): Promise<ServidorActivo> {
   if (servidorActivo) return servidorActivo
   servidorActivo = await iniciarServidor({
@@ -16,8 +17,9 @@ export async function arrancarServidorEmbebido(
     puerto,
     // RNF-06: solo la instancia que corre el servidor embebido tiene la
     // base de datos completa, así que solo aquí tiene sentido programar el
-    // respaldo automático diario.
-    carpetaRespaldos: join(app.getPath('userData'), 'respaldos')
+    // respaldo automático diario. Si el administrador eligió una carpeta
+    // propia (Ajustes del negocio), se usa esa; si no, la de siempre.
+    carpetaRespaldos: carpetaRespaldos ?? join(app.getPath('userData'), 'respaldos')
   })
   return servidorActivo
 }

@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, dialog, BrowserWindow } from 'electron'
 import { networkInterfaces } from 'node:os'
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
@@ -40,6 +40,7 @@ import {
   type ResultadoCliente,
   type ResultadoCompraDetallada,
   type ResultadoConexion,
+  type ResultadoElegirCarpetaRespaldos,
   type ResultadoCorteCaja,
   type ResultadoCrearCompra,
   type ResultadoCrearUsuario,
@@ -274,11 +275,53 @@ export function registrarManejadoresIpc(): void {
       if (!prueba.ok) return prueba
 
       try {
-        await arrancarServidorEmbebido(config.postgresUrl, config.jwtSecret, config.puerto)
+        await arrancarServidorEmbebido(
+          config.postgresUrl,
+          config.jwtSecret,
+          config.puerto,
+          config.carpetaRespaldos
+        )
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
       return { ok: true }
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.respaldosElegirCarpeta,
+    async (): Promise<ResultadoElegirCarpetaRespaldos> => {
+      const config = obtenerConfig()
+      if (!config || config.modo !== 'servidor') {
+        return { ok: false, error: 'Esta opción solo aplica al modo Servidor' }
+      }
+
+      const ventana = BrowserWindow.getFocusedWindow()
+      const resultado = ventana
+        ? await dialog.showOpenDialog(ventana, { properties: ['openDirectory'] })
+        : await dialog.showOpenDialog({ properties: ['openDirectory'] })
+
+      if (resultado.canceled || resultado.filePaths.length === 0) {
+        return { ok: true, carpeta: null }
+      }
+
+      const carpeta = resultado.filePaths[0]
+      guardarConfig({ ...config, carpetaRespaldos: carpeta })
+      return { ok: true, carpeta }
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.respaldosRestablecerCarpeta,
+    (): Promise<ResultadoOperacion> => {
+      const config = obtenerConfig()
+      if (!config || config.modo !== 'servidor') {
+        return Promise.resolve({ ok: false, error: 'Esta opción solo aplica al modo Servidor' })
+      }
+
+      const { carpetaRespaldos: _actual, ...resto } = config
+      guardarConfig(resto)
+      return Promise.resolve({ ok: true })
     }
   )
 
