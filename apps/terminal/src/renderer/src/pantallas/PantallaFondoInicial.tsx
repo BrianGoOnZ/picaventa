@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import type { DatosNegocio } from '@picaventa/shared'
 
 interface Props {
   nombreUsuario: string
@@ -8,6 +9,13 @@ interface Props {
 export default function PantallaFondoInicial({ nombreUsuario, onListo }: Props): React.JSX.Element {
   const [monto, setMonto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [negocio, setNegocio] = useState<DatosNegocio | null>(null)
+
+  useEffect(() => {
+    void window.picaventa.obtenerNegocio().then((resultado) => {
+      if (resultado.ok) setNegocio(resultado.negocio)
+    })
+  }, [])
 
   async function manejarEnviar(evento: FormEvent): Promise<void> {
     evento.preventDefault()
@@ -17,16 +25,43 @@ export default function PantallaFondoInicial({ nombreUsuario, onListo }: Props):
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
+    <div className="flex h-screen items-center justify-center bg-arena p-8">
       <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-center text-2xl font-bold text-neutral-900">
-          Inicio de turno
-        </h1>
-        <p className="mb-6 text-center text-sm text-neutral-600">
-          Hola, {nombreUsuario}. ¿Con cuánto efectivo empiezas tu turno?
-        </p>
-        <form onSubmit={manejarEnviar} className="flex flex-col gap-3">
-          <label className="text-sm font-medium text-neutral-700">
+        <div className="mb-6 flex flex-col items-center gap-3">
+          {negocio?.logoDatos ? (
+            <img src={negocio.logoDatos} alt="" className="h-14 w-14 rounded-2xl object-contain shadow-sm" />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cobre text-white shadow-sm">
+              <svg viewBox="0 0 24 24" className="h-7 w-7">
+                <path
+                  d="M4 6h2l1.5 10.5A2 2 0 0 0 9.5 18H18a2 2 0 0 0 2-1.7L21 9H7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="10" cy="21" r="1.4" fill="currentColor" />
+                <circle cx="17" cy="21" r="1.4" fill="currentColor" />
+              </svg>
+            </div>
+          )}
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-semibold text-onix">Inicio de turno</h1>
+            <p className="text-sm text-texto-secundario">
+              Hola, {nombreUsuario}.{' '}
+              {negocio?.nombreNegocio
+                ? `¿Con cuánto efectivo empiezas tu turno en ${negocio.nombreNegocio}?`
+                : '¿Con cuánto efectivo empiezas tu turno?'}
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={manejarEnviar}
+          className="flex flex-col gap-3 rounded-xl border border-borde bg-tarjeta p-6 shadow-sm"
+        >
+          <label className="text-sm font-medium text-onix">
             Fondo inicial
             <input
               type="number"
@@ -36,13 +71,13 @@ export default function PantallaFondoInicial({ nombreUsuario, onListo }: Props):
               autoFocus
               value={monto}
               onChange={(evento) => setMonto(evento.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-borde px-3 py-2.5 text-sm"
             />
           </label>
           <button
             type="submit"
             disabled={enviando}
-            className="mt-2 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-2 rounded-md bg-cobre px-4 py-2.5 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
           >
             {enviando ? 'Guardando...' : 'Empezar turno'}
           </button>
