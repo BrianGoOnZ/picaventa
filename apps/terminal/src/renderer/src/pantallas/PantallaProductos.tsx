@@ -8,7 +8,7 @@ import {
   type SesionUsuario,
   type UnidadMedida
 } from '@picaventa/shared'
-import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO, colorAvatar } from '../lib/estilos'
 import { confirmarEliminar, confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 import {
@@ -218,9 +218,38 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
     setResultadosImportacion([])
     try {
       const filasExcel = await parsearProductosDesdeExcel(archivo)
+
+      // Las categorías que el archivo menciona pero todavía no existen se
+      // crean solas — así cargar 1000 productos no implica ir a crear cada
+      // categoría a mano antes, ni volver a categorizar todo después.
+      const vistas = new Map<string, string>()
+      for (const fila of filasExcel) {
+        const nombre = fila.categoria.trim()
+        if (nombre && !vistas.has(nombre.toLowerCase())) vistas.set(nombre.toLowerCase(), nombre)
+      }
+      const existentes = new Set(categorias.map((c) => c.nombreCategoria.toLowerCase()))
+      const faltantes = [...vistas.entries()].filter(([clave]) => !existentes.has(clave))
+
+      let categoriasActuales = categorias
+      if (faltantes.length > 0) {
+        const nuevas: Categoria[] = []
+        for (const [, nombre] of faltantes) {
+          const resultado = await window.picaventa.crearCategoria({
+            nombreCategoria: nombre,
+            colorCategoria: colorAvatar(categoriasActuales.length + nuevas.length)
+          })
+          if (resultado.ok) nuevas.push(resultado.categoria)
+        }
+        if (nuevas.length > 0) {
+          categoriasActuales = [...categoriasActuales, ...nuevas]
+          setCategorias(categoriasActuales)
+          mostrarToast(`Se crearon ${nuevas.length} categoría(s) nueva(s) del archivo`)
+        }
+      }
+
       const productosActuales = await window.picaventa.listarProductos({})
       const validadas = filasExcel.map((fila) =>
-        validarFilaProducto(fila, categorias, productosActuales.ok ? productosActuales.productos : [])
+        validarFilaProducto(fila, categoriasActuales, productosActuales.ok ? productosActuales.productos : [])
       )
       setFilasParaImportar(validadas)
       if (validadas.length === 0) {
