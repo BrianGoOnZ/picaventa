@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { tienePermiso, type MovimientoCajaDetalle, type ResumenCorteCaja, type SesionUsuario } from '@picaventa/shared'
 import PantallaReportes from './PantallaReportes'
 import PantallaHistorialVentas from './PantallaHistorialVentas'
+import PantallaHistorialCortes from './PantallaHistorialCortes'
 import { useToast } from '../lib/ToastContext'
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 const ETIQUETA_TIPO_MOVIMIENTO: Record<'retiro' | 'gasto', string> = { retiro: 'Retiro', gasto: 'Gasto' }
 
 export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
-  const [tab, setTab] = useState<'corte' | 'reportes' | 'ventas'>('corte')
+  const [tab, setTab] = useState<'corte' | 'reportes' | 'cortes' | 'ventas'>('corte')
   const esAdmin = sesion.rolUsuario === 'administrador'
   const puedeVentas = tienePermiso(sesion, 'procesarDevoluciones')
   const { mostrarToast } = useToast()
@@ -162,7 +163,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   }
 
   return (
-    <div className={`mx-auto w-full ${tab === 'ventas' ? 'max-w-5xl' : 'max-w-2xl'}`}>
+    <div className={`mx-auto w-full ${tab === 'ventas' || tab === 'cortes' ? 'max-w-5xl' : 'max-w-2xl'}`}>
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
         {(esAdmin || puedeVentas) && (
@@ -187,6 +188,17 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                 Reportes
               </button>
             )}
+            {esAdmin && (
+              <button
+                type="button"
+                onClick={() => setTab('cortes')}
+                className={`rounded-md px-4 py-2 text-sm ${
+                  tab === 'cortes' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+                }`}
+              >
+                Historial de cortes
+              </button>
+            )}
             {puedeVentas && (
               <button
                 type="button"
@@ -205,6 +217,8 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
           <PantallaHistorialVentas sesion={sesion} />
         ) : tab === 'reportes' && esAdmin ? (
           <PantallaReportes />
+        ) : tab === 'cortes' && esAdmin ? (
+          <PantallaHistorialCortes />
         ) : (
           <div className="flex flex-col gap-4">
             <form

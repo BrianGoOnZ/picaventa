@@ -552,7 +552,12 @@ export function crearRutasCaja(): Router {
   })
 
   router.get('/cortes', verificarJwt, requiereAdministrador, async (req, res) => {
-    const limite = Math.min(Math.max(Number(req.query.limite) || 10, 1), 100)
+    const limite = Math.min(Math.max(Number(req.query.limite) || 10, 1), 500)
+    const { desde, hasta } = req.query as { desde?: string; hasta?: string }
+
+    const condiciones = []
+    if (desde) condiciones.push(gte(corteCaja.fechaCorte, new Date(desde)))
+    if (hasta) condiciones.push(lte(corteCaja.fechaCorte, new Date(hasta)))
 
     const db = obtenerDb(req)
     const filas = await db
@@ -568,6 +573,7 @@ export function crearRutasCaja(): Router {
       })
       .from(corteCaja)
       .innerJoin(usuarios, eq(corteCaja.idUsuario, usuarios.idUsuario))
+      .where(condiciones.length > 0 ? and(...condiciones) : undefined)
       .orderBy(desc(corteCaja.fechaCorte))
       .limit(limite)
 

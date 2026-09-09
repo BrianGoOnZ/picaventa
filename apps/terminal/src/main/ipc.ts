@@ -647,10 +647,10 @@ export function registrarManejadoresIpc(): void {
 
   ipcMain.handle(
     CANALES_IPC.cajaListarCortes,
-    (_evento, limite: number): Promise<ResultadoListaCortes> => {
+    (_evento, limite: number, desde?: string, hasta?: string): Promise<ResultadoListaCortes> => {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
-      return listarCortes(config, limite)
+      return listarCortes(config, limite, desde, hasta)
     }
   )
 

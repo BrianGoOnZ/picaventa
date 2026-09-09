@@ -245,8 +245,8 @@ const api = {
   obtenerVentasPorCajero: (desde?: string, hasta?: string): Promise<ResultadoVentasPorCajero> =>
     ipcRenderer.invoke(CANALES_IPC.cajaVentasPorCajero, desde, hasta),
 
-  listarCortes: (limite: number): Promise<ResultadoListaCortes> =>
-    ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite),
+  listarCortes: (limite: number, desde?: string, hasta?: string): Promise<ResultadoListaCortes> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite, desde, hasta),
 
   obtenerMovimientosTurno: (): Promise<ResultadoMovimientosCaja> =>
     ipcRenderer.invoke(CANALES_IPC.cajaMovimientosTurno),

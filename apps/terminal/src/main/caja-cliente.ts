@@ -98,10 +98,20 @@ export function obtenerVentasPorCajero(
   )
 }
 
-export function listarCortes(config: ConfigLocal, limite: number): Promise<ResultadoListaCortes> {
+export function listarCortes(
+  config: ConfigLocal,
+  limite: number,
+  desde?: string,
+  hasta?: string
+): Promise<ResultadoListaCortes> {
   const token = obtenerToken()
   if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
-  return solicitarJson(`${obtenerUrlBase(config)}/caja/cortes?limite=${limite}`, {
+
+  const parametros = new URLSearchParams({ limite: String(limite) })
+  if (desde) parametros.set('desde', desde)
+  if (hasta) parametros.set('hasta', hasta)
+
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/cortes?${parametros.toString()}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
 }
