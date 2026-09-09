@@ -136,9 +136,9 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-texto-secundario">Ventas del periodo</h2>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-xs text-texto-secundario">
               Desde
               <input
