@@ -52,6 +52,7 @@ import {
   type ResultadoListaCortes,
   type ResultadoLecturaBascula,
   type ResultadoMovimientoCaja,
+  type ResultadoMovimientosCaja,
   type ResultadoObtenerNegocio,
   type ResultadoOperacion,
   type ResultadoProducto,
@@ -60,6 +61,7 @@ import {
   type ResultadoProveedor,
   type ResultadoReautenticacion,
   type ResultadoRegistrarMerma,
+  type ResultadoReporteDevoluciones,
   type ResultadoReporteVentas,
   type ResultadoRespaldoManual,
   type ResultadoVentaDetallada,
@@ -220,6 +222,12 @@ const api = {
 
   listarCortes: (limite: number): Promise<ResultadoListaCortes> =>
     ipcRenderer.invoke(CANALES_IPC.cajaListarCortes, limite),
+
+  obtenerMovimientosTurno: (): Promise<ResultadoMovimientosCaja> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaMovimientosTurno),
+
+  obtenerReporteDevoluciones: (desde?: string, hasta?: string): Promise<ResultadoReporteDevoluciones> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaReporteDevoluciones, desde, hasta),
 
   listarProveedores: (): Promise<ResultadoListaProveedores> =>
     ipcRenderer.invoke(CANALES_IPC.proveedoresListar),

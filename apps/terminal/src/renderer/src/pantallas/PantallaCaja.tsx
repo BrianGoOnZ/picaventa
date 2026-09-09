@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { tienePermiso, type ResumenCorteCaja, type SesionUsuario } from '@picaventa/shared'
+import { useEffect, useState, type FormEvent } from 'react'
+import { tienePermiso, type MovimientoCajaDetalle, type ResumenCorteCaja, type SesionUsuario } from '@picaventa/shared'
 import PantallaReportes from './PantallaReportes'
 import PantallaHistorialVentas from './PantallaHistorialVentas'
 import { useToast } from '../lib/ToastContext'
@@ -8,6 +8,8 @@ interface Props {
   sesion: SesionUsuario
   onCerrarSesion: () => void
 }
+
+const ETIQUETA_TIPO_MOVIMIENTO: Record<'retiro' | 'gasto', string> = { retiro: 'Retiro', gasto: 'Gasto' }
 
 export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
   const [tab, setTab] = useState<'corte' | 'reportes' | 'ventas'>('corte')
@@ -23,12 +25,26 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   const [enviandoMovimiento, setEnviandoMovimiento] = useState(false)
   const [errorMovimiento, setErrorMovimiento] = useState('')
 
+  // Movimientos del turno abierto (incluye los retiros automáticos que
+  // genera un reembolso en efectivo) — para revisar de dónde sale cada peso
+  // antes de confirmar el corte, no solo el total.
+  const [movimientosTurno, setMovimientosTurno] = useState<MovimientoCajaDetalle[]>([])
+
   // Cierre de turno
   const [mostrarCierre, setMostrarCierre] = useState(false)
   const [totalContado, setTotalContado] = useState('')
   const [enviandoCierre, setEnviandoCierre] = useState(false)
   const [errorCierre, setErrorCierre] = useState('')
   const [resumen, setResumen] = useState<ResumenCorteCaja | null>(null)
+
+  async function cargarMovimientosTurno(): Promise<void> {
+    const resultado = await window.picaventa.obtenerMovimientosTurno()
+    if (resultado.ok) setMovimientosTurno(resultado.movimientos)
+  }
+
+  useEffect(() => {
+    if (tab === 'corte') void cargarMovimientosTurno()
+  }, [tab])
 
   async function manejarMovimiento(evento: FormEvent): Promise<void> {
     evento.preventDefault()
@@ -47,6 +63,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
       setConceptoMovimiento('')
       setPinMovimiento('')
       mostrarToast(tipoMovimiento === 'retiro' ? 'Retiro registrado' : 'Gasto registrado')
+      await cargarMovimientosTurno()
     } else {
       setErrorMovimiento(resultado.error)
     }
@@ -61,6 +78,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
     const resultado = await window.picaventa.cerrarTurno(Number(totalContado))
 
     if (resultado.ok) {
+      await cargarMovimientosTurno()
       setResumen(resultado.resumen)
     } else {
       setErrorCierre(resultado.error)
@@ -98,6 +116,18 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
               <dt>Retiros / gastos</dt>
               <dd>−${resumen.totalRetirosGastos.toFixed(2)}</dd>
             </div>
+            {movimientosTurno.length > 0 && (
+              <div className="ml-3 space-y-0.5 text-xs text-neutral-500">
+                {movimientosTurno.map((m) => (
+                  <div key={m.idMovimiento} className="flex justify-between">
+                    <span>
+                      {ETIQUETA_TIPO_MOVIMIENTO[m.tipoMovimiento]}: {m.conceptoMovimiento}
+                    </span>
+                    <span>−${m.montoMovimiento.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="my-2 border-t border-neutral-200" />
             <div className="flex justify-between font-semibold">
               <dt>Total esperado en caja</dt>
@@ -247,6 +277,38 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                 {enviandoMovimiento ? 'Registrando...' : 'Registrar'}
               </button>
             </form>
+
+            <div className="rounded-lg border border-neutral-200 bg-white p-4">
+              <h2 className="mb-3 text-sm font-semibold text-neutral-700">
+                Movimientos de este turno {movimientosTurno.length > 0 && `(${movimientosTurno.length})`}
+              </h2>
+              {movimientosTurno.length === 0 ? (
+                <p className="text-sm text-neutral-500">Aún no hay retiros ni gastos registrados en este turno.</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {movimientosTurno.map((m) => (
+                    <li
+                      key={m.idMovimiento}
+                      className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        <span
+                          className={`mr-2 rounded px-1.5 py-0.5 text-xs font-medium ${
+                            m.tipoMovimiento === 'retiro' ? 'bg-alerta/10 text-alerta' : 'bg-peligro/10 text-peligro'
+                          }`}
+                        >
+                          {ETIQUETA_TIPO_MOVIMIENTO[m.tipoMovimiento]}
+                        </span>
+                        {m.conceptoMovimiento}
+                      </span>
+                      <span className="shrink-0 font-medium text-neutral-700">
+                        −${m.montoMovimiento.toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <div className="rounded-lg border border-neutral-200 bg-white p-4">
               <h2 className="mb-3 text-sm font-semibold text-neutral-700">Cerrar turno</h2>

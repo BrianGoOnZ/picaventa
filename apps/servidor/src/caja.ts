@@ -1,6 +1,7 @@
 import { Router, type Request } from 'express'
 import bcrypt from 'bcrypt'
 import { eq, and, gte, lte, desc } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import {
   venta,
   contiene,
@@ -71,6 +72,39 @@ export function crearRutasCaja(): Router {
     })
 
     res.status(201).json({ ok: true })
+  })
+
+  // Detalle de los retiros/gastos del turno abierto (incluye los retiros
+  // automáticos que genera un reembolso en efectivo) — para que se pueda
+  // revisar de dónde sale cada peso antes de confirmar el corte, no solo
+  // ver el total. Mismo criterio de "turno" que usa /cerrar-turno: desde el
+  // login (iat del JWT) hasta ahora.
+  router.get('/movimientos-turno', verificarJwt, async (req, res) => {
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (!payload || !payload.iat) {
+      res.status(401).json({ ok: false, error: 'Sesión inválida' })
+      return
+    }
+
+    const inicioTurno = new Date(payload.iat * 1000)
+    const db = obtenerDb(req)
+
+    const filas = await db
+      .select()
+      .from(movimientoCaja)
+      .where(and(eq(movimientoCaja.idUsuario, payload.idUsuario), gte(movimientoCaja.fechaMovimiento, inicioTurno)))
+      .orderBy(desc(movimientoCaja.fechaMovimiento))
+
+    res.json({
+      ok: true,
+      movimientos: filas.map((f) => ({
+        idMovimiento: f.idMovimiento,
+        tipoMovimiento: f.tipoMovimiento,
+        montoMovimiento: Number(f.montoMovimiento),
+        conceptoMovimiento: f.conceptoMovimiento,
+        fechaMovimiento: f.fechaMovimiento.toISOString()
+      }))
+    })
   })
 
   router.post('/cerrar-turno', verificarJwt, async (req, res) => {
@@ -338,6 +372,54 @@ export function crearRutasCaja(): Router {
       .sort((a, b) => b.total - a.total)
 
     res.json({ ok: true, cajeros })
+  })
+
+  // Historial de devoluciones del periodo — para que un administrador pueda
+  // revisar qué se hizo y por qué sin tener que abrir venta por venta. Se
+  // filtra por la fecha en que se procesó la devolución, no la de la venta
+  // original (misma lógica que la resta en /reportes/ventas).
+  router.get('/reportes/devoluciones', verificarJwt, requiereAdministrador, async (req, res) => {
+    const desde = req.query.desde ? new Date(String(req.query.desde)) : new Date(0)
+    const hasta = req.query.hasta ? new Date(String(req.query.hasta)) : new Date()
+
+    const db = obtenerDb(req)
+    const ventaCambioAlias = alias(venta, 'venta_cambio')
+
+    const filas = await db
+      .select({
+        idDevolucion: devolucion.idDevolucion,
+        idVenta: devolucion.idVenta,
+        folioVenta: venta.folioVenta,
+        idProducto: devolucion.idProducto,
+        nombreProducto: producto.nombreProducto,
+        cantidadDevuelta: devolucion.cantidadDevuelta,
+        motivoDevolucion: devolucion.motivoDevolucion,
+        tipoResolucion: devolucion.tipoResolucion,
+        montoReembolsado: devolucion.montoReembolsado,
+        idVentaCambio: devolucion.idVentaCambio,
+        folioVentaCambio: ventaCambioAlias.folioVenta,
+        nombreUsuario: usuarios.nombreUsuario,
+        fechaDevolucion: devolucion.fechaDevolucion
+      })
+      .from(devolucion)
+      .innerJoin(venta, eq(devolucion.idVenta, venta.idVenta))
+      .innerJoin(producto, eq(devolucion.idProducto, producto.idProducto))
+      .innerJoin(usuarios, eq(devolucion.idUsuario, usuarios.idUsuario))
+      .leftJoin(ventaCambioAlias, eq(devolucion.idVentaCambio, ventaCambioAlias.idVenta))
+      .where(and(gte(devolucion.fechaDevolucion, desde), lte(devolucion.fechaDevolucion, hasta)))
+      .orderBy(desc(devolucion.fechaDevolucion))
+
+    res.json({
+      ok: true,
+      devoluciones: filas.map((f) => ({
+        ...f,
+        cantidadDevuelta: Number(f.cantidadDevuelta),
+        montoReembolsado: Number(f.montoReembolsado),
+        idVentaCambio: f.idVentaCambio ?? undefined,
+        folioVentaCambio: f.folioVentaCambio ?? undefined,
+        fechaDevolucion: f.fechaDevolucion.toISOString()
+      }))
+    })
   })
 
   router.get('/cortes', verificarJwt, requiereAdministrador, async (req, res) => {

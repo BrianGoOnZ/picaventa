@@ -55,7 +55,9 @@ import {
   type ResultadoListaUsuarios,
   type ResultadoListaVentas,
   type ResultadoMovimientoCaja,
+  type ResultadoMovimientosCaja,
   type ResultadoListaCortes,
+  type ResultadoReporteDevoluciones,
   type ResultadoObtenerNegocio,
   type ResultadoLecturaBascula,
   type ResultadoOperacion,
@@ -140,7 +142,9 @@ import {
   establecerFondoInicialTurno,
   obtenerVentasPorDia,
   obtenerVentasPorCajero,
-  listarCortes
+  listarCortes,
+  obtenerMovimientosTurno,
+  obtenerReporteDevoluciones
 } from './caja-cliente'
 import { obtenerSesion } from './sesion'
 import { leerPesoBascula } from './bascula'
@@ -591,6 +595,21 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return listarCortes(config, limite)
+    }
+  )
+
+  ipcMain.handle(CANALES_IPC.cajaMovimientosTurno, (): Promise<ResultadoMovimientosCaja> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerMovimientosTurno(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.cajaReporteDevoluciones,
+    (_evento, desde?: string, hasta?: string): Promise<ResultadoReporteDevoluciones> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return obtenerReporteDevoluciones(config, desde, hasta)
     }
   )
 

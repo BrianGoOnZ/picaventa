@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ReporteVentas, VentaPorCajero } from '@picaventa/shared'
+import type { DevolucionReporte, ReporteVentas, TipoResolucion, VentaPorCajero } from '@picaventa/shared'
 import { exportarReportePdf } from '../lib/pdfReportes'
 import { useToast } from '../lib/ToastContext'
 
@@ -9,6 +9,12 @@ function inicioDeHoy(): Date {
   return fecha
 }
 
+const ETIQUETAS_RESOLUCION: Record<TipoResolucion, string> = {
+  reembolso: 'Reembolso',
+  reposicion: 'Reposición (defectuoso)',
+  cambio: 'Cambio' // valor legado
+}
+
 export default function PantallaReportes(): React.JSX.Element {
   const [desde, setDesde] = useState(() => inicioDeHoy().toISOString().slice(0, 10))
   const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10))
@@ -16,6 +22,7 @@ export default function PantallaReportes(): React.JSX.Element {
   const [error, setError] = useState('')
   const [reporte, setReporte] = useState<ReporteVentas | null>(null)
   const [ventasPorCajero, setVentasPorCajero] = useState<VentaPorCajero[]>([])
+  const [devoluciones, setDevoluciones] = useState<DevolucionReporte[]>([])
   const [nombreNegocio, setNombreNegocio] = useState('PicaVenta')
   const [exportando, setExportando] = useState(false)
   const { mostrarToast } = useToast()
@@ -32,9 +39,10 @@ export default function PantallaReportes(): React.JSX.Element {
     const desdeCompleto = new Date(desdeIso).toISOString()
     const hastaCompleto = new Date(`${hastaIso}T23:59:59`).toISOString()
 
-    const [resultado, resultadoCajeros] = await Promise.all([
+    const [resultado, resultadoCajeros, resultadoDevoluciones] = await Promise.all([
       window.picaventa.obtenerReporteVentas(desdeCompleto, hastaCompleto),
-      window.picaventa.obtenerVentasPorCajero(desdeCompleto, hastaCompleto)
+      window.picaventa.obtenerVentasPorCajero(desdeCompleto, hastaCompleto),
+      window.picaventa.obtenerReporteDevoluciones(desdeCompleto, hastaCompleto)
     ])
 
     if (resultado.ok) {
@@ -43,6 +51,7 @@ export default function PantallaReportes(): React.JSX.Element {
       setError(resultado.error)
     }
     setVentasPorCajero(resultadoCajeros.ok ? resultadoCajeros.cajeros : [])
+    setDevoluciones(resultadoDevoluciones.ok ? resultadoDevoluciones.devoluciones : [])
     setCargando(false)
   }
 
@@ -194,6 +203,60 @@ export default function PantallaReportes(): React.JSX.Element {
                       <td className="py-1 text-right">{p.cantidad}</td>
                       <td className="py-1 text-right">${p.ingresos.toFixed(2)}</td>
                       <td className="py-1 text-right">${p.margenEstimado.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {reporte && (
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <h3 className="mb-2 text-sm font-semibold text-neutral-700">
+            Devoluciones del periodo {devoluciones.length > 0 && `(${devoluciones.length})`}
+          </h3>
+          {devoluciones.length === 0 ? (
+            <p className="text-sm text-neutral-500">Sin devoluciones en este periodo.</p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase text-neutral-500">
+                  <tr>
+                    <th className="py-1">Fecha</th>
+                    <th className="py-1">Venta</th>
+                    <th className="py-1">Producto</th>
+                    <th className="py-1 text-right">Cant.</th>
+                    <th className="py-1">Tipo</th>
+                    <th className="py-1 text-right">Monto</th>
+                    <th className="py-1">Motivo</th>
+                    <th className="py-1">Quién</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devoluciones.map((d) => (
+                    <tr key={d.idDevolucion} className="border-t border-neutral-100 align-top">
+                      <td className="py-1 whitespace-nowrap">
+                        {new Date(d.fechaDevolucion).toLocaleString('es-MX', {
+                          dateStyle: 'short',
+                          timeStyle: 'short'
+                        })}
+                      </td>
+                      <td className="py-1 whitespace-nowrap">
+                        {d.folioVenta}
+                        {d.folioVentaCambio && (
+                          <span className="block text-xs text-neutral-500">→ {d.folioVentaCambio}</span>
+                        )}
+                      </td>
+                      <td className="py-1">{d.nombreProducto}</td>
+                      <td className="py-1 text-right">{d.cantidadDevuelta}</td>
+                      <td className="py-1 whitespace-nowrap">{ETIQUETAS_RESOLUCION[d.tipoResolucion]}</td>
+                      <td className="py-1 text-right">
+                        {d.montoReembolsado > 0 ? `$${d.montoReembolsado.toFixed(2)}` : '—'}
+                      </td>
+                      <td className="py-1">{d.motivoDevolucion}</td>
+                      <td className="py-1 whitespace-nowrap">{d.nombreUsuario}</td>
                     </tr>
                   ))}
                 </tbody>

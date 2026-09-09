@@ -4,6 +4,8 @@ import type {
   ResultadoCorteCaja,
   ResultadoListaCortes,
   ResultadoMovimientoCaja,
+  ResultadoMovimientosCaja,
+  ResultadoReporteDevoluciones,
   ResultadoReporteVentas,
   ResultadoVentasPorCajero,
   ResultadoVentasPorDia
@@ -99,6 +101,32 @@ export function listarCortes(config: ConfigLocal, limite: number): Promise<Resul
   const token = obtenerToken()
   if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
   return solicitarJson(`${obtenerUrlBase(config)}/caja/cortes?limite=${limite}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function obtenerMovimientosTurno(config: ConfigLocal): Promise<ResultadoMovimientosCaja> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/movimientos-turno`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function obtenerReporteDevoluciones(
+  config: ConfigLocal,
+  desde?: string,
+  hasta?: string
+): Promise<ResultadoReporteDevoluciones> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  const parametros = new URLSearchParams()
+  if (desde) parametros.set('desde', desde)
+  if (hasta) parametros.set('hasta', hasta)
+  const query = parametros.toString()
+
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/reportes/devoluciones${query ? `?${query}` : ''}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
 }

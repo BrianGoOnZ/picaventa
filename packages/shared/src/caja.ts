@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { TipoResolucion } from './ventas.js'
 
 export const datosMovimientoCajaSchema = z.object({
   tipo: z.enum(['retiro', 'gasto']),
@@ -96,4 +97,40 @@ export interface CorteCajaResumen {
 
 export type ResultadoListaCortes =
   | { ok: true; cortes: CorteCajaResumen[] }
+  | { ok: false; error: string }
+
+// Detalle de cada retiro/gasto del turno abierto — para que se vea de dónde
+// sale cada peso que falta antes de confirmar el corte, no solo el total.
+export interface MovimientoCajaDetalle {
+  idMovimiento: number
+  tipoMovimiento: 'retiro' | 'gasto'
+  montoMovimiento: number
+  conceptoMovimiento: string
+  fechaMovimiento: string
+}
+
+export type ResultadoMovimientosCaja =
+  | { ok: true; movimientos: MovimientoCajaDetalle[] }
+  | { ok: false; error: string }
+
+// Historial de devoluciones de un periodo, para que un administrador pueda
+// revisar qué se hizo y por qué sin tener que abrir venta por venta.
+export interface DevolucionReporte {
+  idDevolucion: number
+  idVenta: number
+  folioVenta: string
+  idProducto: number
+  nombreProducto: string
+  cantidadDevuelta: number
+  motivoDevolucion: string
+  tipoResolucion: TipoResolucion
+  montoReembolsado: number
+  idVentaCambio?: number
+  folioVentaCambio?: string
+  nombreUsuario: string
+  fechaDevolucion: string
+}
+
+export type ResultadoReporteDevoluciones =
+  | { ok: true; devoluciones: DevolucionReporte[] }
   | { ok: false; error: string }
