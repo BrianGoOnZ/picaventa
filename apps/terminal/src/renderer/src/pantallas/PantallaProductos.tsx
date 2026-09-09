@@ -8,7 +8,7 @@ import {
   type SesionUsuario,
   type UnidadMedida
 } from '@picaventa/shared'
-import { BOTON_PELIGRO, BOTON_SECUNDARIO, colorAvatar } from '../lib/estilos'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO, colorCategoriaAutomatica } from '../lib/estilos'
 import { confirmarEliminar, confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 import {
@@ -236,7 +236,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
         for (const [, nombre] of faltantes) {
           const resultado = await window.picaventa.crearCategoria({
             nombreCategoria: nombre,
-            colorCategoria: colorAvatar(categoriasActuales.length + nuevas.length)
+            colorCategoria: colorCategoriaAutomatica(categoriasActuales.length + nuevas.length)
           })
           if (resultado.ok) nuevas.push(resultado.categoria)
         }
