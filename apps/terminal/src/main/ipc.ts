@@ -68,6 +68,9 @@ import {
   type ResultadoResumenTurno,
   type ResultadoObtenerNegocio,
   type ResultadoLecturaBascula,
+  type DatosTicketImpresion,
+  type ResultadoImpresionTicket,
+  type ResultadoAbrirCajon,
   type ResultadoOperacion,
   type ResultadoProducto,
   type ResultadoPromocion,
@@ -167,6 +170,7 @@ import {
 } from './caja-cliente'
 import { obtenerSesion, obtenerFondoInicial } from './sesion'
 import { leerPesoBascula } from './bascula'
+import { imprimirTicketTermico, abrirCajonDinero } from './impresora'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
 // vez empaquetado por electron-vite (import.meta.url apunta al bundle, no al
@@ -791,4 +795,11 @@ export function registrarManejadoresIpc(): void {
   )
 
   ipcMain.handle(CANALES_IPC.basculaLeerPeso, (): Promise<ResultadoLecturaBascula> => leerPesoBascula())
+
+  ipcMain.handle(
+    CANALES_IPC.impresoraImprimirTicket,
+    (_evento, datos: DatosTicketImpresion): Promise<ResultadoImpresionTicket> => imprimirTicketTermico(datos)
+  )
+
+  ipcMain.handle(CANALES_IPC.impresoraAbrirCajon, (): Promise<ResultadoAbrirCajon> => abrirCajonDinero())
 }

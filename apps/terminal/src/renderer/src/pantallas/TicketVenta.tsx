@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { DatosNegocio } from '@picaventa/shared'
 
 export interface LineaTicket {
@@ -38,6 +39,34 @@ export default function TicketVenta({
   onCerrar
 }: Props): React.JSX.Element {
   const cambio = efectivoRecibido !== undefined ? efectivoRecibido - total : undefined
+  const cajonAbiertoRef = useRef(false)
+
+  useEffect(() => {
+    // El cajón de dinero se abre solo al completarse una venta en efectivo,
+    // igual que en cualquier POS — hoy no hay impresora/cajón conectados,
+    // así que esto simplemente falla en silencio (ver main/impresora.ts).
+    if (metodoPago === 'efectivo' && !cajonAbiertoRef.current) {
+      cajonAbiertoRef.current = true
+      void window.picaventa.abrirCajonDinero()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function manejarImprimir(): Promise<void> {
+    const resultado = await window.picaventa.imprimirTicketTermico({
+      negocio,
+      folio,
+      fecha: fecha.toISOString(),
+      lineas,
+      total,
+      metodoPago,
+      efectivoRecibido,
+      clienteNombre
+    })
+    // Sin impresora térmica conectada todavía, siempre cae aquí — se usa el
+    // diálogo de impresión del sistema (ver main/impresora.ts).
+    if (!resultado.ok) window.print()
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/80 p-8">
@@ -102,7 +131,7 @@ export default function TicketVenta({
           </button>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => void manejarImprimir()}
             className="flex-1 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white"
           >
             Imprimir

@@ -58,6 +58,9 @@ import {
   type ResultadoListaVentas,
   type ResultadoListaCortes,
   type ResultadoLecturaBascula,
+  type DatosTicketImpresion,
+  type ResultadoImpresionTicket,
+  type ResultadoAbrirCajon,
   type ResultadoMovimientoCaja,
   type ResultadoMovimientosCaja,
   type ResultadoObtenerNegocio,
@@ -301,7 +304,13 @@ const api = {
     ipcRenderer.invoke(CANALES_IPC.promocionesEliminar, id),
 
   leerPesoBascula: (): Promise<ResultadoLecturaBascula> =>
-    ipcRenderer.invoke(CANALES_IPC.basculaLeerPeso)
+    ipcRenderer.invoke(CANALES_IPC.basculaLeerPeso),
+
+  imprimirTicketTermico: (datos: DatosTicketImpresion): Promise<ResultadoImpresionTicket> =>
+    ipcRenderer.invoke(CANALES_IPC.impresoraImprimirTicket, datos),
+
+  abrirCajonDinero: (): Promise<ResultadoAbrirCajon> =>
+    ipcRenderer.invoke(CANALES_IPC.impresoraAbrirCajon)
 }
 
 contextBridge.exposeInMainWorld('picaventa', api)
