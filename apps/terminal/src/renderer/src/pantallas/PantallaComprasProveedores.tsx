@@ -8,7 +8,7 @@ export default function PantallaComprasProveedores(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>('compras')
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Compras y proveedores</h1>
 
       <div className="mb-4 flex gap-2">

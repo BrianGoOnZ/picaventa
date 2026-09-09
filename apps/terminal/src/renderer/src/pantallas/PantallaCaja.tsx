@@ -163,7 +163,11 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   }
 
   return (
-    <div className={`mx-auto w-full ${tab === 'ventas' || tab === 'cortes' ? 'max-w-5xl' : 'max-w-2xl'}`}>
+    <div
+      className={`mx-auto w-full ${
+        tab === 'ventas' || tab === 'cortes' || tab === 'reportes' ? 'max-w-6xl' : 'max-w-3xl'
+      }`}
+    >
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
         {(esAdmin || puedeVentas) && (

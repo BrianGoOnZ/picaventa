@@ -176,9 +176,10 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className="mx-auto w-full max-w-4xl">
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Configuración del negocio</h1>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         <form
           onSubmit={manejarEnviar}
           className="flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4"
@@ -247,7 +248,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
         </form>
 
         {config.modo === 'servidor' && (
-          <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="rounded-lg border border-neutral-200 bg-white p-4">
             <h2 className="mb-1 text-sm font-semibold text-neutral-700">
               Respaldo automático de la base de datos
             </h2>
@@ -346,6 +347,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
             )}
           </div>
         )}
+      </div>
 
         {archivoARestaurar && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-8">
