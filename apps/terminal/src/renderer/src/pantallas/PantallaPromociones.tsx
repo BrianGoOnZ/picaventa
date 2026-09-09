@@ -10,6 +10,14 @@ const ETIQUETAS_TIPO: Record<TipoDescuentoPromocion, string> = {
   dosPorUno: '2x1'
 }
 
+const AYUDA_TIPO: Record<TipoDescuentoPromocion, string> = {
+  porcentaje: 'Ejemplo: 20 = 20% menos en cada pieza.',
+  montoFijo: 'Ejemplo: 5 = $5 menos por cada pieza, sin importar su precio.',
+  dosPorUno: 'Por cada 2 piezas que se lleve, 1 sale gratis. No necesita un valor.'
+}
+
+type AlcancePromocion = 'categoria' | 'productos'
+
 function hoyISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -32,6 +40,7 @@ export default function PantallaPromociones(): React.JSX.Element {
   const [cargando, setCargando] = useState(true)
 
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
+  const [alcance, setAlcance] = useState<AlcancePromocion>('categoria')
   const [idsProductos, setIdsProductos] = useState<number[]>([])
   const [buscarProducto, setBuscarProducto] = useState('')
   const [idEditando, setIdEditando] = useState<number | null>(null)
@@ -69,6 +78,9 @@ export default function PantallaPromociones(): React.JSX.Element {
       activa: promocion.activa
     })
     setIdsProductos(promocion.idsProductos)
+    // Si ya tenía productos específicos guardados, se respeta ese modo aunque
+    // también tuviera una categoría; si no, se asume categoría por defecto.
+    setAlcance(promocion.idsProductos.length > 0 ? 'productos' : 'categoria')
     setError('')
     formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -77,6 +89,8 @@ export default function PantallaPromociones(): React.JSX.Element {
     setIdEditando(null)
     setFormulario(FORMULARIO_VACIO)
     setIdsProductos([])
+    setAlcance('categoria')
+    setBuscarProducto('')
     setError('')
   }
 
@@ -88,8 +102,18 @@ export default function PantallaPromociones(): React.JSX.Element {
 
   async function manejarEnviar(evento: FormEvent): Promise<void> {
     evento.preventDefault()
-    setEnviando(true)
     setError('')
+
+    if (alcance === 'categoria' && !formulario.idCategoria) {
+      setError('Elige a qué categoría aplica la promoción.')
+      return
+    }
+    if (alcance === 'productos' && idsProductos.length === 0) {
+      setError('Elige al menos un producto para la promoción.')
+      return
+    }
+
+    setEnviando(true)
 
     const datos = {
       nombrePromocion: formulario.nombrePromocion,
@@ -99,8 +123,8 @@ export default function PantallaPromociones(): React.JSX.Element {
       descripcionPromocion: formulario.descripcionPromocion || undefined,
       fechaInicioPromocion: formulario.fechaInicioPromocion,
       fechaFinPromocion: formulario.fechaFinPromocion,
-      idCategoria: formulario.idCategoria ? Number(formulario.idCategoria) : undefined,
-      idsProductos,
+      idCategoria: alcance === 'categoria' ? Number(formulario.idCategoria) : undefined,
+      idsProductos: alcance === 'productos' ? idsProductos : [],
       activa: formulario.activa
     }
 
@@ -134,9 +158,21 @@ export default function PantallaPromociones(): React.JSX.Element {
     return categorias.find((c) => c.idCategoria === id)?.nombreCategoria ?? '—'
   }
 
+  function descripcionAlcance(promocion: Promocion): string {
+    if (promocion.idsProductos.length > 0) {
+      return `📦 ${promocion.idsProductos.length} producto(s) específico(s)`
+    }
+    if (promocion.idCategoria !== undefined) {
+      return `📂 Categoría: ${nombreCategoria(promocion.idCategoria)}`
+    }
+    return 'Sin alcance definido'
+  }
+
   const productosFiltrados = buscarProducto
     ? productos.filter((p) => p.nombreProducto.toLowerCase().includes(buscarProducto.toLowerCase()))
     : productos
+
+  const claseSeccion = 'col-span-2 border-b border-borde pb-1 text-xs font-semibold uppercase tracking-wide text-texto-secundario'
 
   return (
     <div className="flex flex-col gap-4">
@@ -148,11 +184,14 @@ export default function PantallaPromociones(): React.JSX.Element {
         <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
           {idEditando === null ? 'Nueva promoción' : 'Editar promoción'}
         </h2>
+
+        <h3 className={claseSeccion}>1. Datos de la promoción</h3>
         <label className="col-span-2 text-sm font-medium text-neutral-700">
           Nombre
           <input
             type="text"
             required
+            placeholder="Ej. Quincena de bebidas"
             value={formulario.nombrePromocion}
             onChange={(evento) => setFormulario({ ...formulario, nombrePromocion: evento.target.value })}
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
@@ -188,6 +227,90 @@ export default function PantallaPromociones(): React.JSX.Element {
             />
           </label>
         )}
+        <p className="col-span-2 -mt-1 text-xs text-texto-secundario">{AYUDA_TIPO[formulario.tipoPromocion]}</p>
+
+        <h3 className={claseSeccion}>2. ¿A qué aplica?</h3>
+        <div className="col-span-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setAlcance('categoria')}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              alcance === 'categoria'
+                ? 'bg-cobre text-white'
+                : 'border border-neutral-300 text-texto-secundario hover:bg-arena'
+            }`}
+          >
+            📂 Una categoría completa
+          </button>
+          <button
+            type="button"
+            onClick={() => setAlcance('productos')}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              alcance === 'productos'
+                ? 'bg-cobre text-white'
+                : 'border border-neutral-300 text-texto-secundario hover:bg-arena'
+            }`}
+          >
+            📦 Productos específicos
+          </button>
+        </div>
+
+        {alcance === 'categoria' ? (
+          <label className="col-span-2 text-sm font-medium text-neutral-700">
+            Categoría
+            <select
+              value={formulario.idCategoria}
+              onChange={(evento) => setFormulario({ ...formulario, idCategoria: evento.target.value })}
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">Elige una categoría...</option>
+              {categorias.map((c) => (
+                <option key={c.idCategoria} value={c.idCategoria}>
+                  {c.nombreCategoria}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-texto-secundario">
+              Se aplicará a todos los productos de esta categoría, incluyendo los que agregues después.
+            </span>
+          </label>
+        ) : (
+          <div className="col-span-2">
+            <label className="text-sm font-medium text-neutral-700">Productos</label>
+            <span className="mb-1 block text-xs text-texto-secundario">
+              Marca uno o varios productos de tu catálogo.
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar producto..."
+              value={buscarProducto}
+              onChange={(evento) => setBuscarProducto(evento.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+            />
+            <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-borde">
+              {productosFiltrados.map((p) => (
+                <label
+                  key={p.idProducto}
+                  className="flex items-center gap-2 border-b border-borde px-3 py-1.5 text-sm text-onix last:border-0 hover:bg-arena"
+                >
+                  <input
+                    type="checkbox"
+                    checked={idsProductos.includes(p.idProducto)}
+                    onChange={() => alternarProducto(p.idProducto)}
+                  />
+                  {p.nombreProducto}
+                </label>
+              ))}
+            </div>
+            {idsProductos.length > 0 && (
+              <p className="mt-1 text-xs text-texto-secundario">
+                {idsProductos.length} producto(s) seleccionado(s)
+              </p>
+            )}
+          </div>
+        )}
+
+        <h3 className={claseSeccion}>3. Vigencia</h3>
         <label className="text-sm font-medium text-neutral-700">
           Desde
           <input
@@ -209,21 +332,6 @@ export default function PantallaPromociones(): React.JSX.Element {
           />
         </label>
         <label className="col-span-2 text-sm font-medium text-neutral-700">
-          Categoría completa (opcional — aplica a todos sus productos)
-          <select
-            value={formulario.idCategoria}
-            onChange={(evento) => setFormulario({ ...formulario, idCategoria: evento.target.value })}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          >
-            <option value="">Ninguna</option>
-            {categorias.map((c) => (
-              <option key={c.idCategoria} value={c.idCategoria}>
-                {c.nombreCategoria}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="col-span-2 text-sm font-medium text-neutral-700">
           Descripción (opcional)
           <input
             type="text"
@@ -232,33 +340,6 @@ export default function PantallaPromociones(): React.JSX.Element {
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        <div className="col-span-2">
-          <label className="text-sm font-medium text-neutral-700">
-            Productos específicos (opcional, además de la categoría)
-          </label>
-          <input
-            type="text"
-            placeholder="Buscar producto..."
-            value={buscarProducto}
-            onChange={(evento) => setBuscarProducto(evento.target.value)}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-          />
-          <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-borde">
-            {productosFiltrados.map((p) => (
-              <label
-                key={p.idProducto}
-                className="flex items-center gap-2 border-b border-borde px-3 py-1.5 text-sm text-onix last:border-0 hover:bg-arena"
-              >
-                <input
-                  type="checkbox"
-                  checked={idsProductos.includes(p.idProducto)}
-                  onChange={() => alternarProducto(p.idProducto)}
-                />
-                {p.nombreProducto}
-              </label>
-            ))}
-          </div>
-        </div>
         <label className="col-span-2 flex items-center gap-1.5 text-sm text-texto-secundario">
           <input
             type="checkbox"
@@ -267,6 +348,7 @@ export default function PantallaPromociones(): React.JSX.Element {
           />
           Activa (se aplica automáticamente en el punto de venta)
         </label>
+
         {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
         <div className="col-span-2 flex gap-2">
           {idEditando !== null && (
@@ -312,7 +394,7 @@ export default function PantallaPromociones(): React.JSX.Element {
                     {ETIQUETAS_TIPO[promocion.tipoPromocion]}
                     {promocion.valorDescuento ? ` (${promocion.valorDescuento})` : ''} ·{' '}
                     {promocion.fechaInicioPromocion} a {promocion.fechaFinPromocion} ·{' '}
-                    {nombreCategoria(promocion.idCategoria)} · {promocion.idsProductos.length} producto(s)
+                    {descripcionAlcance(promocion)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1.5">

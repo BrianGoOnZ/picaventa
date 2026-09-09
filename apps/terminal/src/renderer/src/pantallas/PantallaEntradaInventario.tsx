@@ -7,6 +7,7 @@ import {
   type UnidadMedida
 } from '@picaventa/shared'
 import { confirmarCritico } from '../lib/confirmar'
+import { BOTON_PELIGRO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
 
 interface Props {
@@ -594,7 +595,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
                 <button
                   type="button"
                   onClick={() => quitarPendiente(pendiente.idProducto)}
-                  className="shrink-0 text-xs text-peligro underline"
+                  className={`shrink-0 ${BOTON_PELIGRO}`}
                 >
                   Quitar
                 </button>

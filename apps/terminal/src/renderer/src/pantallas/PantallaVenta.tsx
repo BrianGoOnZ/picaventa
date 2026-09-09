@@ -16,6 +16,7 @@ import PantallaApartados from './PantallaApartados'
 import TarjetaProducto from '../componentes/TarjetaProducto'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
 import { confirmarCritico } from '../lib/confirmar'
+import { BOTON_PELIGRO } from '../lib/estilos'
 
 interface LineaCarrito {
   idProducto: number
@@ -835,7 +836,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                     <button
                       type="button"
                       onClick={() => quitarLinea(linea.idProducto)}
-                      className="ml-auto text-peligro underline"
+                      className={`ml-auto ${BOTON_PELIGRO}`}
                     >
                       Quitar
                     </button>

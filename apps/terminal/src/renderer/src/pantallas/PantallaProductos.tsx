@@ -432,7 +432,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
                   <button
                     type="button"
                     onClick={() => quitarFilaImportar(fila.fila)}
-                    className="shrink-0 text-xs text-peligro underline"
+                    className={`shrink-0 ${BOTON_PELIGRO}`}
                   >
                     Quitar
                   </button>

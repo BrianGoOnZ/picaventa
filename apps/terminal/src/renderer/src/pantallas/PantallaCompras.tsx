@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import type { Compra, CompraDetallada, Producto, Proveedor, UnidadMedida } from '@picaventa/shared'
-import { BOTON_SECUNDARIO } from '../lib/estilos'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
@@ -212,7 +212,7 @@ export default function PantallaCompras(): React.JSX.Element {
                     <button
                       type="button"
                       onClick={() => quitarLinea(linea.idProducto)}
-                      className="shrink-0 text-xs text-peligro underline"
+                      className={`shrink-0 ${BOTON_PELIGRO}`}
                     >
                       Quitar
                     </button>

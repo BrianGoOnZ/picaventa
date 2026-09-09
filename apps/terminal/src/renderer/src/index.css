@@ -69,6 +69,20 @@ h2 {
   outline-offset: 1px;
 }
 
+/* Tailwind resetea el cursor de los botones a "default" (el de un texto
+   normal), no al de "manita" que la gente ya asocia con "aquí se puede dar
+   clic". Se restaura para todo lo interactivo de la app. */
+button:not(:disabled),
+[role='button'],
+a[href],
+select,
+summary {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* Sin flechitas de incremento/decremento en los campos numéricos: dar clic
    ahí sube o baja de a un centavo/unidad mínima según el "step" del campo,
    algo lento y contraintuitivo para el flujo rápido de una tienda — se
