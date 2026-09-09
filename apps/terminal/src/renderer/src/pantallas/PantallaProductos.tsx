@@ -63,6 +63,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [importando, setImportando] = useState(false)
   const [resultadosImportacion, setResultadosImportacion] = useState<ResultadoImportacion[]>([])
   const inputExcelRef = useRef<HTMLInputElement>(null)
+  const inputImagenRef = useRef<HTMLInputElement>(null)
 
   const [mostrarHistorialPrecios, setMostrarHistorialPrecios] = useState(false)
   const [historialPrecios, setHistorialPrecios] = useState<CambioPrecioHistorial[]>([])
@@ -501,24 +502,32 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        <label className="col-span-2 text-sm font-medium text-neutral-700">
-          Foto (opcional, máx. 200 KB) — si no se sube, se muestra un color por categoría
+        <div className="col-span-2">
+          <p className="text-sm font-medium text-neutral-700">
+            Foto (opcional, máx. 200 KB) — si no se sube, se muestra un color por categoría
+          </p>
           <div className="mt-1 flex items-center gap-3">
             <input
+              ref={inputImagenRef}
               type="file"
               accept="image/png,image/jpeg"
               onChange={manejarArchivoImagen}
-              className="flex-1 text-sm"
+              className="hidden"
             />
-            {imagenDatos && (
+            <button type="button" onClick={() => inputImagenRef.current?.click()} className={BOTON_SECUNDARIO}>
+              {imagenDatos ? 'Cambiar foto...' : 'Elegir foto...'}
+            </button>
+            {imagenDatos ? (
               <img
                 src={imagenDatos}
                 alt=""
                 className="h-12 w-12 rounded border border-neutral-200 object-cover"
               />
+            ) : (
+              <span className="text-xs text-texto-secundario">Ningún archivo seleccionado</span>
             )}
           </div>
-        </label>
+        </div>
         <label className="text-sm font-medium text-neutral-700">
           Código de barras
           <input

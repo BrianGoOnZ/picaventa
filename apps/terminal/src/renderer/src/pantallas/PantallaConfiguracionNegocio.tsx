@@ -1,5 +1,6 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LOGO_MAX_BYTES, type ConfigLocal, type EstadoRespaldo } from '@picaventa/shared'
+import { BOTON_SECUNDARIO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
 
 interface Props {
@@ -15,6 +16,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const { mostrarToast } = useToast()
+  const inputLogoRef = useRef<HTMLInputElement>(null)
 
   const [estadoRespaldo, setEstadoRespaldo] = useState<EstadoRespaldo | null>(null)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
@@ -135,15 +137,24 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
-          <label className="text-sm font-medium text-neutral-700">
-            Logo (PNG/JPG, máx. 500 KB) — se usa en el ticket impreso
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={manejarArchivo}
-              className="mt-1 w-full text-sm"
-            />
-          </label>
+          <div>
+            <p className="text-sm font-medium text-neutral-700">
+              Logo (PNG/JPG, máx. 500 KB) — se usa en el ticket impreso
+            </p>
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                ref={inputLogoRef}
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={manejarArchivo}
+                className="hidden"
+              />
+              <button type="button" onClick={() => inputLogoRef.current?.click()} className={BOTON_SECUNDARIO}>
+                {logoDatos ? 'Cambiar logo...' : 'Elegir logo...'}
+              </button>
+              {!logoDatos && <span className="text-xs text-neutral-500">Ningún archivo seleccionado</span>}
+            </div>
+          </div>
           {logoDatos && (
             <img
               src={logoDatos}
