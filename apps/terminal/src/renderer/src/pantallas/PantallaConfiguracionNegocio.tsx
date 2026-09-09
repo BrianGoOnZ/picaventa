@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { LOGO_MAX_BYTES, type ConfigLocal, type EstadoRespaldo } from '@picaventa/shared'
-import { BOTON_SECUNDARIO } from '../lib/estilos'
+import { LOGO_MAX_BYTES, type ConfigLocal, type EstadoRespaldo, type InfoRespaldo } from '@picaventa/shared'
+import { BOTON_SECUNDARIO, BOTON_PELIGRO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
+
+function formatearTamano(bytes: number): string {
+  const mb = bytes / (1024 * 1024)
+  if (mb >= 1) return `${mb.toFixed(1)} MB`
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
 
 interface Props {
   config: ConfigLocal
@@ -21,6 +27,11 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
   const [estadoRespaldo, setEstadoRespaldo] = useState<EstadoRespaldo | null>(null)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
   const [respaldando, setRespaldando] = useState(false)
+  const [respaldos, setRespaldos] = useState<InfoRespaldo[]>([])
+  const [archivoARestaurar, setArchivoARestaurar] = useState<string | null>(null)
+  const [pinRestaurar, setPinRestaurar] = useState('')
+  const [restaurando, setRestaurando] = useState(false)
+  const [errorRestaurar, setErrorRestaurar] = useState('')
 
   async function cargarEstadoRespaldo(): Promise<void> {
     const resultado = await window.picaventa.obtenerEstadoRespaldo()
@@ -30,16 +41,48 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
     }
   }
 
+  async function cargarRespaldos(): Promise<void> {
+    const resultado = await window.picaventa.listarRespaldos()
+    if (resultado.ok) setRespaldos(resultado.respaldos)
+  }
+
   async function manejarRespaldarAhora(): Promise<void> {
     setRespaldando(true)
     const resultado = await window.picaventa.respaldarAhora()
     if (resultado.ok) {
       setEstadoRespaldo(resultado.estado)
       mostrarToast(resultado.estado.ok ? 'Respaldo generado correctamente' : resultado.estado.error ?? 'Error al respaldar', resultado.estado.ok ? 'exito' : 'error')
+      if (resultado.estado.ok) void cargarRespaldos()
     } else {
       mostrarToast(resultado.error, 'error')
     }
     setRespaldando(false)
+  }
+
+  function abrirRestaurar(archivo: string): void {
+    setArchivoARestaurar(archivo)
+    setPinRestaurar('')
+    setErrorRestaurar('')
+  }
+
+  async function confirmarRestaurar(): Promise<void> {
+    if (!archivoARestaurar) return
+    setRestaurando(true)
+    setErrorRestaurar('')
+
+    const resultado = await window.picaventa.restaurarRespaldo({
+      archivo: archivoARestaurar,
+      pin: pinRestaurar
+    })
+
+    if (resultado.ok) {
+      mostrarToast('Respaldo restaurado — la aplicación se va a recargar')
+      window.location.reload()
+      return
+    }
+
+    setErrorRestaurar(resultado.error)
+    setRestaurando(false)
   }
 
   useEffect(() => {
@@ -56,6 +99,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
 
     if (config.modo === 'servidor') {
       void cargarEstadoRespaldo()
+      void cargarRespaldos()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -209,8 +253,80 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
                 >
                   {respaldando ? 'Respaldando...' : 'Respaldar ahora'}
                 </button>
+
+                <div className="mt-4 border-t border-neutral-200 pt-3">
+                  <h3 className="mb-2 text-sm font-semibold text-neutral-700">Restaurar un respaldo</h3>
+                  {respaldos.length === 0 ? (
+                    <p className="text-sm text-neutral-500">Todavía no hay respaldos disponibles.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {respaldos.map((r) => (
+                        <li
+                          key={r.archivo}
+                          className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                        >
+                          <span>
+                            {new Date(r.fecha).toLocaleString('es-MX', {
+                              dateStyle: 'short',
+                              timeStyle: 'short'
+                            })}{' '}
+                            <span className="text-neutral-400">— {formatearTamano(r.tamanoBytes)}</span>
+                          </span>
+                          <button type="button" onClick={() => abrirRestaurar(r.archivo)} className={BOTON_PELIGRO}>
+                            Restaurar
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </>
             )}
+          </div>
+        )}
+
+        {archivoARestaurar && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-8">
+            <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-lg">
+              <h2 className="text-lg font-semibold text-neutral-900">¿Restaurar este respaldo?</h2>
+              <p className="mt-2 text-sm text-neutral-600">
+                Esto <strong>reemplaza toda la información actual</strong> (ventas, productos, cortes,
+                usuarios, todo) por la que había en el momento de este respaldo. No se puede deshacer.
+                Confirma con tu PIN para continuar.
+              </p>
+              <label className="mt-4 block text-sm font-medium text-neutral-700">
+                Tu PIN
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d{4}"
+                  maxLength={4}
+                  autoFocus
+                  value={pinRestaurar}
+                  onChange={(evento) => setPinRestaurar(evento.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm tracking-widest"
+                />
+              </label>
+              {errorRestaurar && <p className="mt-2 text-sm text-red-600">{errorRestaurar}</p>}
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setArchivoARestaurar(null)}
+                  disabled={restaurando}
+                  className={BOTON_SECUNDARIO}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmarRestaurar()}
+                  disabled={restaurando || pinRestaurar.length !== 4}
+                  className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {restaurando ? 'Restaurando...' : 'Sí, restaurar y reemplazar todo'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
     </div>

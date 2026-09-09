@@ -1,10 +1,13 @@
 import type {
   ConfigLocal,
   DatosNegocio,
+  DatosRestaurarRespaldo,
   ResultadoObtenerNegocio,
   ResultadoGuardarNegocio,
   ResultadoEstadoRespaldo,
-  ResultadoRespaldoManual
+  ResultadoRespaldoManual,
+  ResultadoListarRespaldos,
+  ResultadoRestaurarRespaldo
 } from '@picaventa/shared'
 import { obtenerUrlBase, obtenerToken } from './sesion'
 import { solicitarJson, opcionesJson } from './http-cliente'
@@ -44,5 +47,27 @@ export function respaldarAhora(config: ConfigLocal): Promise<ResultadoRespaldoMa
   return solicitarJson(
     `${obtenerUrlBase(config)}/negocio/respaldo/ahora`,
     opcionesJson('POST', {}, token)
+  )
+}
+
+export function listarRespaldos(config: ConfigLocal): Promise<ResultadoListarRespaldos> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(`${obtenerUrlBase(config)}/negocio/respaldo/listar`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function restaurarRespaldo(
+  config: ConfigLocal,
+  datos: DatosRestaurarRespaldo
+): Promise<ResultadoRestaurarRespaldo> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(
+    `${obtenerUrlBase(config)}/negocio/respaldo/restaurar`,
+    opcionesJson('POST', datos, token)
   )
 }

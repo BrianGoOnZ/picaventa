@@ -23,6 +23,8 @@ export const CANALES_IPC = {
   negocioGuardar: 'negocio:guardar',
   negocioEstadoRespaldo: 'negocio:respaldo-estado',
   negocioRespaldarAhora: 'negocio:respaldo-ahora',
+  negocioListarRespaldos: 'negocio:respaldo-listar',
+  negocioRestaurarRespaldo: 'negocio:respaldo-restaurar',
 
   catalogoListarCategorias: 'catalogo:listar-categorias',
   catalogoCrearCategoria: 'catalogo:crear-categoria',

@@ -4,8 +4,18 @@ import fs from 'node:fs/promises'
 import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import cron from 'node-cron'
+import postgres from 'postgres'
+import bcrypt from 'bcrypt'
+import { eq } from 'drizzle-orm'
 import { Router, type Request } from 'express'
-import { type EstadoRespaldo } from '@picaventa/shared'
+import { usuarios, type crearConexion } from '@picaventa/db'
+import {
+  datosRestaurarRespaldoSchema,
+  type EstadoRespaldo,
+  type InfoRespaldo,
+  type PayloadJwt,
+  type ResultadoRestaurarRespaldo
+} from '@picaventa/shared'
 import { verificarJwt, requiereAdministrador } from './auth.js'
 
 const execFileAsync = promisify(execFile)
@@ -14,12 +24,16 @@ const NOMBRE_MANIFIESTO = 'estado-respaldo.json'
 const DIAS_RETENCION = 30
 const HORA_RESPALDO_DIARIO = '0 3 * * *' // 3:00 a.m., hora local del servidor
 
-// pg_dump siempre vive junto al Postgres que ya se instaló para correr este
-// mismo servidor (RF de aprovisionamiento) — se busca ahí en vez de asumir
-// que está en el PATH, ya que el instalador oficial de Windows no lo agrega
-// automáticamente.
-export function localizarPgDump(): string | null {
-  if (process.platform !== 'win32') return 'pg_dump'
+type Db = ReturnType<typeof crearConexion>
+// Ver la misma nota en auth.ts: se evita la augmentación global de Express.Request.
+type RequestAutenticado = Request & { usuarioToken?: PayloadJwt }
+
+// pg_dump y pg_restore siempre viven junto al Postgres que ya se instaló
+// para correr este mismo servidor (RF de aprovisionamiento) — se buscan ahí
+// en vez de asumir que están en el PATH, ya que el instalador oficial de
+// Windows no lo agrega automáticamente.
+function localizarBinarioPostgres(nombreBase: string): string | null {
+  if (process.platform !== 'win32') return nombreBase
 
   const baseInstalacion = 'C:\\Program Files\\PostgreSQL'
   try {
@@ -28,7 +42,7 @@ export function localizarPgDump(): string | null {
       .sort((a, b) => Number(b) - Number(a))
 
     for (const version of versiones) {
-      const candidato = path.join(baseInstalacion, version, 'bin', 'pg_dump.exe')
+      const candidato = path.join(baseInstalacion, version, 'bin', `${nombreBase}.exe`)
       if (existsSync(candidato)) return candidato
     }
   } catch {
@@ -36,6 +50,14 @@ export function localizarPgDump(): string | null {
     // no encontrado, no se lanza un error.
   }
   return null
+}
+
+export function localizarPgDump(): string | null {
+  return localizarBinarioPostgres('pg_dump')
+}
+
+export function localizarPgRestore(): string | null {
+  return localizarBinarioPostgres('pg_restore')
 }
 
 async function leerManifiesto(carpeta: string): Promise<EstadoRespaldo | null> {
@@ -108,10 +130,87 @@ export async function generarRespaldo(
   }
 }
 
+export async function listarRespaldos(carpeta: string): Promise<InfoRespaldo[]> {
+  let nombres: string[]
+  try {
+    nombres = await fs.readdir(carpeta)
+  } catch {
+    return []
+  }
+
+  const respaldos: InfoRespaldo[] = []
+  for (const nombre of nombres) {
+    if (!nombre.endsWith('.dump')) continue
+    const info = await fs.stat(path.join(carpeta, nombre))
+    respaldos.push({ archivo: nombre, fecha: info.mtime.toISOString(), tamanoBytes: info.size })
+  }
+
+  respaldos.sort((a, b) => b.fecha.localeCompare(a.fecha))
+  return respaldos
+}
+
+export async function restaurarRespaldo(
+  postgresUrl: string,
+  carpeta: string,
+  archivo: string
+): Promise<ResultadoRestaurarRespaldo> {
+  // El nombre de archivo viene del cliente — nunca se usa como ruta directa,
+  // solo como nombre de archivo dentro de la carpeta de respaldos ya
+  // conocida por el servidor (evita salir de esa carpeta).
+  if (archivo.includes('/') || archivo.includes('\\') || !archivo.endsWith('.dump')) {
+    return { ok: false, error: 'Nombre de respaldo inválido' }
+  }
+
+  const rutaArchivo = path.join(carpeta, archivo)
+  if (!existsSync(rutaArchivo)) {
+    return { ok: false, error: 'No se encontró ese archivo de respaldo' }
+  }
+
+  const rutaPgRestore = localizarPgRestore()
+  if (!rutaPgRestore) {
+    return {
+      ok: false,
+      error:
+        'No se encontró pg_restore. Se esperaba en C:\\Program Files\\PostgreSQL\\<versión>\\bin — verifica la instalación de Postgres.'
+    }
+  }
+
+  // Corta cualquier otra conexión activa a la base (incluidas las del propio
+  // servidor) antes de restaurar: pg_restore usa --clean para recrear cada
+  // objeto desde cero, y eso choca con locks de conexiones que sigan abiertas.
+  // El rol de la app solo puede terminar sus propias conexiones (sin ser
+  // superusuario), que es exactamente lo que se necesita aquí.
+  const sqlAdmin = postgres(postgresUrl, { max: 1, connect_timeout: 10 })
+  try {
+    await sqlAdmin`
+      SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+      WHERE datname = current_database() AND pid <> pg_backend_pid()
+    `
+  } finally {
+    await sqlAdmin.end()
+  }
+
+  try {
+    await execFileAsync(rutaPgRestore, [
+      '--clean',
+      '--if-exists',
+      '--no-owner',
+      '-d',
+      postgresUrl,
+      rutaArchivo
+    ])
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
 export interface ProgramadorRespaldo {
   detener: () => void
   respaldarAhora: () => Promise<EstadoRespaldo>
   obtenerUltimoEstado: () => Promise<EstadoRespaldo | null>
+  listar: () => Promise<InfoRespaldo[]>
+  restaurar: (archivo: string) => Promise<ResultadoRestaurarRespaldo>
 }
 
 // Solo corre en la instancia "servidor" (la única con la base de datos
@@ -127,7 +226,9 @@ export function programarRespaldoDiario(
   return {
     detener: () => tarea.stop(),
     respaldarAhora: () => generarRespaldo(postgresUrl, carpetaDestino),
-    obtenerUltimoEstado: () => leerManifiesto(carpetaDestino)
+    obtenerUltimoEstado: () => leerManifiesto(carpetaDestino),
+    listar: () => listarRespaldos(carpetaDestino),
+    restaurar: (archivo: string) => restaurarRespaldo(postgresUrl, carpetaDestino, archivo)
   }
 }
 
@@ -159,6 +260,47 @@ export function crearRutasRespaldo(): Router {
     }
     const estado = await programador.respaldarAhora()
     res.json({ ok: true, estado })
+  })
+
+  router.get('/listar', verificarJwt, requiereAdministrador, async (req, res) => {
+    const programador = obtenerProgramador(req)
+    if (!programador) {
+      res.json({ ok: true, respaldos: [] })
+      return
+    }
+    const respaldos = await programador.listar()
+    res.json({ ok: true, respaldos })
+  })
+
+  // Restaurar reemplaza TODA la base de datos actual por la del respaldo
+  // elegido — destructivo e irreversible, así que exige el PIN de quien lo
+  // autoriza, igual que otras acciones críticas (ver /usuarios/:id/acceso).
+  router.post('/restaurar', verificarJwt, requiereAdministrador, async (req, res) => {
+    const programador = obtenerProgramador(req)
+    if (!programador) {
+      res.status(409).json({
+        ok: false,
+        error: 'La restauración solo está disponible en la instancia de Servidor'
+      })
+      return
+    }
+
+    const datos = datosRestaurarRespaldoSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const payload = (req as RequestAutenticado).usuarioToken as PayloadJwt
+    const db = req.app.locals.db as Db
+    const [actor] = await db.select().from(usuarios).where(eq(usuarios.idUsuario, payload.idUsuario))
+    if (!actor || !(await bcrypt.compare(datos.data.pin, actor.pinHash))) {
+      res.status(401).json({ ok: false, error: 'PIN incorrecto' })
+      return
+    }
+
+    const resultado = await programador.restaurar(datos.data.archivo)
+    res.json(resultado)
   })
 
   return router

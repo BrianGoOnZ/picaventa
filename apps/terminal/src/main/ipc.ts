@@ -28,6 +28,7 @@ import {
   type DatosProducto,
   type DatosPromocion,
   type DatosProveedor,
+  type DatosRestaurarRespaldo,
   type FiltrosProductos,
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
@@ -45,6 +46,8 @@ import {
   type ResultadoCrearVenta,
   type ResultadoDevolucion,
   type ResultadoEstadoRespaldo,
+  type ResultadoListarRespaldos,
+  type ResultadoRestaurarRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
   type ResultadoHistorialMermas,
@@ -112,7 +115,14 @@ import {
   recuperarAcceso,
   resetearAccesoUsuario
 } from './auth-cliente'
-import { obtenerNegocio, guardarNegocio, obtenerEstadoRespaldo, respaldarAhora } from './negocio-cliente'
+import {
+  obtenerNegocio,
+  guardarNegocio,
+  obtenerEstadoRespaldo,
+  respaldarAhora,
+  listarRespaldos,
+  restaurarRespaldo
+} from './negocio-cliente'
 import {
   listarCategorias,
   crearCategoria,
@@ -371,6 +381,21 @@ export function registrarManejadoresIpc(): void {
     if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
     return respaldarAhora(config)
   })
+
+  ipcMain.handle(CANALES_IPC.negocioListarRespaldos, (): Promise<ResultadoListarRespaldos> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return listarRespaldos(config)
+  })
+
+  ipcMain.handle(
+    CANALES_IPC.negocioRestaurarRespaldo,
+    (_evento, datos: DatosRestaurarRespaldo): Promise<ResultadoRestaurarRespaldo> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return restaurarRespaldo(config, datos)
+    }
+  )
 
   ipcMain.handle(CANALES_IPC.catalogoListarCategorias, (): Promise<ResultadoListaCategorias> => {
     const config = obtenerConfig()

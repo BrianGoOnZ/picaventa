@@ -23,6 +23,7 @@ import {
   type DatosProducto,
   type DatosPromocion,
   type DatosProveedor,
+  type DatosRestaurarRespaldo,
   type FiltrosProductos,
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
@@ -40,6 +41,8 @@ import {
   type ResultadoCrearVenta,
   type ResultadoDevolucion,
   type ResultadoEstadoRespaldo,
+  type ResultadoListarRespaldos,
+  type ResultadoRestaurarRespaldo,
   type ResultadoGuardarNegocio,
   type ResultadoHistorialEntradas,
   type ResultadoHistorialMermas,
@@ -143,6 +146,12 @@ const api = {
 
   respaldarAhora: (): Promise<ResultadoRespaldoManual> =>
     ipcRenderer.invoke(CANALES_IPC.negocioRespaldarAhora),
+
+  listarRespaldos: (): Promise<ResultadoListarRespaldos> =>
+    ipcRenderer.invoke(CANALES_IPC.negocioListarRespaldos),
+
+  restaurarRespaldo: (datos: DatosRestaurarRespaldo): Promise<ResultadoRestaurarRespaldo> =>
+    ipcRenderer.invoke(CANALES_IPC.negocioRestaurarRespaldo, datos),
 
   listarCategorias: (): Promise<ResultadoListaCategorias> =>
     ipcRenderer.invoke(CANALES_IPC.catalogoListarCategorias),
