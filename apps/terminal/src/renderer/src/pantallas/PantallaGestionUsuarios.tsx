@@ -39,7 +39,9 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
 
   function abrirEdicionPermisos(usuario: UsuarioResumen): void {
     setIdEditandoPermisos(usuario.idUsuario)
-    setPermisosEdicion(usuario.permisos)
+    // Filtro defensivo: si trae guardado un permiso que ya no existe, se
+    // descarta aquí para que guardar limpie el dato viejo de una vez.
+    setPermisosEdicion(usuario.permisos.filter((p) => p in ETIQUETAS_PERMISOS))
   }
 
   function cancelarEdicionPermisos(): void {
@@ -211,21 +213,28 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                     <p className="text-onix">
                       {usuario.nombreUsuario} — {usuario.correoUsuario}
                     </p>
-                    {usuario.rolUsuario === 'cajero' && usuario.permisos.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {usuario.permisos.map((permiso) => (
-                          <span
-                            key={permiso}
-                            className="rounded-full border border-borde bg-arena px-2 py-0.5 text-xs text-texto-secundario"
-                          >
-                            {ETIQUETAS_PERMISOS[permiso]}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {usuario.rolUsuario === 'cajero' && usuario.permisos.length === 0 && (
-                      <p className="mt-1.5 text-xs text-texto-secundario">Sin permisos otorgados</p>
-                    )}
+                    {usuario.rolUsuario === 'cajero' &&
+                      (() => {
+                        // Filtro defensivo: si un usuario tiene guardado un
+                        // permiso que ya no existe (por ejemplo, uno que se
+                        // quitó del catálogo más adelante), no debe
+                        // renderizar una etiqueta vacía.
+                        const permisosVigentes = usuario.permisos.filter((p) => p in ETIQUETAS_PERMISOS)
+                        return permisosVigentes.length > 0 ? (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {permisosVigentes.map((permiso) => (
+                              <span
+                                key={permiso}
+                                className="rounded-full border border-borde bg-arena px-2 py-0.5 text-xs text-texto-secundario"
+                              >
+                                {ETIQUETAS_PERMISOS[permiso]}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-1.5 text-xs text-texto-secundario">Sin permisos otorgados</p>
+                        )
+                      })()}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="rounded-full bg-arena px-2 py-0.5 text-xs capitalize text-texto-secundario">
