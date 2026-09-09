@@ -16,6 +16,8 @@ export const CANALES_IPC = {
   authListarUsuarios: 'auth:listar-usuarios',
   authCrearUsuario: 'auth:crear-usuario',
   authActualizarPermisos: 'auth:actualizar-permisos',
+  authRecuperarAcceso: 'auth:recuperar-acceso',
+  authResetearAcceso: 'auth:resetear-acceso',
 
   negocioObtener: 'negocio:obtener',
   negocioGuardar: 'negocio:guardar',

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { SesionUsuario } from '@picaventa/shared'
 import MarcaApp from '../componentes/MarcaApp'
+import MostrarCodigoRecuperacion from '../componentes/MostrarCodigoRecuperacion'
 
 interface Props {
   onListo: (sesion: SesionUsuario) => void
@@ -13,6 +14,8 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
   const [pin, setPin] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const [sesionCreada, setSesionCreada] = useState<SesionUsuario | null>(null)
+  const [codigoRecuperacion, setCodigoRecuperacion] = useState('')
 
   async function manejarEnviar(evento: FormEvent): Promise<void> {
     evento.preventDefault()
@@ -22,11 +25,22 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
     const resultado = await window.picaventa.crearPrimerUsuario({ nombre, correo, password, pin })
 
     if (resultado.ok) {
-      onListo(resultado.sesion)
+      if (resultado.codigoRecuperacion) {
+        setSesionCreada(resultado.sesion)
+        setCodigoRecuperacion(resultado.codigoRecuperacion)
+      } else {
+        onListo(resultado.sesion)
+      }
     } else {
       setEnviando(false)
       setError(resultado.error)
     }
+  }
+
+  if (sesionCreada) {
+    return (
+      <MostrarCodigoRecuperacion codigo={codigoRecuperacion} onContinuar={() => onListo(sesionCreada)} />
+    )
   }
 
   return (

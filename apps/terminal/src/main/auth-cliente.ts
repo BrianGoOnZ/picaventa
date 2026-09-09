@@ -4,13 +4,17 @@ import type {
   DatosActualizarPermisos,
   DatosCrearUsuario,
   DatosNuevoUsuario,
+  DatosRecuperacion,
+  DatosResetearAcceso,
   RespuestaEstadoAuth,
   ResultadoActualizarPermisos,
   ResultadoAuth,
   ResultadoCrearUsuario,
   ResultadoListaUsuarios,
   ResultadoLogin,
-  ResultadoReautenticacion
+  ResultadoReautenticacion,
+  ResultadoRecuperacion,
+  ResultadoResetearAcceso
 } from '@picaventa/shared'
 import { obtenerUrlBase, guardarSesion, borrarSesion, obtenerToken } from './sesion'
 import { solicitarJson, opcionesJson } from './http-cliente'
@@ -22,14 +26,21 @@ export function obtenerEstadoInicial(config: ConfigLocal): Promise<RespuestaEsta
 export async function crearPrimerUsuario(
   config: ConfigLocal,
   datos: DatosNuevoUsuario
-): Promise<ResultadoAuth> {
+): Promise<ResultadoAuth & { codigoRecuperacion?: string }> {
   const resultado = await solicitarJson<ResultadoLogin>(
     `${obtenerUrlBase(config)}/auth/primer-usuario`,
     opcionesJson('POST', datos)
   )
   if (!resultado.ok) return resultado
   guardarSesion(resultado.token, resultado.sesion)
-  return { ok: true, sesion: resultado.sesion }
+  return { ok: true, sesion: resultado.sesion, codigoRecuperacion: resultado.codigoRecuperacion }
+}
+
+export function recuperarAcceso(
+  config: ConfigLocal,
+  datos: DatosRecuperacion
+): Promise<ResultadoRecuperacion> {
+  return solicitarJson(`${obtenerUrlBase(config)}/auth/recuperar`, opcionesJson('POST', datos))
 }
 
 export async function login(
@@ -91,6 +102,20 @@ export function actualizarPermisosUsuario(
 
   return solicitarJson(
     `${obtenerUrlBase(config)}/auth/usuarios/${id}/permisos`,
+    opcionesJson('PUT', datos, token)
+  )
+}
+
+export function resetearAccesoUsuario(
+  config: ConfigLocal,
+  id: number,
+  datos: DatosResetearAcceso
+): Promise<ResultadoResetearAcceso> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+
+  return solicitarJson(
+    `${obtenerUrlBase(config)}/auth/usuarios/${id}/acceso`,
     opcionesJson('PUT', datos, token)
   )
 }

@@ -129,6 +129,14 @@ export const usuarios = pgTable('usuarios', {
   // confirmaciones rápidas de acciones críticas (RNF-04) sin retipear la
   // contraseña completa cada vez.
   pinHash: text('pin_hash').notNull(),
+  // Solo se genera para administradores (ver auth.ts) — un cajero que
+  // olvida su acceso siempre lo puede resolver un administrador desde
+  // Usuarios; el código de recuperación existe para el caso extremo de que
+  // el único administrador se quede sin poder entrar y no haya nadie más
+  // que le restablezca el acceso. Se muestra una sola vez al crear la
+  // cuenta (texto plano, nunca se vuelve a mostrar) y aquí solo se guarda
+  // su hash, igual que la contraseña y el PIN.
+  codigoRecuperacionHash: text('codigo_recuperacion_hash'),
   rolUsuario: rolUsuarioEnum('rol_usuario').notNull(),
   // Solo relevante para rolUsuario = 'cajero': un administrador tiene todos
   // los permisos implícitamente (ver tienePermiso() en @picaventa/shared).

@@ -12,6 +12,8 @@ import {
   type DatosConfigurarServidor,
   type DatosCrearUsuario,
   type DatosCrearVenta,
+  type DatosRecuperacion,
+  type DatosResetearAcceso,
   type DatosDevolucion,
   type DatosEntradaInventario,
   type DatosMerma,
@@ -25,6 +27,8 @@ import {
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
   type ResultadoAuth,
+  type ResultadoRecuperacion,
+  type ResultadoResetearAcceso,
   type ResultadoCancelarVenta,
   type ResultadoCategoria,
   type ResultadoCliente,
@@ -94,7 +98,9 @@ const api = {
   obtenerEstadoInicialAuth: (): Promise<RespuestaEstadoAuth> =>
     ipcRenderer.invoke(CANALES_IPC.authEstadoInicial),
 
-  crearPrimerUsuario: (datos: DatosNuevoUsuario): Promise<ResultadoAuth> =>
+  crearPrimerUsuario: (
+    datos: DatosNuevoUsuario
+  ): Promise<ResultadoAuth & { codigoRecuperacion?: string }> =>
     ipcRenderer.invoke(CANALES_IPC.authCrearPrimerUsuario, datos),
 
   login: (credenciales: CredencialesLogin): Promise<ResultadoAuth> =>
@@ -119,6 +125,12 @@ const api = {
     datos: DatosActualizarPermisos
   ): Promise<ResultadoActualizarPermisos> =>
     ipcRenderer.invoke(CANALES_IPC.authActualizarPermisos, id, datos),
+
+  recuperarAcceso: (datos: DatosRecuperacion): Promise<ResultadoRecuperacion> =>
+    ipcRenderer.invoke(CANALES_IPC.authRecuperarAcceso, datos),
+
+  resetearAccesoUsuario: (id: number, datos: DatosResetearAcceso): Promise<ResultadoResetearAcceso> =>
+    ipcRenderer.invoke(CANALES_IPC.authResetearAcceso, id, datos),
 
   obtenerNegocio: (): Promise<ResultadoObtenerNegocio> =>
     ipcRenderer.invoke(CANALES_IPC.negocioObtener),

@@ -6,6 +6,8 @@ import {
   type RolUsuario,
   type UsuarioResumen
 } from '@picaventa/shared'
+import MostrarCodigoRecuperacion from '../componentes/MostrarCodigoRecuperacion'
+import { BOTON_SECUNDARIO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
 
 export default function PantallaGestionUsuarios(): React.JSX.Element {
@@ -19,11 +21,18 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
   const [permisos, setPermisos] = useState<Permiso[]>([])
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const [codigoRecuperacionMostrar, setCodigoRecuperacionMostrar] = useState('')
   const { mostrarToast } = useToast()
 
   const [idEditandoPermisos, setIdEditandoPermisos] = useState<number | null>(null)
   const [permisosEdicion, setPermisosEdicion] = useState<Permiso[]>([])
   const [guardandoPermisos, setGuardandoPermisos] = useState(false)
+
+  const [idReseteando, setIdReseteando] = useState<number | null>(null)
+  const [passwordNuevaReset, setPasswordNuevaReset] = useState('')
+  const [pinNuevoReset, setPinNuevoReset] = useState('')
+  const [pinPropioReset, setPinPropioReset] = useState('')
+  const [reseteando, setReseteando] = useState(false)
 
   function alternarPermiso(permiso: Permiso): void {
     setPermisos((actual) =>
@@ -39,6 +48,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
 
   function abrirEdicionPermisos(usuario: UsuarioResumen): void {
     setIdEditandoPermisos(usuario.idUsuario)
+    setIdReseteando(null)
     // Filtro defensivo: si trae guardado un permiso que ya no existe, se
     // descarta aquí para que guardar limpie el dato viejo de una vez.
     setPermisosEdicion(usuario.permisos.filter((p) => p in ETIQUETAS_PERMISOS))
@@ -62,6 +72,37 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
       mostrarToast(resultado.error, 'error')
     }
     setGuardandoPermisos(false)
+  }
+
+  function abrirResetAcceso(usuario: UsuarioResumen): void {
+    setIdReseteando(usuario.idUsuario)
+    setIdEditandoPermisos(null)
+    setPasswordNuevaReset('')
+    setPinNuevoReset('')
+    setPinPropioReset('')
+  }
+
+  function cancelarResetAcceso(): void {
+    setIdReseteando(null)
+    setPasswordNuevaReset('')
+    setPinNuevoReset('')
+    setPinPropioReset('')
+  }
+
+  async function guardarResetAcceso(idUsuario: number): Promise<void> {
+    setReseteando(true)
+    const resultado = await window.picaventa.resetearAccesoUsuario(idUsuario, {
+      passwordNueva: passwordNuevaReset,
+      pinNuevo: pinNuevoReset,
+      pin: pinPropioReset
+    })
+    if (resultado.ok) {
+      cancelarResetAcceso()
+      mostrarToast('Acceso restablecido — avísale a esa persona su nueva contraseña y PIN')
+    } else {
+      mostrarToast(resultado.error, 'error')
+    }
+    setReseteando(false)
   }
 
   async function cargarUsuarios(): Promise<void> {
@@ -97,6 +138,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
       setPermisos([])
       await cargarUsuarios()
       mostrarToast('Usuario registrado')
+      if (resultado.codigoRecuperacion) setCodigoRecuperacionMostrar(resultado.codigoRecuperacion)
     } else {
       setError(resultado.error)
     }
@@ -165,6 +207,12 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
               <option value="administrador">Administrador</option>
             </select>
           </label>
+          {rol === 'administrador' && (
+            <p className="col-span-2 text-xs text-texto-secundario">
+              Se generará un código de recuperación para esta cuenta — solo se muestra una vez al
+              terminar de crearla.
+            </p>
+          )}
           {rol === 'cajero' && (
             <div className="col-span-2 rounded-md border border-borde bg-arena p-3">
               <p className="mb-2 text-xs font-semibold text-texto-secundario">
@@ -249,6 +297,15 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                         Editar permisos
                       </button>
                     )}
+                    {idReseteando !== usuario.idUsuario && (
+                      <button
+                        type="button"
+                        onClick={() => abrirResetAcceso(usuario)}
+                        className="rounded-md border border-borde px-2.5 py-1 text-xs font-medium text-texto-secundario hover:bg-arena"
+                      >
+                        Restablecer acceso
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -274,7 +331,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                       <button
                         type="button"
                         onClick={cancelarEdicionPermisos}
-                        className="rounded-md border border-borde bg-tarjeta px-3 py-1.5 text-xs font-medium text-texto-secundario hover:bg-arena"
+                        className={BOTON_SECUNDARIO}
                       >
                         Cancelar
                       </button>
@@ -289,11 +346,85 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                     </div>
                   </div>
                 )}
+
+                {idReseteando === usuario.idUsuario && (
+                  <div className="mt-3 rounded-md border border-borde bg-arena p-3">
+                    <p className="mb-2 text-xs font-semibold text-texto-secundario">
+                      Restablecer el acceso de {usuario.nombreUsuario} — le tendrás que avisar la
+                      nueva contraseña y PIN por fuera de la app.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs font-medium text-texto-secundario">
+                        Nueva contraseña
+                        <input
+                          type="password"
+                          minLength={8}
+                          value={passwordNuevaReset}
+                          onChange={(evento) => setPasswordNuevaReset(evento.target.value)}
+                          className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                      <label className="text-xs font-medium text-texto-secundario">
+                        Nuevo PIN
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          pattern="\d{4}"
+                          maxLength={4}
+                          value={pinNuevoReset}
+                          onChange={(evento) =>
+                            setPinNuevoReset(evento.target.value.replace(/\D/g, '').slice(0, 4))
+                          }
+                          className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 font-mono text-sm tracking-widest"
+                        />
+                      </label>
+                      <label className="col-span-2 text-xs font-medium text-texto-secundario">
+                        Tu PIN (para confirmar)
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          pattern="\d{4}"
+                          maxLength={4}
+                          value={pinPropioReset}
+                          onChange={(evento) =>
+                            setPinPropioReset(evento.target.value.replace(/\D/g, '').slice(0, 4))
+                          }
+                          className="mt-1 w-32 rounded-md border border-borde px-2 py-1.5 font-mono text-sm tracking-widest"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" onClick={cancelarResetAcceso} className={BOTON_SECUNDARIO}>
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          reseteando ||
+                          passwordNuevaReset.length < 8 ||
+                          pinNuevoReset.length !== 4 ||
+                          pinPropioReset.length !== 4
+                        }
+                        onClick={() => void guardarResetAcceso(usuario.idUsuario)}
+                        className="rounded-md bg-cobre px-3 py-1.5 text-xs font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+                      >
+                        {reseteando ? 'Guardando...' : 'Restablecer'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {codigoRecuperacionMostrar && (
+        <MostrarCodigoRecuperacion
+          codigo={codigoRecuperacionMostrar}
+          onContinuar={() => setCodigoRecuperacionMostrar('')}
+        />
+      )}
     </div>
   )
 }

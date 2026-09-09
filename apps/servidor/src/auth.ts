@@ -1,6 +1,7 @@
 import { Router, type Request, type RequestHandler } from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { randomInt } from 'node:crypto'
 import { eq, count } from 'drizzle-orm'
 import { usuarios, type crearConexion } from '@picaventa/db'
 import {
@@ -9,6 +10,8 @@ import {
   datosCrearUsuarioSchema,
   datosNuevoUsuarioSchema,
   datosReautenticacionSchema,
+  datosRecuperacionSchema,
+  datosResetearAccesoSchema,
   HORAS_EXPIRACION_JWT,
   type PayloadJwt,
   type Permiso,
@@ -34,6 +37,16 @@ function obtenerJwtSecret(req: Request): string {
 
 function firmarToken(sesion: SesionUsuario, jwtSecret: string): string {
   return jwt.sign(sesion, jwtSecret, { expiresIn: `${HORAS_EXPIRACION_JWT}h` })
+}
+
+// Código de recuperación 100% local (sin correo) para cuando el único
+// administrador se queda sin acceso — alfabeto sin 0/O/1/I/L para que no se
+// confunda un carácter con otro al copiarlo a mano.
+const ALFABETO_CODIGO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+function generarCodigoRecuperacion(): string {
+  const grupo = (): string =>
+    Array.from({ length: 4 }, () => ALFABETO_CODIGO[randomInt(ALFABETO_CODIGO.length)]).join('')
+  return `${grupo()}-${grupo()}-${grupo()}`
 }
 
 export const verificarJwt: RequestHandler = (req, res, next) => {
@@ -102,6 +115,8 @@ export function crearRutasAuth(): Router {
 
     const passwordHash = await bcrypt.hash(datos.data.password, RONDAS_SAL)
     const pinHash = await bcrypt.hash(datos.data.pin, RONDAS_SAL)
+    const codigoRecuperacion = generarCodigoRecuperacion()
+    const codigoRecuperacionHash = await bcrypt.hash(codigoRecuperacion, RONDAS_SAL)
 
     const [usuario] = await db
       .insert(usuarios)
@@ -110,6 +125,7 @@ export function crearRutasAuth(): Router {
         correoUsuario: datos.data.correo,
         passwordHash,
         pinHash,
+        codigoRecuperacionHash,
         rolUsuario: 'administrador'
       })
       .returning()
@@ -125,7 +141,12 @@ export function crearRutasAuth(): Router {
       rolUsuario: usuario.rolUsuario,
       permisos: (usuario.permisos ?? []) as Permiso[]
     }
-    res.status(201).json({ ok: true, sesion, token: firmarToken(sesion, obtenerJwtSecret(req)) })
+    res.status(201).json({
+      ok: true,
+      sesion,
+      token: firmarToken(sesion, obtenerJwtSecret(req)),
+      codigoRecuperacion
+    })
   })
 
   router.post('/login', async (req, res) => {
@@ -177,6 +198,49 @@ export function crearRutasAuth(): Router {
     res.json({ ok: true })
   })
 
+  // Recuperación de acceso 100% local (sin correo, sin sesión) — para el
+  // caso de que el único administrador se quede sin poder entrar. Se
+  // valida contra el código que se le mostró una sola vez al crear su
+  // cuenta. Solo aplica a administradores: un cajero siempre lo puede
+  // resolver otro administrador desde Usuarios.
+  router.post('/recuperar', async (req, res) => {
+    const datos = datosRecuperacionSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const db = obtenerDb(req)
+    const [usuario] = await db
+      .select()
+      .from(usuarios)
+      .where(eq(usuarios.correoUsuario, datos.data.correo))
+
+    if (
+      !usuario ||
+      usuario.rolUsuario !== 'administrador' ||
+      !usuario.codigoRecuperacionHash ||
+      !(await bcrypt.compare(datos.data.codigoRecuperacion, usuario.codigoRecuperacionHash))
+    ) {
+      res.status(401).json({ ok: false, error: 'Correo o código de recuperación incorrectos' })
+      return
+    }
+
+    const passwordHash = await bcrypt.hash(datos.data.passwordNueva, RONDAS_SAL)
+    const pinHash = await bcrypt.hash(datos.data.pinNuevo, RONDAS_SAL)
+    // El código usado se reemplaza por uno nuevo — de un solo uso, como
+    // los códigos de respaldo de un segundo factor.
+    const codigoRecuperacionNuevo = generarCodigoRecuperacion()
+    const codigoRecuperacionHash = await bcrypt.hash(codigoRecuperacionNuevo, RONDAS_SAL)
+
+    await db
+      .update(usuarios)
+      .set({ passwordHash, pinHash, codigoRecuperacionHash })
+      .where(eq(usuarios.idUsuario, usuario.idUsuario))
+
+    res.json({ ok: true, codigoRecuperacionNuevo })
+  })
+
   router.get('/usuarios', verificarJwt, requiereAdministrador, async (req, res) => {
     const db = obtenerDb(req)
     const filas = await db
@@ -201,6 +265,13 @@ export function crearRutasAuth(): Router {
     const db = obtenerDb(req)
     const passwordHash = await bcrypt.hash(datos.data.password, RONDAS_SAL)
     const pinHash = await bcrypt.hash(datos.data.pin, RONDAS_SAL)
+    // Solo los administradores llevan código de recuperación — un cajero
+    // que olvida su acceso siempre lo puede resolver otro administrador
+    // desde Usuarios (ver /usuarios/:id/acceso más abajo).
+    const codigoRecuperacion = datos.data.rol === 'administrador' ? generarCodigoRecuperacion() : undefined
+    const codigoRecuperacionHash = codigoRecuperacion
+      ? await bcrypt.hash(codigoRecuperacion, RONDAS_SAL)
+      : undefined
 
     let usuario
     try {
@@ -211,6 +282,7 @@ export function crearRutasAuth(): Router {
           correoUsuario: datos.data.correo,
           passwordHash,
           pinHash,
+          codigoRecuperacionHash,
           rolUsuario: datos.data.rol,
           // Los permisos solo tienen efecto para un cajero (un administrador
           // ya tiene todo implícitamente vía tienePermiso()), pero se
@@ -245,7 +317,8 @@ export function crearRutasAuth(): Router {
         correoUsuario: usuario.correoUsuario,
         rolUsuario: usuario.rolUsuario,
         permisos: (usuario.permisos ?? []) as Permiso[]
-      }
+      },
+      codigoRecuperacion
     })
   })
 
@@ -299,6 +372,41 @@ export function crearRutasAuth(): Router {
       })
     }
   )
+
+  // Un administrador restablece la contraseña y el PIN de OTRO usuario
+  // (cualquier rol) que se quedó sin poder entrar — requiere el PIN de
+  // quien lo autoriza, igual que otras acciones críticas. No toca el
+  // código de recuperación del usuario objetivo: eso solo importa para la
+  // recuperación de un administrador sin nadie más que lo ayude (arriba).
+  router.put('/usuarios/:id/acceso', verificarJwt, requiereAdministrador, async (req, res) => {
+    const datos = datosResetearAccesoSchema.safeParse(req.body)
+    if (!datos.success) {
+      res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
+      return
+    }
+
+    const payload = (req as RequestAutenticado).usuarioToken as PayloadJwt
+    const id = Number(req.params.id)
+    const db = obtenerDb(req)
+
+    const [actor] = await db.select().from(usuarios).where(eq(usuarios.idUsuario, payload.idUsuario))
+    if (!actor || !(await bcrypt.compare(datos.data.pin, actor.pinHash))) {
+      res.status(401).json({ ok: false, error: 'PIN incorrecto' })
+      return
+    }
+
+    const [existente] = await db.select().from(usuarios).where(eq(usuarios.idUsuario, id))
+    if (!existente) {
+      res.status(404).json({ ok: false, error: 'Usuario no encontrado' })
+      return
+    }
+
+    const passwordHash = await bcrypt.hash(datos.data.passwordNueva, RONDAS_SAL)
+    const pinHash = await bcrypt.hash(datos.data.pinNuevo, RONDAS_SAL)
+    await db.update(usuarios).set({ passwordHash, pinHash }).where(eq(usuarios.idUsuario, id))
+
+    res.json({ ok: true })
+  })
 
   return router
 }

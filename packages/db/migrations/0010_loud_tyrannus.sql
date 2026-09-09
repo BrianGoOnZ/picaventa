@@ -1,0 +1,1 @@
+ALTER TABLE "usuarios" ADD COLUMN "codigo_recuperacion_hash" text;

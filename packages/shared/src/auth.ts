@@ -69,11 +69,32 @@ export const datosActualizarPermisosSchema = z.object({
   permisos: z.array(z.enum(PERMISOS_DISPONIBLES))
 })
 
+// RNF: recuperación de acceso 100% local, sin depender de correo — para
+// cuando el único administrador se queda sin poder entrar y no hay nadie
+// más que le restablezca el acceso desde Usuarios.
+export const datosRecuperacionSchema = z.object({
+  correo: z.string().email(),
+  codigoRecuperacion: z.string().min(1),
+  passwordNueva: z.string().min(8),
+  pinNuevo: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
+})
+
+// Para cuando un administrador restablece el acceso de otro usuario
+// (cualquier rol) que olvidó su contraseña o PIN — requiere el PIN de quien
+// lo autoriza, igual que otras acciones críticas.
+export const datosResetearAccesoSchema = z.object({
+  passwordNueva: z.string().min(8),
+  pinNuevo: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos'),
+  pin: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
+})
+
 export type CredencialesLogin = z.infer<typeof credencialesLoginSchema>
 export type DatosNuevoUsuario = z.infer<typeof datosNuevoUsuarioSchema>
 export type DatosReautenticacion = z.infer<typeof datosReautenticacionSchema>
 export type DatosCrearUsuario = z.infer<typeof datosCrearUsuarioSchema>
 export type DatosActualizarPermisos = z.infer<typeof datosActualizarPermisosSchema>
+export type DatosRecuperacion = z.infer<typeof datosRecuperacionSchema>
+export type DatosResetearAcceso = z.infer<typeof datosResetearAccesoSchema>
 
 export interface RespuestaEstadoAuth {
   hayUsuarios: boolean
@@ -106,7 +127,7 @@ export interface PayloadJwt {
 }
 
 export type ResultadoLogin =
-  | { ok: true; sesion: SesionUsuario; token: string }
+  | { ok: true; sesion: SesionUsuario; token: string; codigoRecuperacion?: string }
   | { ok: false; error: string }
 
 export type ResultadoAuth = { ok: true; sesion: SesionUsuario } | { ok: false; error: string }
@@ -117,10 +138,19 @@ export type ResultadoListaUsuarios =
   | { ok: true; usuarios: UsuarioResumen[] }
   | { ok: false; error: string }
 
+// codigoRecuperacion solo viene presente al crear un usuario administrador
+// — es la única vez que se ve en texto plano; después solo se guarda su
+// hash y no hay forma de volver a consultarlo.
 export type ResultadoCrearUsuario =
-  | { ok: true; usuario: UsuarioResumen }
+  | { ok: true; usuario: UsuarioResumen; codigoRecuperacion?: string }
   | { ok: false; error: string }
 
 export type ResultadoActualizarPermisos =
   | { ok: true; usuario: UsuarioResumen }
   | { ok: false; error: string }
+
+export type ResultadoRecuperacion =
+  | { ok: true; codigoRecuperacionNuevo: string }
+  | { ok: false; error: string }
+
+export type ResultadoResetearAcceso = { ok: true } | { ok: false; error: string }

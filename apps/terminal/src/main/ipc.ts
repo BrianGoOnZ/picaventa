@@ -15,6 +15,8 @@ import {
   type DatosCliente,
   type DatosCompra,
   type DatosCrearUsuario,
+  type DatosRecuperacion,
+  type DatosResetearAcceso,
   type DatosConfigurarServidor,
   type DatosCrearVenta,
   type DatosDevolucion,
@@ -30,6 +32,8 @@ import {
   type FiltrosVentas,
   type ResultadoActualizarPermisos,
   type ResultadoAuth,
+  type ResultadoRecuperacion,
+  type ResultadoResetearAcceso,
   type ResultadoCancelarVenta,
   type ResultadoCategoria,
   type ResultadoCliente,
@@ -104,7 +108,9 @@ import {
   cerrarSesionRemota,
   listarUsuarios,
   crearUsuario,
-  actualizarPermisosUsuario
+  actualizarPermisosUsuario,
+  recuperarAcceso,
+  resetearAccesoUsuario
 } from './auth-cliente'
 import { obtenerNegocio, guardarNegocio, obtenerEstadoRespaldo, respaldarAhora } from './negocio-cliente'
 import {
@@ -268,7 +274,7 @@ export function registrarManejadoresIpc(): void {
 
   ipcMain.handle(
     CANALES_IPC.authCrearPrimerUsuario,
-    (_evento, datos: DatosNuevoUsuario): Promise<ResultadoAuth> => {
+    (_evento, datos: DatosNuevoUsuario): Promise<ResultadoAuth & { codigoRecuperacion?: string }> => {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return crearPrimerUsuario(config, datos)
@@ -318,6 +324,24 @@ export function registrarManejadoresIpc(): void {
       const config = obtenerConfig()
       if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
       return actualizarPermisosUsuario(config, id, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.authRecuperarAcceso,
+    (_evento, datos: DatosRecuperacion): Promise<ResultadoRecuperacion> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return recuperarAcceso(config, datos)
+    }
+  )
+
+  ipcMain.handle(
+    CANALES_IPC.authResetearAcceso,
+    (_evento, id: number, datos: DatosResetearAcceso): Promise<ResultadoResetearAcceso> => {
+      const config = obtenerConfig()
+      if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+      return resetearAccesoUsuario(config, id, datos)
     }
   )
 
