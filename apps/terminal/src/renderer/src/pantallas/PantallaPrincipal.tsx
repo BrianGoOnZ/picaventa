@@ -56,7 +56,7 @@ export default function PantallaPrincipal({
         <header className="flex shrink-0 items-center justify-between border-b border-borde bg-tarjeta px-6 py-3">
           <div className="flex items-baseline gap-2">
             {negocio?.logoDatos && (
-              <img src={negocio.logoDatos} alt="" className="h-7 w-7 rounded object-contain" />
+              <img src={negocio.logoDatos} alt="" className="h-7 w-7 self-center rounded object-contain" />
             )}
             <span className="font-display text-xl font-semibold text-onix">
               {negocio?.nombreNegocio || 'PicaVenta'}
