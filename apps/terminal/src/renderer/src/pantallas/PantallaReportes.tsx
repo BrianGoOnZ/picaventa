@@ -220,48 +220,37 @@ export default function PantallaReportes(): React.JSX.Element {
           {devoluciones.length === 0 ? (
             <p className="text-sm text-neutral-500">Sin devoluciones en este periodo.</p>
           ) : (
-            <div className="max-h-72 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-neutral-500">
-                  <tr>
-                    <th className="py-1">Fecha</th>
-                    <th className="py-1">Venta</th>
-                    <th className="py-1">Producto</th>
-                    <th className="py-1 text-right">Cant.</th>
-                    <th className="py-1">Tipo</th>
-                    <th className="py-1 text-right">Monto</th>
-                    <th className="py-1">Motivo</th>
-                    <th className="py-1">Quién</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {devoluciones.map((d) => (
-                    <tr key={d.idDevolucion} className="border-t border-neutral-100 align-top">
-                      <td className="py-1 whitespace-nowrap">
+            <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+              {devoluciones.map((d) => (
+                <li key={d.idDevolucion} className="rounded-lg border border-neutral-200 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-neutral-900">
+                        {d.cantidadDevuelta} × {d.nombreProducto}
+                      </p>
+                      <p className="mt-0.5 text-xs text-neutral-500">
+                        {d.folioVenta}
+                        {d.folioVentaCambio && ` → ${d.folioVentaCambio}`} ·{' '}
                         {new Date(d.fechaDevolucion).toLocaleString('es-MX', {
                           dateStyle: 'short',
                           timeStyle: 'short'
-                        })}
-                      </td>
-                      <td className="py-1 whitespace-nowrap">
-                        {d.folioVenta}
-                        {d.folioVentaCambio && (
-                          <span className="block text-xs text-neutral-500">→ {d.folioVentaCambio}</span>
-                        )}
-                      </td>
-                      <td className="py-1">{d.nombreProducto}</td>
-                      <td className="py-1 text-right">{d.cantidadDevuelta}</td>
-                      <td className="py-1 whitespace-nowrap">{ETIQUETAS_RESOLUCION[d.tipoResolucion]}</td>
-                      <td className="py-1 text-right">
-                        {d.montoReembolsado > 0 ? `$${d.montoReembolsado.toFixed(2)}` : '—'}
-                      </td>
-                      <td className="py-1">{d.motivoDevolucion}</td>
-                      <td className="py-1 whitespace-nowrap">{d.nombreUsuario}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        })}{' '}
+                        · {d.nombreUsuario}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                        {ETIQUETAS_RESOLUCION[d.tipoResolucion]}
+                      </span>
+                      {d.montoReembolsado > 0 && (
+                        <p className="mt-1 font-semibold text-neutral-900">${d.montoReembolsado.toFixed(2)}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-1.5 text-xs text-neutral-600">{d.motivoDevolucion}</p>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

@@ -212,12 +212,19 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                       {usuario.nombreUsuario} — {usuario.correoUsuario}
                     </p>
                     {usuario.rolUsuario === 'cajero' && usuario.permisos.length > 0 && (
-                      <p className="mt-1 text-xs text-texto-secundario">
-                        {usuario.permisos.map((permiso) => ETIQUETAS_PERMISOS[permiso]).join(' · ')}
-                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {usuario.permisos.map((permiso) => (
+                          <span
+                            key={permiso}
+                            className="rounded-full border border-borde bg-arena px-2 py-0.5 text-xs text-texto-secundario"
+                          >
+                            {ETIQUETAS_PERMISOS[permiso]}
+                          </span>
+                        ))}
+                      </div>
                     )}
                     {usuario.rolUsuario === 'cajero' && usuario.permisos.length === 0 && (
-                      <p className="mt-1 text-xs text-texto-secundario">Sin permisos otorgados</p>
+                      <p className="mt-1.5 text-xs text-texto-secundario">Sin permisos otorgados</p>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
