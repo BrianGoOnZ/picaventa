@@ -426,6 +426,23 @@ export function crearRutasCaja(): Router {
       totalesPorFecha.set(clave, (totalesPorFecha.get(clave) ?? 0) + Number(v.total))
     }
 
+    // Mismo criterio que /reportes/ventas: un reembolso resta del día en que
+    // se procesó la devolución, no del día de la venta original.
+    const devolucionesPeriodo = await db
+      .select({ fechaDevolucion: devolucion.fechaDevolucion, montoReembolsado: devolucion.montoReembolsado })
+      .from(devolucion)
+      .where(
+        and(
+          gte(devolucion.fechaDevolucion, desde),
+          lte(devolucion.fechaDevolucion, hoy),
+          eq(devolucion.tipoResolucion, 'reembolso')
+        )
+      )
+    for (const d of devolucionesPeriodo) {
+      const clave = claveFechaLocal(d.fechaDevolucion)
+      totalesPorFecha.set(clave, (totalesPorFecha.get(clave) ?? 0) - Number(d.montoReembolsado))
+    }
+
     const diasResultado: { fecha: string; total: number }[] = []
     for (let i = 0; i < dias; i++) {
       const fecha = new Date(desde)
@@ -457,6 +474,26 @@ export function crearRutasCaja(): Router {
       const acumulado = porCajero.get(f.idUsuario) ?? { nombreUsuario: f.nombreUsuario, total: 0 }
       acumulado.total += Number(f.total)
       porCajero.set(f.idUsuario, acumulado)
+    }
+
+    // Mismo criterio que /reportes/ventas: un reembolso resta del total del
+    // cajero que hizo la venta original, por la fecha en que se procesó la
+    // devolución — sin esto, "ventas por cajero" no cuadraba con "ventas del
+    // periodo" cuando había reembolsos de por medio.
+    const devolucionesPeriodo = await db
+      .select({ idUsuario: venta.idUsuario, montoReembolsado: devolucion.montoReembolsado })
+      .from(devolucion)
+      .innerJoin(venta, eq(devolucion.idVenta, venta.idVenta))
+      .where(
+        and(
+          gte(devolucion.fechaDevolucion, desde),
+          lte(devolucion.fechaDevolucion, hasta),
+          eq(devolucion.tipoResolucion, 'reembolso')
+        )
+      )
+    for (const d of devolucionesPeriodo) {
+      const acumulado = porCajero.get(d.idUsuario)
+      if (acumulado) acumulado.total -= Number(d.montoReembolsado)
     }
 
     const cajeros = [...porCajero.entries()]
