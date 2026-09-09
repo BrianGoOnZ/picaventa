@@ -14,11 +14,12 @@ function crearVentana(): void {
     width: 1280,
     height: 800,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      // El preload usa @picaventa/shared (que depende de zod); el sandbox por
-      // defecto de Electron no permite requerir paquetes npm arbitrarios ahí.
-      // contextIsolation (activo por defecto) sigue protegiendo al renderer.
-      sandbox: false
+      preload: join(__dirname, '../preload/index.js')
+      // sandbox y contextIsolation quedan en su valor por defecto (true): el
+      // preload no depende de nada externo en tiempo de ejecución — zod (vía
+      // @picaventa/shared) se empaqueta dentro de out/preload/index.js en vez
+      // de excluirse (ver electron.vite.config.ts), que era la única razón
+      // por la que antes hacía falta desactivar el sandbox.
     }
   })
 

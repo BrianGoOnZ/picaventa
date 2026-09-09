@@ -14,7 +14,13 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin({ exclude: PAQUETES_INTERNOS })]
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: PAQUETES_INTERNOS })]
+    // El preload de Electron corre con sandbox:true (ver src/main/index.ts),
+    // que restringe el require() en tiempo de ejecución a los módulos nativos
+    // de Node/Electron — un paquete externo de node_modules (aquí, zod, vía
+    // @picaventa/shared) no se resuelve ahí. Empaquetarlo (no excluirlo)
+    // dentro de out/preload/index.js es lo que permite mantener el sandbox
+    // activado sin perder la validación de @picaventa/shared en el preload.
+    plugins: [externalizeDepsPlugin({ exclude: [...PAQUETES_INTERNOS, 'zod'] })]
   },
   renderer: {
     resolve: {
