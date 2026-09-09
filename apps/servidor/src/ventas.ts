@@ -2,7 +2,17 @@ import { Router, type Request } from 'express'
 import bcrypt from 'bcrypt'
 import { eq, and, gte, lte, sql, type SQL } from 'drizzle-orm'
 import { inArray } from 'drizzle-orm'
-import { venta, contiene, producto, cliente, devolucion, usuarios, type crearConexion } from '@picaventa/db'
+import { alias } from 'drizzle-orm/pg-core'
+import {
+  venta,
+  contiene,
+  producto,
+  cliente,
+  devolucion,
+  movimientoCaja,
+  usuarios,
+  type crearConexion
+} from '@picaventa/db'
 import {
   datosCrearVentaSchema,
   datosCancelarVentaSchema,
@@ -10,7 +20,7 @@ import {
   type EstadoVenta,
   type PayloadJwt
 } from '@picaventa/shared'
-import { verificarJwt, requiereAdministrador } from './auth.js'
+import { verificarJwt, requiereAdministrador, requierePermiso } from './auth.js'
 
 type Db = ReturnType<typeof crearConexion>
 type RequestAutenticado = Request & { usuarioToken?: PayloadJwt }
@@ -282,10 +292,22 @@ export function crearRutasVentas(): Router {
     }
   })
 
-  // RF-17.2: procesar la devolución de un producto ya vendido, reintegrando
-  // el inventario. Si la venta original fue a fiado y se resuelve como
-  // reembolso, también se descuenta del saldo insoluto del cliente.
-  router.post('/:id/devoluciones', verificarJwt, requiereAdministrador, async (req, res) => {
+  // RF-17.2: procesar la devolución de un producto ya vendido. Un solo
+  // formulario resuelve los tres escenarios reales de una tienda:
+  //  - 'reposicion': el producto estaba dañado/vencido — se repone con uno
+  //    igual, sin mover dinero. El que se devuelve NO regresa al stock
+  //    vendible (nunca llegó a estar en condiciones de venderse de nuevo).
+  //  - 'reembolso': el cliente ya no lo quiere — regresa al stock, se le
+  //    regresa su dinero (se descuenta del saldo si fue fiado, o se
+  //    registra un retiro de caja automático si fue efectivo, para que el
+  //    corte de caja cuadre solo sin que el cajero tenga que acordarse).
+  //  - 'reembolso' + productoCambio: cambia por otro producto — se procesa
+  //    como el reembolso de arriba y, en la misma operación, se registra
+  //    una venta nueva por el producto de reemplazo. Como el reembolso ya
+  //    resta el valor original y la venta nueva ya suma el valor nuevo, la
+  //    diferencia de precio queda correcta sola, sin contar dos veces la
+  //    venta original.
+  router.post('/:id/devoluciones', verificarJwt, requierePermiso('procesarDevoluciones'), async (req, res) => {
     const datos = datosDevolucionSchema.safeParse(req.body)
     if (!datos.success) {
       res.status(400).json({ ok: false, error: datos.error.issues[0]?.message ?? 'Datos inválidos' })
@@ -329,6 +351,12 @@ export function crearRutasVentas(): Router {
           )
         }
 
+        const [productoOriginal] = await tx
+          .select()
+          .from(producto)
+          .where(eq(producto.idProducto, datos.data.idProducto))
+        if (!productoOriginal) throw new Error('Producto no encontrado')
+
         // El descuento de la línea se prorratea entre las unidades vendidas
         // para calcular cuánto corresponde reembolsar por las que se
         // devuelven, en vez de reembolsar el precio de lista completo.
@@ -338,17 +366,112 @@ export function crearRutasVentas(): Router {
         const montoReembolso =
           datos.data.tipoResolucion === 'reembolso' ? datos.data.cantidad * precioNetoUnitario : 0
 
-        const [productoActualizado] = await tx
-          .update(producto)
-          .set({ stockActual: sql`${producto.stockActual} + ${datos.data.cantidad.toString()}` })
-          .where(eq(producto.idProducto, datos.data.idProducto))
-          .returning()
+        let productoActualizado: typeof producto.$inferSelect | undefined
+        if (datos.data.tipoResolucion === 'reposicion') {
+          const stockNuevo = Number(productoOriginal.stockActual) - datos.data.cantidad
+          if (stockNuevo < 0) {
+            throw new Error('No hay suficiente stock disponible para reponer este producto')
+          }
+          ;[productoActualizado] = await tx
+            .update(producto)
+            .set({ stockActual: stockNuevo.toString() })
+            .where(eq(producto.idProducto, datos.data.idProducto))
+            .returning()
+        } else {
+          ;[productoActualizado] = await tx
+            .update(producto)
+            .set({ stockActual: sql`${producto.stockActual} + ${datos.data.cantidad.toString()}` })
+            .where(eq(producto.idProducto, datos.data.idProducto))
+            .returning()
+        }
+        if (!productoActualizado) throw new Error('No se pudo actualizar el stock')
 
-        if (montoReembolso > 0 && ventaFila.metodoPago === 'fiado' && ventaFila.idCliente) {
+        if (montoReembolso > 0) {
+          if (ventaFila.metodoPago === 'fiado' && ventaFila.idCliente) {
+            await tx
+              .update(cliente)
+              .set({ saldoActual: sql`${cliente.saldoActual} - ${montoReembolso.toString()}` })
+              .where(eq(cliente.idCliente, ventaFila.idCliente))
+          } else if (ventaFila.metodoPago === 'efectivo') {
+            // Para que el corte de caja no salga "faltante" sin explicación:
+            // el dinero que sale físicamente de la caja por un reembolso se
+            // registra como un retiro automático, igual que si el cajero lo
+            // hubiera capturado a mano.
+            await tx.insert(movimientoCaja).values({
+              tipoMovimiento: 'retiro',
+              montoMovimiento: montoReembolso.toString(),
+              conceptoMovimiento: `Reembolso venta ${ventaFila.folioVenta}`,
+              idUsuario: payload.idUsuario
+            })
+          }
+          // Tarjeta: el reembolso se procesa en la terminal bancaria, no
+          // mueve efectivo de esta caja — no requiere ningún movimiento aquí.
+        }
+
+        let ventaCambio: { idVenta: number; folio: string; total: number } | undefined
+        if (datos.data.productoCambio) {
+          const idProductoNuevo = datos.data.productoCambio.idProducto
+          const cantidadNueva = datos.data.productoCambio.cantidad
+
+          const [productoNuevo] = await tx
+            .select()
+            .from(producto)
+            .where(eq(producto.idProducto, idProductoNuevo))
+          if (!productoNuevo) throw new Error('El producto de reemplazo no existe')
+          if (Number(productoNuevo.stockActual) < cantidadNueva) {
+            throw new Error(`Stock insuficiente de "${productoNuevo.nombreProducto}" para el cambio`)
+          }
+
+          const totalCambio = Number(productoNuevo.precioVenta) * cantidadNueva
+
+          if (ventaFila.metodoPago === 'fiado' && ventaFila.idCliente) {
+            const [clienteFila] = await tx
+              .select()
+              .from(cliente)
+              .where(eq(cliente.idCliente, ventaFila.idCliente))
+            if (!clienteFila) throw new Error('Cliente no encontrado')
+            const saldoTrasReembolso = Number(clienteFila.saldoActual) - montoReembolso
+            if (saldoTrasReembolso + totalCambio > Number(clienteFila.limiteCredito)) {
+              throw new Error(
+                `El producto de reemplazo excede el límite de crédito del cliente ($${Number(clienteFila.limiteCredito).toFixed(2)})`
+              )
+            }
+            await tx
+              .update(cliente)
+              .set({ saldoActual: (saldoTrasReembolso + totalCambio).toString() })
+              .where(eq(cliente.idCliente, ventaFila.idCliente))
+          }
+
+          const [ventaNueva] = await tx
+            .insert(venta)
+            .values({
+              folioVenta: `TEMP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              total: totalCambio.toString(),
+              metodoPago: ventaFila.metodoPago,
+              estadoVenta: 'activa',
+              idCliente: ventaFila.idCliente,
+              idUsuario: payload.idUsuario
+            })
+            .returning()
+          if (!ventaNueva) throw new Error('No se pudo registrar la venta del producto de reemplazo')
+
+          const folioCambio = `V-${String(ventaNueva.idVenta).padStart(6, '0')}`
+          await tx.update(venta).set({ folioVenta: folioCambio }).where(eq(venta.idVenta, ventaNueva.idVenta))
+
+          await tx.insert(contiene).values({
+            idVenta: ventaNueva.idVenta,
+            idProducto: idProductoNuevo,
+            cantidadVendida: cantidadNueva.toString(),
+            precioUnitarioVenta: productoNuevo.precioVenta,
+            descuentoAplicado: '0'
+          })
+
           await tx
-            .update(cliente)
-            .set({ saldoActual: sql`${cliente.saldoActual} - ${montoReembolso.toString()}` })
-            .where(eq(cliente.idCliente, ventaFila.idCliente))
+            .update(producto)
+            .set({ stockActual: sql`${producto.stockActual} - ${cantidadNueva.toString()}` })
+            .where(eq(producto.idProducto, idProductoNuevo))
+
+          ventaCambio = { idVenta: ventaNueva.idVenta, folio: folioCambio, total: totalCambio }
         }
 
         const [devolucionFila] = await tx
@@ -359,15 +482,18 @@ export function crearRutasVentas(): Router {
             cantidadDevuelta: datos.data.cantidad.toString(),
             motivoDevolucion: datos.data.motivo,
             tipoResolucion: datos.data.tipoResolucion,
+            montoReembolsado: montoReembolso.toString(),
+            idVentaCambio: ventaCambio?.idVenta,
             idUsuario: payload.idUsuario
           })
           .returning()
 
-        if (!devolucionFila || !productoActualizado) throw new Error('No se pudo registrar la devolución')
+        if (!devolucionFila) throw new Error('No se pudo registrar la devolución')
         return {
           devolucionFila,
           nombreProducto: productoActualizado.nombreProducto,
-          stockNuevo: Number(productoActualizado.stockActual)
+          stockNuevo: Number(productoActualizado.stockActual),
+          ventaCambio
         }
       })
 
@@ -381,20 +507,25 @@ export function crearRutasVentas(): Router {
           cantidadDevuelta: Number(resultado.devolucionFila.cantidadDevuelta),
           motivoDevolucion: resultado.devolucionFila.motivoDevolucion,
           tipoResolucion: resultado.devolucionFila.tipoResolucion,
+          montoReembolsado: Number(resultado.devolucionFila.montoReembolsado),
+          idVentaCambio: resultado.devolucionFila.idVentaCambio ?? undefined,
+          folioVentaCambio: resultado.ventaCambio?.folio,
           idUsuario: resultado.devolucionFila.idUsuario,
           nombreUsuario: usuario.nombreUsuario,
           fechaDevolucion: resultado.devolucionFila.fechaDevolucion.toISOString()
         },
-        stockNuevo: resultado.stockNuevo
+        stockNuevo: resultado.stockNuevo,
+        ventaCambio: resultado.ventaCambio
       })
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) })
     }
   })
 
-  router.get('/:id/devoluciones', verificarJwt, requiereAdministrador, async (req, res) => {
+  router.get('/:id/devoluciones', verificarJwt, requierePermiso('procesarDevoluciones'), async (req, res) => {
     const id = Number(req.params.id)
     const db = obtenerDb(req)
+    const ventaCambioAlias = alias(venta, 'venta_cambio')
 
     const filas = await db
       .select({
@@ -405,6 +536,9 @@ export function crearRutasVentas(): Router {
         cantidadDevuelta: devolucion.cantidadDevuelta,
         motivoDevolucion: devolucion.motivoDevolucion,
         tipoResolucion: devolucion.tipoResolucion,
+        montoReembolsado: devolucion.montoReembolsado,
+        idVentaCambio: devolucion.idVentaCambio,
+        folioVentaCambio: ventaCambioAlias.folioVenta,
         idUsuario: devolucion.idUsuario,
         nombreUsuario: usuarios.nombreUsuario,
         fechaDevolucion: devolucion.fechaDevolucion
@@ -412,6 +546,7 @@ export function crearRutasVentas(): Router {
       .from(devolucion)
       .innerJoin(producto, eq(devolucion.idProducto, producto.idProducto))
       .innerJoin(usuarios, eq(devolucion.idUsuario, usuarios.idUsuario))
+      .leftJoin(ventaCambioAlias, eq(devolucion.idVentaCambio, ventaCambioAlias.idVenta))
       .where(eq(devolucion.idVenta, id))
       .orderBy(devolucion.fechaDevolucion)
 
@@ -420,6 +555,9 @@ export function crearRutasVentas(): Router {
       devoluciones: filas.map((fila) => ({
         ...fila,
         cantidadDevuelta: Number(fila.cantidadDevuelta),
+        montoReembolsado: Number(fila.montoReembolsado),
+        idVentaCambio: fila.idVentaCambio ?? undefined,
+        folioVentaCambio: fila.folioVentaCambio ?? undefined,
         fechaDevolucion: fila.fechaDevolucion.toISOString()
       }))
     })

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { ResumenCorteCaja, SesionUsuario } from '@picaventa/shared'
+import { tienePermiso, type ResumenCorteCaja, type SesionUsuario } from '@picaventa/shared'
 import PantallaReportes from './PantallaReportes'
 import PantallaHistorialVentas from './PantallaHistorialVentas'
 import { useToast } from '../lib/ToastContext'
@@ -11,6 +11,8 @@ interface Props {
 
 export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.JSX.Element {
   const [tab, setTab] = useState<'corte' | 'reportes' | 'ventas'>('corte')
+  const esAdmin = sesion.rolUsuario === 'administrador'
+  const puedeVentas = tienePermiso(sesion, 'procesarDevoluciones')
   const { mostrarToast } = useToast()
 
   // Retiro/gasto
@@ -133,7 +135,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
     <div className={`mx-auto w-full ${tab === 'ventas' ? 'max-w-5xl' : 'max-w-2xl'}`}>
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
-        {sesion.rolUsuario === 'administrador' && (
+        {(esAdmin || puedeVentas) && (
           <div className="mb-4 flex gap-2">
             <button
               type="button"
@@ -144,30 +146,34 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
             >
               Corte de caja
             </button>
-            <button
-              type="button"
-              onClick={() => setTab('reportes')}
-              className={`rounded-md px-4 py-2 text-sm ${
-                tab === 'reportes' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
-              }`}
-            >
-              Reportes
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab('ventas')}
-              className={`rounded-md px-4 py-2 text-sm ${
-                tab === 'ventas' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
-              }`}
-            >
-              Ventas
-            </button>
+            {esAdmin && (
+              <button
+                type="button"
+                onClick={() => setTab('reportes')}
+                className={`rounded-md px-4 py-2 text-sm ${
+                  tab === 'reportes' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+                }`}
+              >
+                Reportes
+              </button>
+            )}
+            {puedeVentas && (
+              <button
+                type="button"
+                onClick={() => setTab('ventas')}
+                className={`rounded-md px-4 py-2 text-sm ${
+                  tab === 'ventas' ? 'bg-cobre hover:bg-cobre-oscuro text-white' : 'border border-neutral-300'
+                }`}
+              >
+                Ventas
+              </button>
+            )}
           </div>
         )}
 
-        {tab === 'ventas' && sesion.rolUsuario === 'administrador' ? (
-          <PantallaHistorialVentas />
-        ) : tab === 'reportes' && sesion.rolUsuario === 'administrador' ? (
+        {tab === 'ventas' && puedeVentas ? (
+          <PantallaHistorialVentas sesion={sesion} />
+        ) : tab === 'reportes' && esAdmin ? (
           <PantallaReportes />
         ) : (
           <div className="flex flex-col gap-4">

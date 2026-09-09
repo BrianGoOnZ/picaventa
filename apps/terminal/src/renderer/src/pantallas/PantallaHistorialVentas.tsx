@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
-import type { Devolucion, LineaVentaDetalle, TipoResolucion, Venta } from '@picaventa/shared'
+import type {
+  Devolucion,
+  LineaVentaDetalle,
+  Producto,
+  SesionUsuario,
+  TipoResolucion,
+  Venta
+} from '@picaventa/shared'
 import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
+
+interface Props {
+  sesion: SesionUsuario
+}
 
 function hoyISO(): string {
   return new Date().toISOString().slice(0, 10)
@@ -14,7 +25,24 @@ function devueltoPorProducto(devoluciones: Devolucion[], idProducto: number): nu
     .reduce((acumulado, d) => acumulado + d.cantidadDevuelta, 0)
 }
 
-export default function PantallaHistorialVentas(): React.JSX.Element {
+const ETIQUETAS_RESOLUCION: Record<TipoResolucion, string> = {
+  reembolso: 'Reembolso',
+  reposicion: 'Reposición (defectuoso)',
+  cambio: 'Cambio' // valor legado, ya no se genera desde el formulario nuevo
+}
+
+// Lo que el cajero/admin elige en pantalla. "cambiar" no es un tipo de
+// resolución propio a nivel de datos — se envía como 'reembolso' +
+// productoCambio (ver @picaventa/shared ventas.ts para el porqué).
+type AccionDevolucion = 'reposicion' | 'reembolso' | 'cambiar'
+
+function claseSegmento(activo: boolean): string {
+  return `flex-1 rounded-md px-2 py-1.5 text-xs font-medium ${
+    activo ? 'bg-cobre text-white' : 'border border-borde text-texto-secundario hover:bg-arena'
+  }`
+}
+
+export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.Element {
   const [desde, setDesde] = useState(hoyISO())
   const [hasta, setHasta] = useState(hoyISO())
   const [ventas, setVentas] = useState<Venta[]>([])
@@ -29,14 +57,24 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
   const [pinCancelar, setPinCancelar] = useState('')
   const [cancelando, setCancelando] = useState(false)
 
+  const [productos, setProductos] = useState<Producto[]>([])
   const [idProductoDevolucion, setIdProductoDevolucion] = useState<number | null>(null)
   const [cantidadDevolucion, setCantidadDevolucion] = useState('')
   const [motivoDevolucion, setMotivoDevolucion] = useState('')
-  const [tipoResolucion, setTipoResolucion] = useState<TipoResolucion>('reembolso')
+  const [accion, setAccion] = useState<AccionDevolucion>('reembolso')
+  const [buscarProductoCambio, setBuscarProductoCambio] = useState('')
+  const [productoCambio, setProductoCambio] = useState<Producto | null>(null)
+  const [cantidadCambio, setCantidadCambio] = useState('')
   const [pinDevolucion, setPinDevolucion] = useState('')
   const [procesandoDevolucion, setProcesandoDevolucion] = useState(false)
 
   const { mostrarToast } = useToast()
+
+  useEffect(() => {
+    void window.picaventa.listarProductos({}).then((r) => {
+      if (r.ok) setProductos(r.productos)
+    })
+  }, [])
 
   async function cargarVentas(): Promise<void> {
     setCargando(true)
@@ -53,7 +91,7 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
   async function seleccionarVenta(idVenta: number): Promise<void> {
     setIdSeleccionada(idVenta)
     setMostrarCancelar(false)
-    setIdProductoDevolucion(null)
+    cerrarFormularioDevolucion()
     const [detalle, listaDevoluciones] = await Promise.all([
       window.picaventa.obtenerVenta(idVenta),
       window.picaventa.listarDevoluciones(idVenta)
@@ -96,18 +134,49 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
     setCancelando(false)
   }
 
+  function cerrarFormularioDevolucion(): void {
+    setIdProductoDevolucion(null)
+    setCantidadDevolucion('')
+    setMotivoDevolucion('')
+    setPinDevolucion('')
+    setAccion('reembolso')
+    setBuscarProductoCambio('')
+    setProductoCambio(null)
+    setCantidadCambio('')
+  }
+
+  function abrirFormularioDevolucion(idProducto: number): void {
+    cerrarFormularioDevolucion()
+    setIdProductoDevolucion(idProducto)
+  }
+
   async function manejarRegistrarDevolucion(): Promise<void> {
     if (idSeleccionada === null || idProductoDevolucion === null) return
     const cantidad = Number(cantidadDevolucion)
     if (!cantidad || cantidad <= 0 || pinDevolucion.length !== 4 || !motivoDevolucion.trim()) return
 
+    const cantidadNuevaNum = Number(cantidadCambio)
+    if (accion === 'cambiar' && (!productoCambio || !cantidadNuevaNum || cantidadNuevaNum <= 0)) return
+
+    const nombreProductoOriginal = lineas.find((l) => l.idProducto === idProductoDevolucion)?.nombreProducto ?? ''
+
+    const titulo =
+      accion === 'reposicion'
+        ? `¿Reponer ${cantidad} unidad(es) de "${nombreProductoOriginal}"?`
+        : accion === 'cambiar'
+          ? '¿Procesar el cambio por otro producto?'
+          : `¿Procesar el reembolso de ${cantidad}?`
+    const texto =
+      accion === 'reposicion'
+        ? 'El producto devuelto NO regresa al inventario (se da por dañado/descartado) y se entrega uno de reemplazo. No se mueve dinero ni afecta reportes.'
+        : accion === 'cambiar'
+          ? `Se regresa "${nombreProductoOriginal}" al inventario y se entrega "${productoCambio?.nombreProducto}" en su lugar. La diferencia de precio se ajusta sola en el corte de caja y en Reportes.`
+          : 'El producto vuelve al inventario y se le regresa su dinero: se descuenta del saldo si fue a fiado, o se registra un retiro de caja automático si fue en efectivo.'
+
     const confirmado = await confirmarCritico({
-      titulo: `¿Procesar la devolución de ${cantidad}?`,
-      texto:
-        tipoResolucion === 'reembolso'
-          ? 'El producto vuelve al inventario y, si aplica, se descuenta del saldo del cliente.'
-          : 'El producto vuelve al inventario como parte de un cambio.',
-      textoConfirmar: 'Sí, procesar devolución',
+      titulo,
+      texto,
+      textoConfirmar: 'Sí, continuar',
       colorConfirmar: '#15803D'
     })
     if (!confirmado) return
@@ -117,15 +186,20 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
       idProducto: idProductoDevolucion,
       cantidad,
       motivo: motivoDevolucion.trim(),
-      tipoResolucion,
+      tipoResolucion: accion === 'reposicion' ? 'reposicion' : 'reembolso',
+      productoCambio:
+        accion === 'cambiar' && productoCambio
+          ? { idProducto: productoCambio.idProducto, cantidad: cantidadNuevaNum }
+          : undefined,
       pin: pinDevolucion
     })
     if (resultado.ok) {
-      mostrarToast('Devolución registrada correctamente')
-      setCantidadDevolucion('')
-      setMotivoDevolucion('')
-      setPinDevolucion('')
-      setIdProductoDevolucion(null)
+      mostrarToast(
+        resultado.ventaCambio
+          ? `Cambio procesado — se generó la venta ${resultado.ventaCambio.folio}`
+          : 'Devolución registrada correctamente'
+      )
+      cerrarFormularioDevolucion()
       await refrescarSeleccionada()
     } else {
       mostrarToast(resultado.error, 'error')
@@ -228,91 +302,192 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
                     {disponible > 0 && ventaSeleccionada.estadoVenta === 'activa' && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setIdProductoDevolucion(linea.idProducto)
-                          setCantidadDevolucion('')
-                          setMotivoDevolucion('')
-                          setPinDevolucion('')
-                        }}
+                        onClick={() => abrirFormularioDevolucion(linea.idProducto)}
                         className={`mt-2 ${BOTON_ACENTO}`}
                       >
                         Devolver
                       </button>
                     )}
-                    {idProductoDevolucion === linea.idProducto && (
-                      <div className="mt-3 flex flex-col gap-2 rounded-md border border-borde bg-arena p-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="text-xs font-medium text-texto-secundario">
-                            Cantidad (máx. {disponible})
-                            <input
-                              type="number"
-                              min="0.001"
-                              max={disponible}
-                              step={linea.unidadMedida === 'kg' ? '0.001' : '1'}
-                              value={cantidadDevolucion}
-                              onChange={(evento) => setCantidadDevolucion(evento.target.value)}
-                              className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
-                            />
-                          </label>
-                          <label className="text-xs font-medium text-texto-secundario">
-                            Resolución
-                            <select
-                              value={tipoResolucion}
-                              onChange={(evento) => setTipoResolucion(evento.target.value as TipoResolucion)}
-                              className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
-                            >
-                              <option value="reembolso">Reembolso</option>
-                              <option value="cambio">Cambio</option>
-                            </select>
-                          </label>
-                          <label className="col-span-2 text-xs font-medium text-texto-secundario">
-                            Motivo
-                            <input
-                              type="text"
-                              value={motivoDevolucion}
-                              onChange={(evento) => setMotivoDevolucion(evento.target.value)}
-                              className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
-                            />
-                          </label>
-                          <label className="text-xs font-medium text-texto-secundario">
-                            PIN de administrador
-                            <input
-                              type="password"
-                              inputMode="numeric"
-                              pattern="\d{4}"
-                              maxLength={4}
-                              value={pinDevolucion}
-                              onChange={(evento) =>
-                                setPinDevolucion(evento.target.value.replace(/\D/g, '').slice(0, 4))
-                              }
-                              className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 font-mono text-sm tracking-widest"
-                            />
-                          </label>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setIdProductoDevolucion(null)}
-                            className={BOTON_SECUNDARIO}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void manejarRegistrarDevolucion()}
-                            disabled={
-                              procesandoDevolucion ||
-                              !cantidadDevolucion ||
-                              pinDevolucion.length !== 4 ||
-                              !motivoDevolucion.trim()
-                            }
-                            className="rounded-md bg-exito px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                          >
-                            {procesandoDevolucion ? 'Procesando...' : 'Confirmar devolución'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    {idProductoDevolucion === linea.idProducto &&
+                      (() => {
+                        const precioNetoOriginal =
+                          (linea.cantidadVendida * linea.precioUnitarioVenta - linea.descuentoAplicado) /
+                          linea.cantidadVendida
+                        const cantidadNum = Number(cantidadDevolucion) || 0
+                        const cantidadCambioNum = Number(cantidadCambio) || 0
+                        const diferencia =
+                          (productoCambio?.precioVenta ?? 0) * cantidadCambioNum - precioNetoOriginal * cantidadNum
+
+                        return (
+                          <div className="mt-3 flex flex-col gap-2 rounded-md border border-borde bg-arena p-3">
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setAccion('reposicion')}
+                                className={claseSegmento(accion === 'reposicion')}
+                              >
+                                🔧 Estaba dañado
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAccion('reembolso')}
+                                className={claseSegmento(accion === 'reembolso')}
+                              >
+                                💵 Reembolso
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAccion('cambiar')}
+                                className={claseSegmento(accion === 'cambiar')}
+                              >
+                                🔁 Cambia de producto
+                              </button>
+                            </div>
+                            <p className="text-xs text-texto-secundario">
+                              {accion === 'reposicion' &&
+                                'Se repone con uno igual. El dañado no vuelve al inventario, no se mueve dinero.'}
+                              {accion === 'reembolso' &&
+                                'El producto regresa al inventario y se le devuelve su dinero.'}
+                              {accion === 'cambiar' &&
+                                'El producto regresa al inventario y se le entrega otro en su lugar.'}
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <label className="text-xs font-medium text-texto-secundario">
+                                Cantidad a devolver (máx. {disponible})
+                                <input
+                                  type="number"
+                                  min="0.001"
+                                  max={disponible}
+                                  step={linea.unidadMedida === 'kg' ? '0.001' : '1'}
+                                  value={cantidadDevolucion}
+                                  onChange={(evento) => setCantidadDevolucion(evento.target.value)}
+                                  className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
+                                />
+                              </label>
+                              <label className="text-xs font-medium text-texto-secundario">
+                                Motivo
+                                <input
+                                  type="text"
+                                  value={motivoDevolucion}
+                                  onChange={(evento) => setMotivoDevolucion(evento.target.value)}
+                                  className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 text-sm"
+                                />
+                              </label>
+                            </div>
+
+                            {accion === 'cambiar' && (
+                              <div className="rounded-md border border-borde bg-tarjeta p-2">
+                                <p className="mb-1 text-xs font-medium text-texto-secundario">
+                                  Producto de reemplazo
+                                </p>
+                                {!productoCambio ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar producto..."
+                                      value={buscarProductoCambio}
+                                      onChange={(evento) => setBuscarProductoCambio(evento.target.value)}
+                                      className="w-full rounded-md border border-borde px-2 py-1.5 text-sm"
+                                    />
+                                    {buscarProductoCambio.trim() && (
+                                      <div className="mt-1 max-h-28 overflow-y-auto rounded-md border border-borde">
+                                        {productos
+                                          .filter((p) =>
+                                            p.nombreProducto
+                                              .toLowerCase()
+                                              .includes(buscarProductoCambio.toLowerCase())
+                                          )
+                                          .slice(0, 20)
+                                          .map((p) => (
+                                            <button
+                                              key={p.idProducto}
+                                              type="button"
+                                              onClick={() => {
+                                                setProductoCambio(p)
+                                                setBuscarProductoCambio('')
+                                              }}
+                                              className="block w-full border-b border-borde px-2 py-1 text-left text-xs last:border-0 hover:bg-arena"
+                                            >
+                                              {p.nombreProducto} — ${p.precioVenta.toFixed(2)}
+                                            </button>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex-1 text-xs text-onix">
+                                      {productoCambio.nombreProducto} — ${productoCambio.precioVenta.toFixed(2)}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min="0.001"
+                                      step={productoCambio.unidadMedida === 'kg' ? '0.001' : '1'}
+                                      placeholder="Cant."
+                                      value={cantidadCambio}
+                                      onChange={(evento) => setCantidadCambio(evento.target.value)}
+                                      className="w-16 rounded-md border border-borde px-1.5 py-1 text-xs"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setProductoCambio(null)
+                                        setCantidadCambio('')
+                                      }}
+                                      className={BOTON_SECUNDARIO}
+                                    >
+                                      Cambiar
+                                    </button>
+                                  </div>
+                                )}
+                                {productoCambio && cantidadCambioNum > 0 && cantidadNum > 0 && (
+                                  <p className="mt-1.5 text-xs font-medium text-texto-secundario">
+                                    {diferencia > 0.005 && `El cliente paga $${diferencia.toFixed(2)} más`}
+                                    {diferencia < -0.005 && `Se le regresan $${Math.abs(diferencia).toFixed(2)}`}
+                                    {Math.abs(diferencia) <= 0.005 && 'Sin diferencia de precio'}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            <label className="text-xs font-medium text-texto-secundario">
+                              Tu PIN
+                              <input
+                                type="password"
+                                inputMode="numeric"
+                                pattern="\d{4}"
+                                maxLength={4}
+                                value={pinDevolucion}
+                                onChange={(evento) =>
+                                  setPinDevolucion(evento.target.value.replace(/\D/g, '').slice(0, 4))
+                                }
+                                className="mt-1 w-24 rounded-md border border-borde px-2 py-1.5 font-mono text-sm tracking-widest"
+                              />
+                            </label>
+
+                            <div className="flex gap-2">
+                              <button type="button" onClick={cerrarFormularioDevolucion} className={BOTON_SECUNDARIO}>
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void manejarRegistrarDevolucion()}
+                                disabled={
+                                  procesandoDevolucion ||
+                                  !cantidadDevolucion ||
+                                  pinDevolucion.length !== 4 ||
+                                  !motivoDevolucion.trim() ||
+                                  (accion === 'cambiar' && (!productoCambio || !cantidadCambioNum))
+                                }
+                                className="rounded-md bg-exito px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                              >
+                                {procesandoDevolucion ? 'Procesando...' : 'Confirmar'}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })()}
                   </li>
                 )
               })}
@@ -326,15 +501,17 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
                 <ul className="flex flex-col gap-1.5">
                   {devoluciones.map((d) => (
                     <li key={d.idDevolucion} className="text-xs text-texto-secundario">
-                      {d.cantidadDevuelta} × {d.nombreProducto} — {d.tipoResolucion} ({d.motivoDevolucion}) por{' '}
-                      {d.nombreUsuario}
+                      {d.cantidadDevuelta} × {d.nombreProducto} — {ETIQUETAS_RESOLUCION[d.tipoResolucion]}
+                      {d.montoReembolsado > 0 && ` ($${d.montoReembolsado.toFixed(2)})`}
+                      {d.folioVentaCambio && ` → cambiado por venta ${d.folioVentaCambio}`} (
+                      {d.motivoDevolucion}) por {d.nombreUsuario}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {ventaSeleccionada.estadoVenta === 'activa' && (
+            {ventaSeleccionada.estadoVenta === 'activa' && sesion.rolUsuario === 'administrador' && (
               <div className="border-t border-borde pt-3">
                 {!mostrarCancelar ? (
                   <button

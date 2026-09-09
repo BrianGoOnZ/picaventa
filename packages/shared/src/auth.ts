@@ -19,7 +19,8 @@ export const PERMISOS_DISPONIBLES = [
   'crearCategorias',
   'eliminarCategorias',
   'crearClientes',
-  'eliminarClientes'
+  'eliminarClientes',
+  'procesarDevoluciones'
 ] as const
 export type Permiso = (typeof PERMISOS_DISPONIBLES)[number]
 
@@ -30,7 +31,8 @@ export const ETIQUETAS_PERMISOS: Record<Permiso, string> = {
   crearCategorias: 'Crear categorías',
   eliminarCategorias: 'Eliminar categorías',
   crearClientes: 'Registrar clientes',
-  eliminarClientes: 'Eliminar clientes'
+  eliminarClientes: 'Eliminar clientes',
+  procesarDevoluciones: 'Procesar devoluciones y cambios de productos'
 }
 
 // Un administrador tiene implícitamente todos los permisos; un cajero solo

@@ -5,6 +5,7 @@ import {
   venta,
   contiene,
   producto,
+  devolucion,
   movimientoCaja,
   corteCaja,
   usuarios,
@@ -204,6 +205,45 @@ export function crearRutasCaja(): Router {
       acumulado.ingresos += Number(l.precioUnitarioVenta) * cantidad - Number(l.descuentoAplicado)
       acumulado.costoEstimado += (l.precioCompra ? Number(l.precioCompra) : 0) * cantidad
       porProducto.set(l.idProducto, acumulado)
+    }
+
+    // Un reembolso (con o sin cambio por otro producto) no anula la venta
+    // original — solo queda un registro aparte en `devolucion` — así que sin
+    // esto una venta devuelta se seguiría contando de más en los reportes.
+    // Se resta por la fecha en que se procesó la devolución, no la de la
+    // venta original, para no alterar un periodo que ya se reportó antes.
+    // 'reposicion' no resta nada: el cliente sí se quedó con un producto
+    // funcionando, no hubo reembolso de dinero.
+    const condicionDevoluciones = and(
+      gte(devolucion.fechaDevolucion, desde),
+      lte(devolucion.fechaDevolucion, hasta),
+      eq(devolucion.tipoResolucion, 'reembolso')
+    )
+    const devolucionesPeriodo = await db
+      .select({
+        idProducto: devolucion.idProducto,
+        cantidadDevuelta: devolucion.cantidadDevuelta,
+        montoReembolsado: devolucion.montoReembolsado,
+        metodoPago: venta.metodoPago,
+        precioCompra: producto.precioCompra
+      })
+      .from(devolucion)
+      .innerJoin(venta, eq(devolucion.idVenta, venta.idVenta))
+      .innerJoin(producto, eq(devolucion.idProducto, producto.idProducto))
+      .where(condicionDevoluciones)
+
+    for (const d of devolucionesPeriodo) {
+      const monto = Number(d.montoReembolsado)
+      totalVendido -= monto
+      sumarAlDesglose(porMetodo, d.metodoPago, -monto)
+
+      const acumulado = porProducto.get(d.idProducto)
+      if (acumulado) {
+        const cantidad = Number(d.cantidadDevuelta)
+        acumulado.cantidad -= cantidad
+        acumulado.ingresos -= monto
+        acumulado.costoEstimado -= (d.precioCompra ? Number(d.precioCompra) : 0) * cantidad
+      }
     }
 
     const productos = [...porProducto.entries()]

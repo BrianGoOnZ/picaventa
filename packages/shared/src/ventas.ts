@@ -36,16 +36,39 @@ export const datosCancelarVentaSchema = z.object({
 })
 export type DatosCancelarVenta = z.infer<typeof datosCancelarVentaSchema>
 
-export const tipoResolucionValores = ['reembolso', 'cambio'] as const
+// 'cambio' es un valor legado (devoluciones registradas con el flujo
+// anterior) que ya no se ofrece al capturar una devolución nueva, pero se
+// conserva en el tipo para poder seguir leyendo/mostrando esas filas viejas.
+export const tipoResolucionValores = ['reembolso', 'cambio', 'reposicion'] as const
 export type TipoResolucion = (typeof tipoResolucionValores)[number]
 
-export const datosDevolucionSchema = z.object({
+// Lo único que el nuevo formulario de devoluciones deja elegir. "Cambiar
+// por otro producto" no es un tercer valor de tipoResolucion: se modela
+// como un 'reembolso' del producto original + productoCambio con el
+// producto nuevo, para que el dinero cuadre solo (ver ventas.ts servidor).
+export const tipoResolucionNuevoValores = ['reembolso', 'reposicion'] as const
+
+export const productoCambioSchema = z.object({
   idProducto: z.number().int().positive(),
-  cantidad: z.number().positive(),
-  motivo: z.string().min(1),
-  tipoResolucion: z.enum(tipoResolucionValores),
-  pin: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
+  cantidad: z.number().positive()
 })
+export type ProductoCambio = z.infer<typeof productoCambioSchema>
+
+export const datosDevolucionSchema = z
+  .object({
+    idProducto: z.number().int().positive(),
+    cantidad: z.number().positive(),
+    motivo: z.string().min(1),
+    tipoResolucion: z.enum(tipoResolucionNuevoValores),
+    // Solo tiene sentido junto con tipoResolucion 'reembolso': el producto
+    // que el cliente se lleva a cambio del que está devolviendo.
+    productoCambio: productoCambioSchema.optional(),
+    pin: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
+  })
+  .refine((datos) => !datos.productoCambio || datos.tipoResolucion === 'reembolso', {
+    message: 'Un cambio por otro producto se procesa junto con un reembolso del producto original',
+    path: ['productoCambio']
+  })
 export type DatosDevolucion = z.infer<typeof datosDevolucionSchema>
 
 export interface Devolucion {
@@ -56,6 +79,9 @@ export interface Devolucion {
   cantidadDevuelta: number
   motivoDevolucion: string
   tipoResolucion: TipoResolucion
+  montoReembolsado: number
+  idVentaCambio?: number
+  folioVentaCambio?: string
   idUsuario: number
   nombreUsuario: string
   fechaDevolucion: string
@@ -99,7 +125,14 @@ export type ResultadoVentaDetallada =
 export type ResultadoCancelarVenta = { ok: true; venta: Venta } | { ok: false; error: string }
 
 export type ResultadoDevolucion =
-  | { ok: true; devolucion: Devolucion; stockNuevo: number }
+  | {
+      ok: true
+      devolucion: Devolucion
+      stockNuevo: number
+      // Presente solo cuando la devolución incluyó productoCambio: la
+      // venta nueva que se generó por el producto de reemplazo.
+      ventaCambio?: { idVenta: number; folio: string; total: number }
+    }
   | { ok: false; error: string }
 
 export type ResultadoListaDevoluciones =

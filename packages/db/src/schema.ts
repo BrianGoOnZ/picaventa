@@ -18,7 +18,10 @@ export const unidadMedidaEnum = pgEnum('unidad_medida', ['pieza', 'kg'])
 export const rolUsuarioEnum = pgEnum('rol_usuario', ['administrador', 'cajero'])
 export const tipoMermaEnum = pgEnum('tipo_merma', ['merma', 'ajuste'])
 export const estadoVentaEnum = pgEnum('estado_venta', ['activa', 'pausada', 'cancelada'])
-export const tipoResolucionEnum = pgEnum('tipo_resolucion', ['reembolso', 'cambio'])
+// 'cambio' queda como valor legado (devoluciones ya registradas antes de
+// este cambio de flujo) — el nuevo formulario de devoluciones ya no lo
+// ofrece, ver datosDevolucionSchema en @picaventa/shared.
+export const tipoResolucionEnum = pgEnum('tipo_resolucion', ['reembolso', 'cambio', 'reposicion'])
 export const tipoMovimientoEnum = pgEnum('tipo_movimiento', ['retiro', 'gasto'])
 
 const dinero = (nombre: string) => numeric(nombre, { precision: 12, scale: 2 })
@@ -209,6 +212,14 @@ export const devolucion = pgTable('devolucion', {
   cantidadDevuelta: cantidad('cantidad_devuelta').notNull(),
   motivoDevolucion: text('motivo_devolucion').notNull(),
   tipoResolucion: tipoResolucionEnum('tipo_resolucion').notNull(),
+  // Cuánto se restó de los ingresos reportados por esta devolución (0 para
+  // 'reposicion', que no mueve dinero). Se guarda explícito en vez de
+  // recalcularse después porque el precio del producto puede cambiar con
+  // el tiempo — el reporte debe reflejar el monto real del momento.
+  montoReembolsado: dinero('monto_reembolsado').notNull().default('0'),
+  // Si esta devolución fue parte de un "cambio por otro producto", aquí
+  // queda la venta nueva que se generó por el producto de reemplazo.
+  idVentaCambio: integer('id_venta_cambio').references(() => venta.idVenta),
   idUsuario: integer('id_usuario')
     .notNull()
     .references(() => usuarios.idUsuario),
