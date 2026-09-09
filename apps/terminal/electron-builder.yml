@@ -5,6 +5,13 @@ directories:
 files:
   - out/**/*
   - package.json
+extraResources:
+  # aplicarMigraciones (packages/db/src/migrate.ts) necesita estos archivos en
+  # tiempo de ejecución para configurar la base de datos de un cliente nuevo
+  # (Configurar como Servidor) — ver obtenerCarpetaMigraciones() en
+  # src/main/ipc.ts, que lee de aquí cuando la app ya está empaquetada.
+  - from: ../../packages/db/migrations
+    to: migrations
 win:
   target: nsis
 nsis:

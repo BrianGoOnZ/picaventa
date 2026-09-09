@@ -174,11 +174,13 @@ import { imprimirTicketTermico, abrirCajonDinero } from './impresora'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
 // vez empaquetado por electron-vite (import.meta.url apunta al bundle, no al
-// código fuente). app.getAppPath() sí sobrevive al empaquetado.
-// TODO: en un build empaquetado (electron-builder) esta ruta relativa al
-// monorepo ya no existirá — hay que copiar migrations/ como recurso del
-// instalador y leer desde process.resourcesPath en ese caso.
+// código fuente). En desarrollo, app.getAppPath() apunta dentro del monorepo
+// y esa ruta relativa sigue existiendo; en un build empaquetado con
+// electron-builder ya no existe, así que ahí se lee desde
+// process.resourcesPath (ver "extraResources" en electron-builder.yml, que
+// copia esa misma carpeta como recurso del instalador).
 function obtenerCarpetaMigraciones(): string {
+  if (app.isPackaged) return join(process.resourcesPath, 'migrations')
   return join(app.getAppPath(), '../../packages/db/migrations')
 }
 
