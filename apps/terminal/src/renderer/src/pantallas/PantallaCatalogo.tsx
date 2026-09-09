@@ -14,10 +14,8 @@ interface Props {
 
 export default function PantallaCatalogo({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
-  const puedeProductos =
-    esAdmin || tienePermiso(sesion, 'crearProductos') || tienePermiso(sesion, 'eliminarProductos')
-  const puedeCategorias =
-    esAdmin || tienePermiso(sesion, 'crearCategorias') || tienePermiso(sesion, 'eliminarCategorias')
+  const puedeProductos = esAdmin || tienePermiso(sesion, 'crearProductos')
+  const puedeCategorias = esAdmin || tienePermiso(sesion, 'crearCategorias')
   const puedeEntradas = esAdmin || tienePermiso(sesion, 'cargarInventario')
 
   const [tab, setTab] = useState<Tab>(

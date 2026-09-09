@@ -107,6 +107,98 @@ export function crearRutasCaja(): Router {
     })
   })
 
+  // Resumen en vivo del turno abierto (sin cerrarlo) — para el dashboard del
+  // cajero: solo sus propias ventas desde que inició sesión, nunca datos de
+  // otros usuarios ni del negocio en general.
+  router.get('/resumen-turno', verificarJwt, async (req, res) => {
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (!payload || !payload.iat) {
+      res.status(401).json({ ok: false, error: 'Sesión inválida' })
+      return
+    }
+
+    const inicioTurno = new Date(payload.iat * 1000)
+    const db = obtenerDb(req)
+
+    const ventasTurno = await db
+      .select()
+      .from(venta)
+      .where(
+        and(
+          eq(venta.idUsuario, payload.idUsuario),
+          gte(venta.fechaVenta, inicioTurno),
+          eq(venta.estadoVenta, 'activa')
+        )
+      )
+
+    const ventasPorMetodo = desgloseVacio()
+    for (const v of ventasTurno) {
+      sumarAlDesglose(ventasPorMetodo, v.metodoPago, Number(v.total))
+    }
+    const totalVendido = ventasPorMetodo.efectivo + ventasPorMetodo.tarjeta + ventasPorMetodo.fiado
+
+    res.json({
+      ok: true,
+      resumen: {
+        fechaInicio: inicioTurno.toISOString(),
+        ventasPorMetodo,
+        totalVendido,
+        numeroVentas: ventasTurno.length
+      }
+    })
+  })
+
+  // Devoluciones que el usuario logueado procesó en su turno abierto —
+  // versión personal (no admin) de /reportes/devoluciones, para su propio
+  // dashboard.
+  router.get('/devoluciones-turno', verificarJwt, async (req, res) => {
+    const payload = (req as RequestAutenticado).usuarioToken
+    if (!payload || !payload.iat) {
+      res.status(401).json({ ok: false, error: 'Sesión inválida' })
+      return
+    }
+
+    const inicioTurno = new Date(payload.iat * 1000)
+    const db = obtenerDb(req)
+    const ventaCambioAlias = alias(venta, 'venta_cambio')
+
+    const filas = await db
+      .select({
+        idDevolucion: devolucion.idDevolucion,
+        idVenta: devolucion.idVenta,
+        folioVenta: venta.folioVenta,
+        idProducto: devolucion.idProducto,
+        nombreProducto: producto.nombreProducto,
+        cantidadDevuelta: devolucion.cantidadDevuelta,
+        motivoDevolucion: devolucion.motivoDevolucion,
+        tipoResolucion: devolucion.tipoResolucion,
+        montoReembolsado: devolucion.montoReembolsado,
+        idVentaCambio: devolucion.idVentaCambio,
+        folioVentaCambio: ventaCambioAlias.folioVenta,
+        nombreUsuario: usuarios.nombreUsuario,
+        fechaDevolucion: devolucion.fechaDevolucion
+      })
+      .from(devolucion)
+      .innerJoin(venta, eq(devolucion.idVenta, venta.idVenta))
+      .innerJoin(producto, eq(devolucion.idProducto, producto.idProducto))
+      .innerJoin(usuarios, eq(devolucion.idUsuario, usuarios.idUsuario))
+      .leftJoin(ventaCambioAlias, eq(devolucion.idVentaCambio, ventaCambioAlias.idVenta))
+      .where(and(eq(devolucion.idUsuario, payload.idUsuario), gte(devolucion.fechaDevolucion, inicioTurno)))
+      .orderBy(desc(devolucion.fechaDevolucion))
+
+    res.json({
+      ok: true,
+      devoluciones: filas.map((f) => ({
+        ...f,
+        cantidadDevuelta: Number(f.cantidadDevuelta),
+        montoReembolsado: Number(f.montoReembolsado),
+        idVentaCambio: f.idVentaCambio ?? undefined,
+        folioVentaCambio: f.folioVentaCambio ?? undefined,
+        fechaDevolucion: f.fechaDevolucion.toISOString()
+      }))
+    })
+  })
+
   router.post('/cerrar-turno', verificarJwt, async (req, res) => {
     const datos = datosCorteCajaSchema.safeParse(req.body)
     if (!datos.success) {

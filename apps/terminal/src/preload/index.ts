@@ -63,6 +63,7 @@ import {
   type ResultadoRegistrarMerma,
   type ResultadoReporteDevoluciones,
   type ResultadoReporteVentas,
+  type ResultadoResumenTurno,
   type ResultadoRespaldoManual,
   type ResultadoVentaDetallada,
   type ResultadoVentasPorCajero,
@@ -228,6 +229,14 @@ const api = {
 
   obtenerReporteDevoluciones: (desde?: string, hasta?: string): Promise<ResultadoReporteDevoluciones> =>
     ipcRenderer.invoke(CANALES_IPC.cajaReporteDevoluciones, desde, hasta),
+
+  obtenerResumenTurno: (): Promise<ResultadoResumenTurno> => ipcRenderer.invoke(CANALES_IPC.cajaResumenTurno),
+
+  obtenerDevolucionesTurno: (): Promise<ResultadoReporteDevoluciones> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaDevolucionesTurno),
+
+  obtenerFondoInicialTurno: (): Promise<number | null> =>
+    ipcRenderer.invoke(CANALES_IPC.cajaObtenerFondoInicial),
 
   listarProveedores: (): Promise<ResultadoListaProveedores> =>
     ipcRenderer.invoke(CANALES_IPC.proveedoresListar),

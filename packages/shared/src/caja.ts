@@ -134,3 +134,16 @@ export interface DevolucionReporte {
 export type ResultadoReporteDevoluciones =
   | { ok: true; devoluciones: DevolucionReporte[] }
   | { ok: false; error: string }
+
+// Resumen en vivo del turno abierto (sin cerrarlo) — para el dashboard del
+// cajero: solo sus propias ventas desde que inició sesión.
+export interface ResumenTurnoAbierto {
+  fechaInicio: string
+  ventasPorMetodo: DesgloseMetodoPago
+  totalVendido: number
+  numeroVentas: number
+}
+
+export type ResultadoResumenTurno =
+  | { ok: true; resumen: ResumenTurnoAbierto }
+  | { ok: false; error: string }

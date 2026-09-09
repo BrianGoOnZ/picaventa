@@ -106,7 +106,7 @@ export function crearRutasCatalogo(): Router {
   router.delete(
     '/categorias/:id',
     verificarJwt,
-    requierePermiso('eliminarCategorias'),
+    requiereAdministrador,
     async (req, res) => {
       const id = Number(req.params.id)
       const db = obtenerDb(req)
@@ -367,7 +367,7 @@ export function crearRutasCatalogo(): Router {
   router.delete(
     '/productos/:id',
     verificarJwt,
-    requierePermiso('eliminarProductos'),
+    requiereAdministrador,
     async (req, res) => {
       const id = Number(req.params.id)
       const db = obtenerDb(req)

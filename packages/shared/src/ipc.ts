@@ -58,6 +58,9 @@ export const CANALES_IPC = {
   cajaListarCortes: 'caja:listar-cortes',
   cajaMovimientosTurno: 'caja:movimientos-turno',
   cajaReporteDevoluciones: 'caja:reporte-devoluciones',
+  cajaResumenTurno: 'caja:resumen-turno',
+  cajaDevolucionesTurno: 'caja:devoluciones-turno',
+  cajaObtenerFondoInicial: 'caja:obtener-fondo-inicial',
 
   proveedoresListar: 'proveedores:listar',
   proveedoresCrear: 'proveedores:crear',

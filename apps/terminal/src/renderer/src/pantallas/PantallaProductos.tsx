@@ -43,7 +43,6 @@ const FORMULARIO_VACIO = {
 
 export default function PantallaProductos({ sesion }: Props): React.JSX.Element {
   const puedeCrear = tienePermiso(sesion, 'crearProductos')
-  const puedeEliminar = tienePermiso(sesion, 'eliminarProductos')
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [cargando, setCargando] = useState(true)
@@ -706,7 +705,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
                         Editar
                       </button>
                     )}
-                    {(esAdmin || puedeEliminar) && (
+                    {esAdmin && (
                       <button
                         type="button"
                         onClick={() => void manejarEliminar(producto)}

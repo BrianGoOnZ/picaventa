@@ -94,7 +94,7 @@ export function crearRutasClientes(): Router {
     res.json({ ok: true, cliente: filaACliente(fila) })
   })
 
-  router.delete('/:id', verificarJwt, requierePermiso('eliminarClientes'), async (req, res) => {
+  router.delete('/:id', verificarJwt, requiereAdministrador, async (req, res) => {
     const id = Number(req.params.id)
     const db = obtenerDb(req)
 

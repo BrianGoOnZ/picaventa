@@ -7,6 +7,7 @@ import type {
   ResultadoMovimientosCaja,
   ResultadoReporteDevoluciones,
   ResultadoReporteVentas,
+  ResultadoResumenTurno,
   ResultadoVentasPorCajero,
   ResultadoVentasPorDia
 } from '@picaventa/shared'
@@ -127,6 +128,22 @@ export function obtenerReporteDevoluciones(
   const query = parametros.toString()
 
   return solicitarJson(`${obtenerUrlBase(config)}/caja/reportes/devoluciones${query ? `?${query}` : ''}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function obtenerResumenTurno(config: ConfigLocal): Promise<ResultadoResumenTurno> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/resumen-turno`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+}
+
+export function obtenerDevolucionesTurno(config: ConfigLocal): Promise<ResultadoReporteDevoluciones> {
+  const token = obtenerToken()
+  if (!token) return Promise.resolve({ ok: false, error: 'No hay sesión activa' })
+  return solicitarJson(`${obtenerUrlBase(config)}/caja/devoluciones-turno`, {
     headers: { Authorization: `Bearer ${token}` }
   })
 }

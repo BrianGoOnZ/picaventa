@@ -8,6 +8,7 @@ import PantallaVenta from './PantallaVenta'
 import PantallaClientes from './PantallaClientes'
 import PantallaCaja from './PantallaCaja'
 import PantallaDashboardAdmin from './PantallaDashboardAdmin'
+import PantallaDashboardCajero from './PantallaDashboardCajero'
 import PantallaComprasProveedores from './PantallaComprasProveedores'
 
 export type Vista =
@@ -92,25 +93,12 @@ export default function PantallaPrincipal({
           )}
 
           {vista === 'inicio' && sesion.rolUsuario !== 'administrador' && (
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-              <p className="text-sm text-texto-secundario">
-                Hola, {sesion.nombreUsuario} — sesión de {sesion.rolUsuario}.
-              </p>
-
-              {productosStockBajo > 0 && (
-                <p className="rounded-md bg-alerta/10 px-3 py-2 text-sm text-alerta">
-                  ⚠ {productosStockBajo} producto{productosStockBajo === 1 ? '' : 's'} con stock bajo
-                </p>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setVista('venta')}
-                className="mt-4 self-start rounded-md bg-cobre px-6 py-3 text-base font-semibold text-white hover:bg-cobre-oscuro"
-              >
-                Nueva venta
-              </button>
-            </div>
+            <PantallaDashboardCajero
+              sesion={sesion}
+              productosStockBajo={productosStockBajo}
+              onIrAVenta={() => setVista('venta')}
+              onIrACaja={() => setVista('caja')}
+            />
           )}
         </main>
       </div>

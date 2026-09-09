@@ -11,15 +11,15 @@ export type RolUsuario = (typeof rolUsuarioValores)[number]
 // ganancias/márgenes/reportes financieros — eso queda excluido de este
 // catálogo a propósito y siempre depende únicamente de rolUsuario ===
 // 'administrador' (ver PantallaDashboardAdmin y PantallaReportes), nunca de
-// un permiso otorgable.
+// un permiso otorgable. Tampoco incluye eliminar nada (productos,
+// categorías, clientes) — borrar información es una acción que siempre se
+// queda exclusiva del administrador, sin importar qué otros permisos tenga
+// un cajero (igual que editar un producto/categoría ya existente).
 export const PERMISOS_DISPONIBLES = [
   'cargarInventario',
   'crearProductos',
-  'eliminarProductos',
   'crearCategorias',
-  'eliminarCategorias',
   'crearClientes',
-  'eliminarClientes',
   'procesarDevoluciones'
 ] as const
 export type Permiso = (typeof PERMISOS_DISPONIBLES)[number]
@@ -27,11 +27,8 @@ export type Permiso = (typeof PERMISOS_DISPONIBLES)[number]
 export const ETIQUETAS_PERMISOS: Record<Permiso, string> = {
   cargarInventario: 'Cargar inventario (entradas de mercancía)',
   crearProductos: 'Registrar productos nuevos',
-  eliminarProductos: 'Eliminar productos',
   crearCategorias: 'Crear categorías',
-  eliminarCategorias: 'Eliminar categorías',
   crearClientes: 'Registrar clientes',
-  eliminarClientes: 'Eliminar clientes',
   procesarDevoluciones: 'Procesar devoluciones y cambios de productos'
 }
 

@@ -11,7 +11,6 @@ interface Props {
 export default function PantallaCategorias({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
   const puedeCrear = tienePermiso(sesion, 'crearCategorias')
-  const puedeEliminar = tienePermiso(sesion, 'eliminarCategorias')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [cargando, setCargando] = useState(true)
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -162,7 +161,7 @@ export default function PantallaCategorias({ sesion }: Props): React.JSX.Element
                       Editar
                     </button>
                   )}
-                  {(esAdmin || puedeEliminar) && (
+                  {esAdmin && (
                     <button
                       type="button"
                       onClick={() => void manejarEliminar(categoria)}

@@ -58,6 +58,7 @@ import {
   type ResultadoMovimientosCaja,
   type ResultadoListaCortes,
   type ResultadoReporteDevoluciones,
+  type ResultadoResumenTurno,
   type ResultadoObtenerNegocio,
   type ResultadoLecturaBascula,
   type ResultadoOperacion,
@@ -144,9 +145,11 @@ import {
   obtenerVentasPorCajero,
   listarCortes,
   obtenerMovimientosTurno,
-  obtenerReporteDevoluciones
+  obtenerReporteDevoluciones,
+  obtenerResumenTurno,
+  obtenerDevolucionesTurno
 } from './caja-cliente'
-import { obtenerSesion } from './sesion'
+import { obtenerSesion, obtenerFondoInicial } from './sesion'
 import { leerPesoBascula } from './bascula'
 
 // aplicarMigraciones no puede ubicar packages/db/migrations por sí solo una
@@ -612,6 +615,20 @@ export function registrarManejadoresIpc(): void {
       return obtenerReporteDevoluciones(config, desde, hasta)
     }
   )
+
+  ipcMain.handle(CANALES_IPC.cajaResumenTurno, (): Promise<ResultadoResumenTurno> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerResumenTurno(config)
+  })
+
+  ipcMain.handle(CANALES_IPC.cajaDevolucionesTurno, (): Promise<ResultadoReporteDevoluciones> => {
+    const config = obtenerConfig()
+    if (!config) return Promise.resolve({ ok: false, error: 'No hay configuración guardada' })
+    return obtenerDevolucionesTurno(config)
+  })
+
+  ipcMain.handle(CANALES_IPC.cajaObtenerFondoInicial, (): number | null => obtenerFondoInicial())
 
   ipcMain.handle(CANALES_IPC.proveedoresListar, (): Promise<ResultadoListaProveedores> => {
     const config = obtenerConfig()

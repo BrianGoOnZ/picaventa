@@ -13,7 +13,6 @@ const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito
 export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
   const puedeCrear = tienePermiso(sesion, 'crearClientes')
-  const puedeEliminar = tienePermiso(sesion, 'eliminarClientes')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [cargando, setCargando] = useState(true)
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
@@ -240,7 +239,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
                           Editar
                         </button>
                       )}
-                      {(esAdmin || puedeEliminar) && (
+                      {esAdmin && (
                         <button
                           type="button"
                           onClick={() => void manejarEliminar(cliente)}

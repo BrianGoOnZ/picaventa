@@ -79,16 +79,10 @@ const ITEMS: { vista: Vista; etiqueta: string; icono: keyof typeof ICONOS; soloA
 ]
 
 // El acceso a Catálogo ya no es puramente "solo admin": un cajero con
-// cualquier permiso relacionado con catálogo (cargar inventario, crear o
-// eliminar productos/categorías) también puede entrar, aunque solo vea las
-// partes de esa pantalla para las que tiene permiso.
-const PERMISOS_CATALOGO = [
-  'cargarInventario',
-  'crearProductos',
-  'eliminarProductos',
-  'crearCategorias',
-  'eliminarCategorias'
-] as const
+// cualquier permiso relacionado con catálogo (cargar inventario, crear
+// productos o categorías) también puede entrar, aunque solo vea las partes
+// de esa pantalla para las que tiene permiso.
+const PERMISOS_CATALOGO = ['cargarInventario', 'crearProductos', 'crearCategorias'] as const
 
 export default function BarraLateral({ sesion, vista, onNavegar }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
