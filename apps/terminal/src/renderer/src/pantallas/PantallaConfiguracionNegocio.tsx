@@ -164,7 +164,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
         {config.modo === 'servidor' && (
           <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
             <h2 className="mb-1 text-sm font-semibold text-neutral-700">
-              Respaldo automático de la base de datos (RNF-06)
+              Respaldo automático de la base de datos
             </h2>
             <p className="mb-3 text-xs text-neutral-500">
               Corre solo en esta computadora (rol de Servidor) todos los días a las 3:00 a.m. Se

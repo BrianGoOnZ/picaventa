@@ -215,7 +215,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                   />
                 </label>
                 <label className="text-sm font-medium text-neutral-700">
-                  Tu PIN (RNF-04)
+                  Tu PIN
                   <input
                     type="password"
                     inputMode="numeric"

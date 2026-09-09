@@ -353,7 +353,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
       {mostrarHistorialPrecios && (
         <div className="rounded-lg border border-borde bg-tarjeta p-4">
           <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
-            Historial de cambios de precio — quién editó qué (RNF-05)
+            Historial de cambios de precio — quién editó qué
           </h2>
           {cargandoHistorialPrecios ? (
             <p className="text-sm text-texto-secundario">Cargando...</p>
