@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { DatosNegocio } from '@picaventa/shared'
+import MarcaApp from '../componentes/MarcaApp'
 
 interface Props {
   nombreUsuario: string
@@ -31,20 +32,7 @@ export default function PantallaFondoInicial({ nombreUsuario, onListo }: Props):
           {negocio?.logoDatos ? (
             <img src={negocio.logoDatos} alt="" className="h-14 w-14 rounded-2xl object-contain shadow-sm" />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cobre text-white shadow-sm">
-              <svg viewBox="0 0 24 24" className="h-7 w-7">
-                <path
-                  d="M4 6h2l1.5 10.5A2 2 0 0 0 9.5 18H18a2 2 0 0 0 2-1.7L21 9H7"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="10" cy="21" r="1.4" fill="currentColor" />
-                <circle cx="17" cy="21" r="1.4" fill="currentColor" />
-              </svg>
-            </div>
+            <MarcaApp />
           )}
           <div className="text-center">
             <h1 className="font-display text-2xl font-semibold text-onix">Inicio de turno</h1>

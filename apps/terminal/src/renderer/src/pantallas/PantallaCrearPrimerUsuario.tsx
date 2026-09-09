@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { SesionUsuario } from '@picaventa/shared'
+import MarcaApp from '../componentes/MarcaApp'
 
 interface Props {
   onListo: (sesion: SesionUsuario) => void
@@ -29,36 +30,44 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-100 p-8">
+    <div className="flex h-screen items-center justify-center bg-arena p-8">
       <div className="w-full max-w-md">
-        <h1 className="mb-2 text-center text-2xl font-bold text-neutral-900">
-          Crear el primer usuario
-        </h1>
-        <p className="mb-6 text-center text-sm text-neutral-600">
-          Este será el administrador del sistema. Todavía no hay ningún usuario registrado.
-        </p>
-        <form onSubmit={manejarEnviar} className="flex flex-col gap-3">
-          <label className="text-sm font-medium text-neutral-700">
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <MarcaApp />
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-semibold text-onix">Crear el primer usuario</h1>
+            <p className="text-sm text-texto-secundario">
+              Este será el administrador del sistema. Todavía no hay ningún usuario registrado.
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={manejarEnviar}
+          className="flex flex-col gap-3 rounded-xl border border-borde bg-tarjeta p-6 shadow-sm"
+        >
+          <label className="text-sm font-medium text-onix">
             Nombre
             <input
               type="text"
               required
+              autoFocus
               value={nombre}
               onChange={(evento) => setNombre(evento.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-borde px-3 py-2.5 text-sm"
             />
           </label>
-          <label className="text-sm font-medium text-neutral-700">
+          <label className="text-sm font-medium text-onix">
             Correo
             <input
               type="email"
               required
               value={correo}
               onChange={(evento) => setCorreo(evento.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-borde px-3 py-2.5 text-sm"
             />
           </label>
-          <label className="text-sm font-medium text-neutral-700">
+          <label className="text-sm font-medium text-onix">
             Contraseña
             <input
               type="password"
@@ -66,10 +75,10 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
               minLength={8}
               value={password}
               onChange={(evento) => setPassword(evento.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-borde px-3 py-2.5 text-sm"
             />
           </label>
-          <label className="text-sm font-medium text-neutral-700">
+          <label className="text-sm font-medium text-onix">
             PIN de 4 dígitos (para desbloquear rápido y acciones críticas)
             <input
               type="password"
@@ -79,14 +88,14 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
               maxLength={4}
               value={pin}
               onChange={(evento) => setPin(evento.target.value.replace(/\D/g, '').slice(0, 4))}
-              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm tracking-widest"
+              className="mt-1 w-full rounded-md border border-borde px-3 py-2.5 font-mono text-sm tracking-widest"
             />
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-peligro">{error}</p>}
           <button
             type="submit"
             disabled={enviando || pin.length !== 4}
-            className="mt-2 rounded-md bg-cobre hover:bg-cobre-oscuro px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-2 rounded-md bg-cobre px-4 py-2.5 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
           >
             {enviando ? 'Creando...' : 'Crear usuario y entrar'}
           </button>

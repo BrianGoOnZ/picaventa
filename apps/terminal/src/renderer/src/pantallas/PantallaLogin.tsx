@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { SesionUsuario } from '@picaventa/shared'
+import MarcaApp from '../componentes/MarcaApp'
 
 interface Props {
   onListo: (sesion: SesionUsuario) => void
@@ -30,20 +31,7 @@ export default function PantallaLogin({ onListo }: Props): React.JSX.Element {
     <div className="flex h-screen items-center justify-center bg-arena p-8">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cobre text-white shadow-sm">
-            <svg viewBox="0 0 24 24" className="h-7 w-7">
-              <path
-                d="M4 6h2l1.5 10.5A2 2 0 0 0 9.5 18H18a2 2 0 0 0 2-1.7L21 9H7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="10" cy="21" r="1.4" fill="currentColor" />
-              <circle cx="17" cy="21" r="1.4" fill="currentColor" />
-            </svg>
-          </div>
+          <MarcaApp />
           <div className="text-center">
             <h1 className="font-display text-2xl font-semibold text-onix">PicaVenta</h1>
             <p className="text-sm text-texto-secundario">Inicia sesión para continuar</p>
