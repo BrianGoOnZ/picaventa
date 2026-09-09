@@ -27,6 +27,10 @@ export interface OpcionesServidor {
 export interface ServidorActivo {
   puerto: number
   cerrar: () => Promise<void>
+  // No-op si no se pasó carpetaRespaldos al iniciar (ej. modo Terminal) —
+  // permite cambiar la carpeta desde Ajustes del negocio sin reiniciar la
+  // app (ver src/main/ipc.ts, respaldosElegirCarpeta).
+  actualizarCarpetaRespaldos: (carpeta: string) => void
 }
 
 export async function iniciarServidor(opciones: OpcionesServidor): Promise<ServidorActivo> {
@@ -75,6 +79,9 @@ export async function iniciarServidor(opciones: OpcionesServidor): Promise<Servi
         httpServer.close((err) => (err ? reject(err) : resolve()))
       })
       await db.$client.end()
+    },
+    actualizarCarpetaRespaldos: (carpeta: string) => {
+      programadorRespaldo?.actualizarCarpeta(carpeta)
     }
   }
 }

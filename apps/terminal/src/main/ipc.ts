@@ -2,6 +2,7 @@ import { app, ipcMain, dialog, BrowserWindow } from 'electron'
 import { networkInterfaces } from 'node:os'
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
+import { mkdir, writeFile, unlink } from 'node:fs/promises'
 import {
   CANALES_IPC,
   PUERTO_SERVIDOR_DEFECTO,
@@ -89,7 +90,11 @@ import {
 } from '@picaventa/shared'
 import { probarConexionPostgres, aplicarMigraciones, aprovisionarBaseDatos } from '@picaventa/db'
 import { obtenerConfig, guardarConfig, borrarConfig } from './config-store'
-import { arrancarServidorEmbebido } from './servidor-embebido'
+import {
+  arrancarServidorEmbebido,
+  actualizarCarpetaRespaldosEmbebido,
+  obtenerCarpetaRespaldosDefecto
+} from './servidor-embebido'
 import {
   listarProveedores,
   crearProveedor,
@@ -288,6 +293,22 @@ export function registrarManejadoresIpc(): void {
     }
   )
 
+  // Antes de aceptar una carpeta, se comprueba que realmente se pueda
+  // escribir ahí (creando y borrando un archivo de prueba) — así un permiso
+  // denegado (ej. una carpeta protegida por OneDrive/antivirus) se avisa de
+  // inmediato en vez de descubrirse hasta el próximo respaldo fallido.
+  async function verificarCarpetaEscribible(carpeta: string): Promise<string | null> {
+    try {
+      await mkdir(carpeta, { recursive: true })
+      const rutaPrueba = join(carpeta, '.picaventa-prueba-escritura')
+      await writeFile(rutaPrueba, '')
+      await unlink(rutaPrueba)
+      return null
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err)
+    }
+  }
+
   ipcMain.handle(
     CANALES_IPC.respaldosElegirCarpeta,
     async (): Promise<ResultadoElegirCarpetaRespaldos> => {
@@ -306,7 +327,13 @@ export function registrarManejadoresIpc(): void {
       }
 
       const carpeta = resultado.filePaths[0]
+      const errorEscritura = await verificarCarpetaEscribible(carpeta)
+      if (errorEscritura) {
+        return { ok: false, error: `No se puede escribir en esa carpeta: ${errorEscritura}` }
+      }
+
       guardarConfig({ ...config, carpetaRespaldos: carpeta })
+      actualizarCarpetaRespaldosEmbebido(carpeta)
       return { ok: true, carpeta }
     }
   )
@@ -321,6 +348,7 @@ export function registrarManejadoresIpc(): void {
 
       const { carpetaRespaldos: _actual, ...resto } = config
       guardarConfig(resto)
+      actualizarCarpetaRespaldosEmbebido(obtenerCarpetaRespaldosDefecto())
       return Promise.resolve({ ok: true })
     }
   )

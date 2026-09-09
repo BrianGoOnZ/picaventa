@@ -211,14 +211,20 @@ export interface ProgramadorRespaldo {
   obtenerUltimoEstado: () => Promise<EstadoRespaldo | null>
   listar: () => Promise<InfoRespaldo[]>
   restaurar: (archivo: string) => Promise<ResultadoRestaurarRespaldo>
+  // Cambia la carpeta de destino sin reiniciar el servidor (ni la tarea
+  // programada) — el admin la elige desde Ajustes del negocio y el cambio
+  // debe aplicar de inmediato, no hasta el próximo reinicio de la app.
+  actualizarCarpeta: (carpeta: string) => void
 }
 
 // Solo corre en la instancia "servidor" (la única con la base de datos
 // completa) — ver 03-Arquitectura-general.md, fila 11.
 export function programarRespaldoDiario(
   postgresUrl: string,
-  carpetaDestino: string
+  carpetaInicial: string
 ): ProgramadorRespaldo {
+  let carpetaDestino = carpetaInicial
+
   const tarea = cron.schedule(HORA_RESPALDO_DIARIO, () => {
     void generarRespaldo(postgresUrl, carpetaDestino)
   })
@@ -228,7 +234,10 @@ export function programarRespaldoDiario(
     respaldarAhora: () => generarRespaldo(postgresUrl, carpetaDestino),
     obtenerUltimoEstado: () => leerManifiesto(carpetaDestino),
     listar: () => listarRespaldos(carpetaDestino),
-    restaurar: (archivo: string) => restaurarRespaldo(postgresUrl, carpetaDestino, archivo)
+    restaurar: (archivo: string) => restaurarRespaldo(postgresUrl, carpetaDestino, archivo),
+    actualizarCarpeta: (carpeta: string) => {
+      carpetaDestino = carpeta
+    }
   }
 }
 

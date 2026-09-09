@@ -95,7 +95,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
     if (resultado.ok) {
       if (resultado.carpeta) {
         setCarpetaRespaldos(resultado.carpeta)
-        mostrarToast('Carpeta guardada — reinicia la app para que el respaldo automático la use')
+        mostrarToast('Carpeta de respaldos actualizada')
       }
     } else {
       mostrarToast(resultado.error, 'error')
@@ -108,7 +108,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
     const resultado = await window.picaventa.restablecerCarpetaRespaldos()
     if (resultado.ok) {
       setCarpetaRespaldos(undefined)
-      mostrarToast('Se restableció la carpeta por defecto — reinicia la app para aplicarlo')
+      mostrarToast('Se restableció la carpeta por defecto')
     } else {
       mostrarToast(resultado.error, 'error')
     }
@@ -263,7 +263,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
               </p>
               <p className="mt-1 text-xs text-neutral-400">
                 Si eliges una carpeta sincronizada con OneDrive o Google Drive, el respaldo también
-                queda en la nube automáticamente. El cambio aplica hasta que reinicies la app.
+                queda en la nube automáticamente. El cambio aplica de inmediato.
               </p>
               <div className="mt-2 flex gap-2">
                 <button
