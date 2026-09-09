@@ -7,7 +7,7 @@ import {
   type UnidadMedida
 } from '@picaventa/shared'
 import { confirmarCritico } from '../lib/confirmar'
-import { BOTON_PELIGRO } from '../lib/estilos'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
 
 interface Props {
@@ -354,7 +354,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
                   setError('')
                   inputCodigoRef.current?.focus()
                 }}
-                className="text-sm text-texto-secundario underline"
+                className={BOTON_SECUNDARIO}
               >
                 Cancelar
               </button>
@@ -517,7 +517,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
                   Stock actual: {productoEncontrado.stockActual} {productoEncontrado.unidadMedida}
                 </p>
               </div>
-              <button type="button" onClick={cancelarSeleccion} className="text-sm text-texto-secundario underline">
+              <button type="button" onClick={cancelarSeleccion} className={BOTON_SECUNDARIO}>
                 Cambiar producto
               </button>
             </div>

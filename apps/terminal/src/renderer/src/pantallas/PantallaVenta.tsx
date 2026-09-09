@@ -16,7 +16,7 @@ import PantallaApartados from './PantallaApartados'
 import TarjetaProducto from '../componentes/TarjetaProducto'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
 import { confirmarCritico } from '../lib/confirmar'
-import { BOTON_PELIGRO } from '../lib/estilos'
+import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 
 interface LineaCarrito {
   idProducto: number
@@ -964,7 +964,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                   <button
                     type="button"
                     onClick={() => setMostrarNuevoCliente(false)}
-                    className="text-sm text-texto-secundario underline"
+                    className={BOTON_SECUNDARIO}
                   >
                     Cancelar
                   </button>

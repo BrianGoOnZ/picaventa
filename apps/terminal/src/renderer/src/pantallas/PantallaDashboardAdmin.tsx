@@ -4,6 +4,7 @@ import TarjetaKpi from '../componentes/TarjetaKpi'
 import GraficaBarrasDia from '../componentes/GraficaBarrasDia'
 import GraficaBarrasHorizontal from '../componentes/GraficaBarrasHorizontal'
 import GraficaDona from '../componentes/GraficaDona'
+import { BOTON_SECUNDARIO } from '../lib/estilos'
 
 interface Props {
   onIrACatalogo: () => void
@@ -173,7 +174,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
               ))}
               {stockBajo.length > 6 && (
                 <li className="pt-1">
-                  <button type="button" onClick={onIrACatalogo} className="text-cobre underline">
+                  <button type="button" onClick={onIrACatalogo} className={BOTON_SECUNDARIO}>
                     Ver los {stockBajo.length} en Catálogo
                   </button>
                 </li>
@@ -197,7 +198,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
                 </li>
               ))}
               <li className="pt-1">
-                <button type="button" onClick={onIrAClientes} className="text-cobre underline">
+                <button type="button" onClick={onIrAClientes} className={BOTON_SECUNDARIO}>
                   Revisar en Clientes
                 </button>
               </li>

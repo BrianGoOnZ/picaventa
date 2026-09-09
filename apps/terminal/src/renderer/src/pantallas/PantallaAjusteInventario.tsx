@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { MermaHistorial, Producto, TipoMerma } from '@picaventa/shared'
 import { confirmarCritico } from '../lib/confirmar'
+import { BOTON_SECUNDARIO } from '../lib/estilos'
 import { useToast } from '../lib/ToastContext'
 
 export default function PantallaAjusteInventario(): React.JSX.Element {
@@ -228,7 +229,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
                   Stock actual: {productoEncontrado.stockActual} {productoEncontrado.unidadMedida}
                 </p>
               </div>
-              <button type="button" onClick={cancelarSeleccion} className="text-sm text-texto-secundario underline">
+              <button type="button" onClick={cancelarSeleccion} className={BOTON_SECUNDARIO}>
                 Cambiar producto
               </button>
             </div>
