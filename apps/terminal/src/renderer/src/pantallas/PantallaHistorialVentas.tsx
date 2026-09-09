@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Devolucion, LineaVentaDetalle, TipoResolucion, Venta } from '@picaventa/shared'
-import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
+import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
@@ -234,7 +234,7 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
                           setMotivoDevolucion('')
                           setPinDevolucion('')
                         }}
-                        className="mt-2 text-xs font-medium text-cobre underline"
+                        className={`mt-2 ${BOTON_ACENTO}`}
                       >
                         Devolver
                       </button>
