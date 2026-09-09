@@ -138,24 +138,26 @@ export default function PantallaHistorialVentas(): React.JSX.Element {
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold text-texto-secundario">Ventas del periodo</h2>
-          <label className="ml-auto flex items-center gap-1 text-xs text-texto-secundario">
-            Desde
-            <input
-              type="date"
-              value={desde}
-              onChange={(evento) => setDesde(evento.target.value)}
-              className="rounded-md border border-borde px-2 py-1 text-xs"
-            />
-          </label>
-          <label className="flex items-center gap-1 text-xs text-texto-secundario">
-            Hasta
-            <input
-              type="date"
-              value={hasta}
-              onChange={(evento) => setHasta(evento.target.value)}
-              className="rounded-md border border-borde px-2 py-1 text-xs"
-            />
-          </label>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1 text-xs text-texto-secundario">
+              Desde
+              <input
+                type="date"
+                value={desde}
+                onChange={(evento) => setDesde(evento.target.value)}
+                className="rounded-md border border-borde px-2 py-1 text-xs"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-xs text-texto-secundario">
+              Hasta
+              <input
+                type="date"
+                value={hasta}
+                onChange={(evento) => setHasta(evento.target.value)}
+                className="rounded-md border border-borde px-2 py-1 text-xs"
+              />
+            </label>
+          </div>
         </div>
 
         {cargando ? (
