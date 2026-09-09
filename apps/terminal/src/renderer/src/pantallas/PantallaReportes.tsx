@@ -186,7 +186,7 @@ export default function PantallaReportes(): React.JSX.Element {
           {reporte.productos.length === 0 ? (
             <p className="text-sm text-neutral-500">Sin ventas en este periodo.</p>
           ) : (
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-64 overflow-x-auto overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase text-neutral-500">
                   <tr>

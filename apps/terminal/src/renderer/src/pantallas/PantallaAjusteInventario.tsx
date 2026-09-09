@@ -148,7 +148,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
           ) : historial.length === 0 ? (
             <p className="text-sm text-texto-secundario">Aún no hay registros.</p>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-x-auto overflow-y-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="text-xs text-texto-secundario">

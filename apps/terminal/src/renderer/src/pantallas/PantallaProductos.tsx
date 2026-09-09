@@ -389,7 +389,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
           ) : historialPrecios.length === 0 ? (
             <p className="text-sm text-texto-secundario">Aún no se ha registrado ningún cambio de precio.</p>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-x-auto overflow-y-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="text-xs text-texto-secundario">
