@@ -220,7 +220,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
         ) : tab === 'cortes' && esAdmin ? (
           <PantallaHistorialCortes />
         ) : (
-          <div className="flex max-w-2xl flex-col gap-4">
+          <div className="flex w-full flex-col gap-4">
             <form
               onSubmit={manejarMovimiento}
               className="rounded-lg border border-neutral-200 bg-white p-4"
@@ -228,7 +228,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
               <h2 className="mb-3 text-sm font-semibold text-neutral-700">
                 Registrar retiro o gasto
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
                 <label className="text-sm font-medium text-neutral-700">
                   Tipo
                   <select
@@ -254,7 +254,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                     className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                   />
                 </label>
-                <label className="col-span-2 text-sm font-medium text-neutral-700">
+                <label className="col-span-full text-sm font-medium text-neutral-700">
                   Concepto
                   <input
                     type="text"

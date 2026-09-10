@@ -81,7 +81,7 @@ export default function PantallaPrincipal({
               espacio (w-full) en vez de imponer su propio max-w — así el
               ancho real se adapta a la ventana en la que se abra, sin
               depender de adivinar el tamaño de monitor de cada quien. */}
-          <div className="mx-auto w-full max-w-[1600px]">
+          <div className="mx-auto h-full w-full max-w-[1600px]">
             {vista === 'usuarios' && <PantallaGestionUsuarios />}
             {vista === 'negocio' && <PantallaConfiguracionNegocio config={config} />}
             {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}

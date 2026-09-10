@@ -149,9 +149,9 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
     <div className="flex w-full flex-col gap-6">
       <h1 className="text-2xl font-bold text-neutral-900">Gestionar usuarios</h1>
 
-      <form onSubmit={manejarEnviar} className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
+      <form onSubmit={manejarEnviar} className="w-full rounded-lg border border-borde bg-tarjeta p-4">
         <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Registrar nuevo usuario</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
           <label className="text-sm font-medium text-neutral-700">
             Nombre
             <input
@@ -196,7 +196,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm tracking-widest"
             />
           </label>
-          <label className="col-span-2 text-sm font-medium text-neutral-700">
+          <label className="text-sm font-medium text-neutral-700">
             Rol
             <select
               value={rol}
@@ -208,18 +208,18 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
             </select>
           </label>
           {rol === 'administrador' && (
-            <p className="col-span-2 text-xs text-texto-secundario">
+            <p className="col-span-full text-xs text-texto-secundario">
               Se generará un código de recuperación para esta cuenta — solo se muestra una vez al
               terminar de crearla.
             </p>
           )}
           {rol === 'cajero' && (
-            <div className="col-span-2 rounded-md border border-borde bg-arena p-3">
+            <div className="col-span-full rounded-md border border-borde bg-arena p-3">
               <p className="mb-2 text-xs font-semibold text-texto-secundario">
                 Permisos del cajero — las ganancias y reportes financieros siempre son exclusivos
                 del administrador, sin importar estos permisos.
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
                 {PERMISOS_DISPONIBLES.map((permiso) => (
                   <label key={permiso} className="flex items-center gap-2 text-sm text-onix">
                     <input
@@ -315,7 +315,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                       Permisos de {usuario.nombreUsuario} — las ganancias y reportes financieros
                       siguen siendo exclusivos del administrador.
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
                       {PERMISOS_DISPONIBLES.map((permiso) => (
                         <label key={permiso} className="flex items-center gap-2 text-sm text-onix">
                           <input
@@ -353,7 +353,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                       Restablecer el acceso de {usuario.nombreUsuario} — le tendrás que avisar la
                       nueva contraseña y PIN por fuera de la app.
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
                       <label className="text-xs font-medium text-texto-secundario">
                         Nueva contraseña
                         <input
@@ -378,7 +378,7 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
                           className="mt-1 w-full rounded-md border border-borde px-2 py-1.5 font-mono text-sm tracking-widest"
                         />
                       </label>
-                      <label className="col-span-2 text-xs font-medium text-texto-secundario">
+                      <label className="col-span-full text-xs font-medium text-texto-secundario">
                         Tu PIN (para confirmar)
                         <input
                           type="password"

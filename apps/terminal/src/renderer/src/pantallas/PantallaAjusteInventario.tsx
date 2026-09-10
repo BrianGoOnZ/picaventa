@@ -183,10 +183,10 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
         </div>
       )}
 
-      <div className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
         {!productoEncontrado ? (
           <>
-            <label className="text-sm font-medium text-neutral-700">
+            <label className="block max-w-md text-sm font-medium text-neutral-700">
               Código de barras o nombre del producto
               <input
                 ref={inputCodigoRef}
@@ -201,7 +201,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
             </label>
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             {resultadosBusqueda.length > 0 && (
-              <div className="mt-2 rounded-md border border-borde">
+              <div className="mt-2 max-w-md rounded-md border border-borde">
                 {resultadosBusqueda.map((producto) => (
                   <button
                     key={producto.idProducto}
@@ -219,7 +219,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
             )}
           </>
         ) : (
-          <form onSubmit={(evento) => void manejarEnviar(evento)} className="flex flex-col gap-3">
+          <form onSubmit={(evento) => void manejarEnviar(evento)} className="flex max-w-md flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-display text-lg font-semibold text-onix">

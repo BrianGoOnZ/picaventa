@@ -136,10 +136,10 @@ export default function PantallaCompras(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:shrink-0">
-        <div className="rounded-lg border border-borde bg-tarjeta p-4">
-          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Registrar compra</h2>
+    <div className="flex w-full flex-col gap-4">
+      <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
+        <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Registrar compra</h2>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
           <label className="text-sm font-medium text-neutral-700">
             Proveedor
             <select
@@ -157,7 +157,7 @@ export default function PantallaCompras(): React.JSX.Element {
             </select>
           </label>
 
-          <label className="mt-3 block text-sm font-medium text-neutral-700">
+          <label className="text-sm font-medium text-neutral-700">
             Escanea o busca cada producto de la factura
             <input
               type="text"
@@ -168,34 +168,35 @@ export default function PantallaCompras(): React.JSX.Element {
               className="mt-1 w-full rounded-md border border-neutral-300 px-4 py-3 text-base"
             />
           </label>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          {resultadosBusqueda.length > 0 && (
-            <div className="mt-2 rounded-md border border-borde">
-              {resultadosBusqueda.map((producto) => (
-                <button
-                  key={producto.idProducto}
-                  type="button"
-                  onClick={() => agregarLinea(producto)}
-                  className="block w-full border-b border-borde px-4 py-2 text-left text-sm last:border-0 hover:bg-arena"
-                >
-                  {producto.nombreProducto}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <label className="mt-3 flex items-center gap-1.5 text-sm text-texto-secundario">
-            <input
-              type="checkbox"
-              checked={actualizarPrecioCompra}
-              onChange={(evento) => setActualizarPrecioCompra(evento.target.checked)}
-            />
-            Actualizar el precio de compra de estos productos al costo facturado
-          </label>
         </div>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {resultadosBusqueda.length > 0 && (
+          <div className="mt-2 rounded-md border border-borde">
+            {resultadosBusqueda.map((producto) => (
+              <button
+                key={producto.idProducto}
+                type="button"
+                onClick={() => agregarLinea(producto)}
+                className="block w-full border-b border-borde px-4 py-2 text-left text-sm last:border-0 hover:bg-arena"
+              >
+                {producto.nombreProducto}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {lineas.length > 0 && (
-          <div className="rounded-lg border border-borde bg-tarjeta p-4">
+        <label className="mt-3 flex items-center gap-1.5 text-sm text-texto-secundario">
+          <input
+            type="checkbox"
+            checked={actualizarPrecioCompra}
+            onChange={(evento) => setActualizarPrecioCompra(evento.target.checked)}
+          />
+          Actualizar el precio de compra de estos productos al costo facturado
+        </label>
+      </div>
+
+      {lineas.length > 0 && (
+        <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-texto-secundario">
                 Líneas de la factura ({lineas.length})
@@ -254,11 +255,10 @@ export default function PantallaCompras(): React.JSX.Element {
             >
               {enviando ? 'Registrando...' : 'Confirmar y registrar compra'}
             </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="min-w-0 flex-1 rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
         <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Compras recientes</h2>
         {cargandoCompras ? (
           <p className="text-sm text-texto-secundario">Cargando...</p>

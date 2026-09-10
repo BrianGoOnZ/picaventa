@@ -513,12 +513,12 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
-        className="grid max-w-3xl grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
+        className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3 rounded-lg border border-borde bg-tarjeta p-4"
       >
-        <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
+        <h2 className="col-span-full text-sm font-semibold text-texto-secundario">
           {idEditando === null ? 'Nuevo producto' : 'Editar producto'}
         </h2>
-        <label className="col-span-2 text-sm font-medium text-neutral-700">
+        <label className="text-sm font-medium text-neutral-700">
           Nombre
           <input
             type="text"
@@ -530,7 +530,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        <div className="col-span-2">
+        <div className="col-span-full">
           <p className="text-sm font-medium text-neutral-700">
             Foto (opcional, máx. 200 KB) — si no se sube, se muestra un color por categoría
           </p>
@@ -644,8 +644,8 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
-        <div className="col-span-2 flex gap-2">
+        {error && <p className="col-span-full text-sm text-red-600">{error}</p>}
+        <div className="col-span-full flex gap-2">
           {idEditando !== null && (
             <button type="button" onClick={cancelarEdicion} className={BOTON_SECUNDARIO}>
               Cancelar
@@ -654,7 +654,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
           <button
             type="submit"
             disabled={enviando}
-            className="flex-1 rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+            className="rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
           >
             {enviando ? 'Guardando...' : idEditando === null ? 'Agregar producto' : 'Guardar cambios'}
           </button>

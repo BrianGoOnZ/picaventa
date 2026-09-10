@@ -91,9 +91,9 @@ export default function PantallaCategorias({ sesion }: Props): React.JSX.Element
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
-        className="flex max-w-2xl items-end gap-2 rounded-lg border border-borde bg-tarjeta p-4"
+        className="flex w-full items-end gap-2 rounded-lg border border-borde bg-tarjeta p-4"
       >
-        <label className="flex-1 text-sm font-medium text-neutral-700">
+        <label className="max-w-sm flex-1 text-sm font-medium text-neutral-700">
           {idEditando === null ? 'Nueva categoría' : 'Editar categoría'}
           <input
             type="text"

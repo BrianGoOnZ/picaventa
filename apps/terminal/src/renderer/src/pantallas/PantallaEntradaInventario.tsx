@@ -340,7 +340,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
         </div>
       )}
 
-      <div className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
         {mostrarNuevoProducto ? (
           <form onSubmit={(evento) => void manejarCrearProducto(evento)} className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -359,8 +359,8 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
                 Cancelar
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="col-span-2 text-sm font-medium text-neutral-700">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+              <label className="text-sm font-medium text-neutral-700">
                 Nombre
                 <input
                   type="text"
@@ -467,7 +467,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
           </form>
         ) : !productoEncontrado ? (
           <>
-            <label className="text-sm font-medium text-neutral-700">
+            <label className="block max-w-md text-sm font-medium text-neutral-700">
               Código de barras o nombre del producto
               <input
                 ref={inputCodigoRef}
@@ -482,7 +482,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
             </label>
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             {resultadosBusqueda.length > 0 && (
-              <div className="mt-2 rounded-md border border-borde">
+              <div className="mt-2 max-w-md rounded-md border border-borde">
                 {resultadosBusqueda.map((producto) => (
                   <button
                     key={producto.idProducto}
@@ -521,7 +521,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
                 Cambiar producto
               </button>
             </div>
-            <label className="text-sm font-medium text-neutral-700">
+            <label className="block max-w-xs text-sm font-medium text-neutral-700">
               Cantidad recibida
               <input
                 ref={inputCantidadRef}
