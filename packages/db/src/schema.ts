@@ -153,6 +153,10 @@ export const cliente = pgTable('cliente', {
   idCliente: serial('id_cliente').primaryKey(),
   nombreCliente: text('nombre_cliente').notNull(),
   telefonoCliente: text('telefono_cliente'),
+  // Domicilio, señas particulares u otra referencia para identificar al
+  // cliente cuando el nombre solo no basta — sobre todo útil para el
+  // administrador cuando revisa un cliente que dio de alta un cajero.
+  notaCliente: text('nota_cliente'),
   limiteCredito: dinero('limite_credito').notNull().default('0'),
   // No está en 04-Base-de-datos-V1.md pero sí en 02-DER.md; RF-20 exige
   // mostrar el saldo insoluto en tiempo real, así que se incluye como

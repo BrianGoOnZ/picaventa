@@ -56,6 +56,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const [idClienteSeleccionado, setIdClienteSeleccionado] = useState<number | null>(null)
   const [mostrarNuevoCliente, setMostrarNuevoCliente] = useState(false)
   const [nuevoClienteNombre, setNuevoClienteNombre] = useState('')
+  const [nuevoClienteNota, setNuevoClienteNota] = useState('')
   const [nuevoClienteLimite, setNuevoClienteLimite] = useState('')
   const [creandoCliente, setCreandoCliente] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -446,6 +447,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     setError('')
     const resultado = await window.picaventa.crearCliente({
       nombreCliente: nuevoClienteNombre.trim(),
+      notaCliente: nuevoClienteNota.trim() || undefined,
       limiteCredito: Number(nuevoClienteLimite) || 0
     })
 
@@ -453,6 +455,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
       setClientes((actual) => [...actual, resultado.cliente])
       setIdClienteSeleccionado(resultado.cliente.idCliente)
       setNuevoClienteNombre('')
+      setNuevoClienteNota('')
       setNuevoClienteLimite('')
       setMostrarNuevoCliente(false)
     } else {
@@ -939,6 +942,16 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                     autoFocus
                     value={nuevoClienteNombre}
                     onChange={(evento) => setNuevoClienteNombre(evento.target.value)}
+                    className="mt-1 block w-full rounded-md border border-borde px-3 py-2 text-sm text-onix"
+                  />
+                </label>
+                <label className="text-xs font-medium text-texto-secundario">
+                  Nota o referencia (opcional)
+                  <input
+                    type="text"
+                    placeholder="Domicilio, señas particulares, con quién trabaja..."
+                    value={nuevoClienteNota}
+                    onChange={(evento) => setNuevoClienteNota(evento.target.value)}
                     className="mt-1 block w-full rounded-md border border-borde px-3 py-2 text-sm text-onix"
                   />
                 </label>

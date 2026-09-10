@@ -21,6 +21,7 @@ function filaACliente(fila: typeof cliente.$inferSelect) {
     idCliente: fila.idCliente,
     nombreCliente: fila.nombreCliente,
     telefonoCliente: fila.telefonoCliente ?? undefined,
+    notaCliente: fila.notaCliente ?? undefined,
     limiteCredito: Number(fila.limiteCredito),
     saldoActual: Number(fila.saldoActual),
     pendienteRevision: fila.pendienteRevision
@@ -54,6 +55,7 @@ export function crearRutasClientes(): Router {
       .values({
         nombreCliente: datos.data.nombreCliente,
         telefonoCliente: datos.data.telefonoCliente,
+        notaCliente: datos.data.notaCliente,
         limiteCredito: datos.data.limiteCredito.toString(),
         pendienteRevision
       })
@@ -80,6 +82,7 @@ export function crearRutasClientes(): Router {
       .set({
         nombreCliente: datos.data.nombreCliente,
         telefonoCliente: datos.data.telefonoCliente,
+        notaCliente: datos.data.notaCliente,
         limiteCredito: datos.data.limiteCredito.toString(),
         // Un administrador editando el cliente lo da por revisado.
         pendienteRevision: false

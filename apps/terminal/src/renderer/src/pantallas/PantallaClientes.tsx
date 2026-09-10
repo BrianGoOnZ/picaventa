@@ -8,7 +8,7 @@ interface Props {
   sesion: SesionUsuario
 }
 
-const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', limiteCredito: '' }
+const FORMULARIO_VACIO = { nombreCliente: '', telefonoCliente: '', notaCliente: '', limiteCredito: '' }
 
 export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   const esAdmin = sesion.rolUsuario === 'administrador'
@@ -39,6 +39,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
     setFormulario({
       nombreCliente: cliente.nombreCliente,
       telefonoCliente: cliente.telefonoCliente ?? '',
+      notaCliente: cliente.notaCliente ?? '',
       limiteCredito: cliente.limiteCredito.toString()
     })
     setError('')
@@ -59,6 +60,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
     const datos = {
       nombreCliente: formulario.nombreCliente,
       telefonoCliente: formulario.telefonoCliente || undefined,
+      notaCliente: formulario.notaCliente || undefined,
       limiteCredito: Number(formulario.limiteCredito) || 0
     }
 
@@ -150,6 +152,16 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
               className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
+          <label className="col-span-full text-sm font-medium text-neutral-700">
+            Nota o referencia (opcional)
+            <input
+              type="text"
+              placeholder="Domicilio, señas particulares, con quién trabaja..."
+              value={formulario.notaCliente}
+              onChange={(evento) => setFormulario({ ...formulario, notaCliente: evento.target.value })}
+              className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </label>
           <label className="text-sm font-medium text-neutral-700">
             Límite de crédito
             <input
@@ -221,6 +233,11 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
                           debe ${cliente.saldoActual.toFixed(2)} de ${cliente.limiteCredito.toFixed(2)}
                         </span>
                       </p>
+                      {cliente.notaCliente && (
+                        <p className="mt-0.5 truncate text-xs italic text-texto-secundario">
+                          {cliente.notaCliente}
+                        </p>
+                      )}
                     </div>
                     <div className="flex shrink-0 gap-1.5">
                       <button

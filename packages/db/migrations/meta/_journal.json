@@ -78,6 +78,13 @@
       "when": 1788990444297,
       "tag": "0010_loud_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789000537804,
+      "tag": "0011_cloudy_the_anarchist",
+      "breakpoints": true
     }
   ]
 }

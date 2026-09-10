@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const datosClienteSchema = z.object({
   nombreCliente: z.string().min(1),
   telefonoCliente: z.string().optional(),
+  notaCliente: z.string().optional(),
   limiteCredito: z.number().nonnegative()
 })
 export type DatosCliente = z.infer<typeof datosClienteSchema>
@@ -11,6 +12,7 @@ export interface Cliente {
   idCliente: number
   nombreCliente: string
   telefonoCliente?: string
+  notaCliente?: string
   limiteCredito: number
   saldoActual: number
   pendienteRevision: boolean

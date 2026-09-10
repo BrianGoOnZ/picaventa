@@ -1,0 +1,1 @@
+ALTER TABLE "cliente" ADD COLUMN "nota_cliente" text;
