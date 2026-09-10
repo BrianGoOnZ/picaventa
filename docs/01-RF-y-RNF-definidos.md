@@ -50,7 +50,7 @@
 
 - **RNF-04: Integridad de sesiones** — El sistema cerrará la sesión del cajero por inactividad o requerirá PIN/contraseña rápida para acciones críticas (cancelaciones, devoluciones, retiros).
 - **RNF-05: Trazabilidad (Auditoría)** — Toda operación crítica (mermas, cancelaciones, edición de precios, ajustes de inventario, salidas de efectivo) se registrará en bitácora con fecha, hora y usuario responsable.
-- **RNF-06: Respaldo y recuperación de datos** — El sistema generará respaldos automáticos locales diarios, con exportación/sincronización segura y retención mínima de **30 días** de histórico.
+- **RNF-06: Respaldo y recuperación de datos** — El sistema generará respaldos automáticos locales (varias veces al día), con posibilidad de guardarlos en una carpeta sincronizada a la nube (OneDrive/Google Drive) y retención de **15 días** de histórico.
 
 #### 3. Usabilidad y Compatibilidad
 

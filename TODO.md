@@ -16,44 +16,28 @@
   bloquean tráfico multicast, por lo que tendría que quedar como opción
   complementaria, no reemplazo de la IP manual.
 
-- **Revisar `sandbox: false` en el preload de `apps/terminal`.** Fue necesario
-  porque el preload importa `@picaventa/shared` (que depende de `zod`), y el
-  sandbox por defecto de Electron no permite requerir paquetes npm ahí.
-  `contextIsolation` sigue activo (protección más relevante), pero antes de
-  producción vale la pena evaluar si conviene separar del preload los tipos
-  que dependen de zod (dejando solo los canales IPC como strings planos) para
-  poder reactivar el sandbox.
+- **Cuando haya acceso a la impresora térmica física del cliente:**
+  reemplazar el stub de `packages/shared/src/impresora.ts` +
+  `apps/terminal/src/main/impresora.ts` por comandos ESC/POS reales vía
+  `node-thermal-printer` (ya es dependencia instalada, sin usar todavía) y
+  probar la apertura del cajón de dinero. El stub actual (con caída a
+  `window.print()`) es la estrategia acordada para v1 — ya está enganchado a
+  la UI real (botón "Imprimir" del ticket), así que conectar el hardware real
+  después solo debería requerir tocar esos dos archivos, sin tocar el resto
+  de la app. No hay urgencia hasta que el cliente tenga la impresora en mano.
 
-- **Empaquetado: `packages/db/migrations` no sobrevive a electron-builder.**
-  `aplicarMigraciones` ahora recibe la carpeta de migraciones como parámetro
-  explícito porque `import.meta.url` deja de servir una vez empaquetado por
-  electron-vite (apunta al bundle, no al código fuente). En dev, `apps/terminal`
-  la resuelve con `app.getAppPath() + '../../packages/db/migrations'`, que
-  funciona porque el monorepo está completo en disco — pero un build final de
-  electron-builder no incluye `packages/db/migrations` en esa ruta relativa.
-  Antes de generar el instalador real: copiar `migrations/` como recurso
-  extra (`extraResources` en `electron-builder.yml`) y leer desde
-  `process.resourcesPath` en producción en vez de la ruta relativa al monorepo.
+- **RNF-01 (operación sin conexión) sin decisión explícita registrada.**
+  El sistema ya no depende de internet ni de la nube para operar (arquitectura
+  LAN cliente-servidor local) — en ese sentido RNF-01 ya se cumple. Lo que NO
+  está resuelto es qué pasa si la LAN/router falla a media jornada: las cajas
+  en modo Terminal necesitan conexión viva al Servidor para todo (no hay cola
+  local ni sincronización posterior). Confirmar con el cliente si construir
+  esa resiliencia (cola local + sincronización al reconectar) es necesaria
+  para v1 o si se pospone a fase 2 — por ahora no está ni implementado ni
+  descartado explícitamente.
 
-- **🔴 BLOQUEANTE PARA PRODUCCIÓN — impresión de tickets es un placeholder
-  temporal, NO la implementación final.** `03-Arquitectura-general.md`
-  definió `node-thermal-printer`/`escpos` (comandos ESC/POS reales) como la
-  solución — eso sigue siendo lo que hay que construir. Lo que existe hoy
-  (`window.print()`, el diálogo nativo de impresión de Windows) es un
-  sustituto que permite demostrar y probar el flujo completo de venta sin
-  tener la impresora térmica física en este entorno de desarrollo, pero
-  **no es una alternativa aceptable para la entrega real**:
-  - No abre el cajón de dinero automáticamente (RNF-08) — eso requiere
-    comandos ESC/POS reales enviados directo a la impresora, algo que un
-    diálogo de impresión de Windows no puede hacer.
-  - No corta el papel automáticamente ni usa el formato angosto real de
-    una impresora térmica (58/80mm) — depende del driver genérico de
-    Windows que tenga instalado esa impresora, si es que lo tiene.
-  - Un ticket real de tienda no debería mostrar un diálogo de impresión
-    de Windows en cada venta — debe imprimirse directo, sin intervención.
-  - **Antes de instalar el sistema en la tienda real**: conseguir acceso a
-    la impresora térmica física del cliente, reemplazar `window.print()`
-    por comandos ESC/POS vía `node-thermal-printer` (ya es dependencia
-    instalada, sin usar todavía), y probar apertura de cajón de dinero.
-    No marcar este pendiente como resuelto hasta probarlo contra hardware
-    real.
+- **RNF-02/RNF-03 (velocidad &lt;0.5s, 3,000 productos / 300 ventas diarias)
+  nunca se midieron.** El diseño (índices, paginación) no debería impedirlo,
+  pero no hay ninguna prueba de carga real que lo confirme. Vale la pena una
+  prueba sintética antes de instalar en la tienda real, sobre todo si el
+  catálogo del cliente se acerca a los 3,000 productos.
