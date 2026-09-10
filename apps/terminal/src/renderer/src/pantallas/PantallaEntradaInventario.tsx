@@ -340,7 +340,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
         </div>
       )}
 
-      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
         {mostrarNuevoProducto ? (
           <form onSubmit={(evento) => void manejarCrearProducto(evento)} className="flex flex-col gap-3">
             <div className="flex items-center justify-between">

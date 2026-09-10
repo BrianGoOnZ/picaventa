@@ -23,7 +23,7 @@ export default function PantallaCatalogo({ sesion }: Props): React.JSX.Element {
   )
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Catálogo</h1>
 
       <div className="mb-4 flex gap-2">

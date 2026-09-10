@@ -176,13 +176,13 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Configuración del negocio</h1>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <form
           onSubmit={manejarEnviar}
-          className="flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+          className="flex w-full flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4 lg:w-[420px] lg:shrink-0"
         >
           <label className="text-sm font-medium text-neutral-700">
             Nombre del negocio
@@ -248,7 +248,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
         </form>
 
         {config.modo === 'servidor' && (
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white p-4">
             <h2 className="mb-1 text-sm font-semibold text-neutral-700">
               Respaldo automático de la base de datos
             </h2>

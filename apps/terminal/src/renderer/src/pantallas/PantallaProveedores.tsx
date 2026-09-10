@@ -92,7 +92,7 @@ export default function PantallaProveedores(): React.JSX.Element {
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
-        className="grid grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
+        className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
       >
         <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
           {idEditando === null ? 'Nuevo proveedor' : 'Editar proveedor'}

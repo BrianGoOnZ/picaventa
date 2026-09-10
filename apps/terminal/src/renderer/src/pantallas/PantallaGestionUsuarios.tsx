@@ -146,10 +146,10 @@ export default function PantallaGestionUsuarios(): React.JSX.Element {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <h1 className="text-2xl font-bold text-neutral-900">Gestionar usuarios</h1>
 
-      <form onSubmit={manejarEnviar} className="rounded-lg border border-borde bg-tarjeta p-4">
+      <form onSubmit={manejarEnviar} className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
         <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Registrar nuevo usuario</h2>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm font-medium text-neutral-700">

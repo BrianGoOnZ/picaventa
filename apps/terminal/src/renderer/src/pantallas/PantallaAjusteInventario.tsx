@@ -183,7 +183,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
         </div>
       )}
 
-      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="max-w-2xl rounded-lg border border-borde bg-tarjeta p-4">
         {!productoEncontrado ? (
           <>
             <label className="text-sm font-medium text-neutral-700">

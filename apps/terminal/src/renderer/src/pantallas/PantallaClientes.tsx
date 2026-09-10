@@ -109,14 +109,14 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <h1 className="text-2xl font-bold text-neutral-900">Clientes</h1>
 
       {(esAdmin || (idEditando === null && puedeCrear)) && (
         <form
           ref={formularioRef}
           onSubmit={manejarEnviar}
-          className="grid grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
+          className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
         >
           <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
             {idEditando === null ? 'Nuevo cliente' : 'Editar cliente'}

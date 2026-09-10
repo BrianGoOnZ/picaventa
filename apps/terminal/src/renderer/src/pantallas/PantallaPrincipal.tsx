@@ -77,29 +77,35 @@ export default function PantallaPrincipal({
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto p-6">
-          {vista === 'usuarios' && <PantallaGestionUsuarios />}
-          {vista === 'negocio' && <PantallaConfiguracionNegocio config={config} />}
-          {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}
-          {vista === 'compras' && sesion.rolUsuario === 'administrador' && <PantallaComprasProveedores />}
-          {vista === 'clientes' && <PantallaClientes sesion={sesion} />}
-          {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}
-          {vista === 'venta' && <PantallaVenta sesion={sesion} />}
+          {/* Un solo límite de ancho para toda la app: cada pantalla llena este
+              espacio (w-full) en vez de imponer su propio max-w — así el
+              ancho real se adapta a la ventana en la que se abra, sin
+              depender de adivinar el tamaño de monitor de cada quien. */}
+          <div className="mx-auto w-full max-w-[1600px]">
+            {vista === 'usuarios' && <PantallaGestionUsuarios />}
+            {vista === 'negocio' && <PantallaConfiguracionNegocio config={config} />}
+            {vista === 'catalogo' && <PantallaCatalogo sesion={sesion} />}
+            {vista === 'compras' && sesion.rolUsuario === 'administrador' && <PantallaComprasProveedores />}
+            {vista === 'clientes' && <PantallaClientes sesion={sesion} />}
+            {vista === 'caja' && <PantallaCaja sesion={sesion} onCerrarSesion={onCerrarSesion} />}
+            {vista === 'venta' && <PantallaVenta sesion={sesion} />}
 
-          {vista === 'inicio' && sesion.rolUsuario === 'administrador' && (
-            <PantallaDashboardAdmin
-              onIrACatalogo={() => setVista('catalogo')}
-              onIrAClientes={() => setVista('clientes')}
-            />
-          )}
+            {vista === 'inicio' && sesion.rolUsuario === 'administrador' && (
+              <PantallaDashboardAdmin
+                onIrACatalogo={() => setVista('catalogo')}
+                onIrAClientes={() => setVista('clientes')}
+              />
+            )}
 
-          {vista === 'inicio' && sesion.rolUsuario !== 'administrador' && (
-            <PantallaDashboardCajero
-              sesion={sesion}
-              productosStockBajo={productosStockBajo}
-              onIrAVenta={() => setVista('venta')}
-              onIrACaja={() => setVista('caja')}
-            />
-          )}
+            {vista === 'inicio' && sesion.rolUsuario !== 'administrador' && (
+              <PantallaDashboardCajero
+                sesion={sesion}
+                productosStockBajo={productosStockBajo}
+                onIrAVenta={() => setVista('venta')}
+                onIrACaja={() => setVista('caja')}
+              />
+            )}
+          </div>
         </main>
       </div>
     </div>

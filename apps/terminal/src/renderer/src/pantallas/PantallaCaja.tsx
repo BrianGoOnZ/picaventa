@@ -163,11 +163,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
   }
 
   return (
-    <div
-      className={`mx-auto w-full ${
-        tab === 'ventas' || tab === 'cortes' || tab === 'reportes' ? 'max-w-6xl' : 'max-w-3xl'
-      }`}
-    >
+    <div className="w-full">
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Corte de caja</h1>
 
         {(esAdmin || puedeVentas) && (
@@ -224,7 +220,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
         ) : tab === 'cortes' && esAdmin ? (
           <PantallaHistorialCortes />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex max-w-2xl flex-col gap-4">
             <form
               onSubmit={manejarMovimiento}
               className="rounded-lg border border-neutral-200 bg-white p-4"

@@ -136,8 +136,8 @@ export default function PantallaCompras(): React.JSX.Element {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:shrink-0">
         <div className="rounded-lg border border-borde bg-tarjeta p-4">
           <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Registrar compra</h2>
           <label className="text-sm font-medium text-neutral-700">
@@ -258,7 +258,7 @@ export default function PantallaCompras(): React.JSX.Element {
         )}
       </div>
 
-      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+      <div className="min-w-0 flex-1 rounded-lg border border-borde bg-tarjeta p-4">
         <h2 className="mb-3 text-sm font-semibold text-texto-secundario">Compras recientes</h2>
         {cargandoCompras ? (
           <p className="text-sm text-texto-secundario">Cargando...</p>
