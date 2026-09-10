@@ -22,7 +22,14 @@ const execFileAsync = promisify(execFile)
 
 const NOMBRE_MANIFIESTO = 'estado-respaldo.json'
 const DIAS_RETENCION = 30
-const HORA_RESPALDO_DIARIO = '0 3 * * *' // 3:00 a.m., hora local del servidor
+// Tres veces al día (hora local del servidor) en vez de una sola — si hay un
+// corte de luz, apagón o falla a media tarde, el respaldo más viejo que se
+// puede perder son unas horas, no todo el día.
+const HORAS_RESPALDO_DIARIO = [
+  '0 3 * * *', // 3:00 a.m. — fuera de horario, respaldo de cierre de día
+  '0 13 * * *', // 1:00 p.m.
+  '30 22 * * *' // 10:30 p.m.
+]
 
 type Db = ReturnType<typeof crearConexion>
 // Ver la misma nota en auth.ts: se evita la augmentación global de Express.Request.
@@ -217,7 +224,11 @@ export interface ProgramadorRespaldo {
   actualizarCarpeta: (carpeta: string) => void
 }
 
-const UN_DIA_MS = 24 * 60 * 60 * 1000
+// Máximo tiempo aceptable sin respaldo antes de considerar que se perdió uno
+// (por un apagón, un corte de luz, o la PC apagada a esa hora) y generar uno
+// de inmediato al arrancar — la mitad del intervalo más largo entre dos
+// horarios programados (3:00→13:00 son 10h), con margen.
+const UMBRAL_RESPALDO_ATRASADO_MS = 12 * 60 * 60 * 1000
 
 // Solo corre en la instancia "servidor" (la única con la base de datos
 // completa) — ver 03-Arquitectura-general.md, fila 11.
@@ -227,22 +238,25 @@ export function programarRespaldoDiario(
 ): ProgramadorRespaldo {
   let carpetaDestino = carpetaInicial
 
-  const tarea = cron.schedule(HORA_RESPALDO_DIARIO, () => {
-    void generarRespaldo(postgresUrl, carpetaDestino)
-  })
+  const tareas = HORAS_RESPALDO_DIARIO.map((horario) =>
+    cron.schedule(horario, () => {
+      void generarRespaldo(postgresUrl, carpetaDestino)
+    })
+  )
 
-  // Si la PC estuvo apagada a las 3 a.m. (o la app cerrada), ese respaldo
-  // diario se perdió — en vez de esperar hasta el día siguiente, se genera
-  // uno en cuanto la app vuelve a arrancar, si el último tiene más de un día
-  // (o nunca se ha generado ninguno).
+  // Si la PC estuvo apagada en alguno de los horarios de arriba (apagón,
+  // corte de luz, etc.), ese respaldo se perdió — en vez de esperar al
+  // siguiente horario programado, se genera uno en cuanto la app arranca, si
+  // el último tiene más de UMBRAL_RESPALDO_ATRASADO_MS (o no existe ninguno).
   void (async () => {
     const ultimoEstado = await leerManifiesto(carpetaDestino)
-    const antiguo = !ultimoEstado || Date.now() - new Date(ultimoEstado.fecha).getTime() > UN_DIA_MS
+    const antiguo =
+      !ultimoEstado || Date.now() - new Date(ultimoEstado.fecha).getTime() > UMBRAL_RESPALDO_ATRASADO_MS
     if (antiguo) await generarRespaldo(postgresUrl, carpetaDestino)
   })()
 
   return {
-    detener: () => tarea.stop(),
+    detener: () => tareas.forEach((tarea) => tarea.stop()),
     respaldarAhora: () => generarRespaldo(postgresUrl, carpetaDestino),
     obtenerUltimoEstado: () => leerManifiesto(carpetaDestino),
     listar: () => listarRespaldos(carpetaDestino),
