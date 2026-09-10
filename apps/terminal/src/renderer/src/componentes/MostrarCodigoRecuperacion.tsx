@@ -28,9 +28,8 @@ export default function MostrarCodigoRecuperacion({ codigo, onContinuar }: Props
       <div className="w-full max-w-md rounded-xl border border-borde bg-tarjeta p-6 shadow-lg">
         <h1 className="font-display text-xl font-semibold text-onix">Guarda tu código de recuperación</h1>
         <p className="mt-2 text-sm text-texto-secundario">
-          Si algún día se olvida la contraseña y no hay otro administrador que la pueda restablecer,
-          este código es la única forma de recuperar el acceso. Se muestra <strong>una sola vez</strong>
-          — anótalo o guárdalo en un lugar seguro antes de continuar.
+          Es la única forma de recuperar el acceso si se olvida la contraseña. Se muestra{' '}
+          <strong>una sola vez</strong> — anótalo antes de continuar.
         </p>
         <div className="mt-4 rounded-md border border-cobre/40 bg-arena p-4 text-center font-mono text-2xl font-semibold tracking-widest text-onix">
           {codigo}

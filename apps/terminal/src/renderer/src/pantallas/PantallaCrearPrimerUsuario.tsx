@@ -51,7 +51,7 @@ export default function PantallaCrearPrimerUsuario({ onListo }: Props): React.JS
           <div className="text-center">
             <h1 className="font-display text-2xl font-semibold text-onix">Crear el primer usuario</h1>
             <p className="text-sm text-texto-secundario">
-              Este será el administrador del sistema. Todavía no hay ningún usuario registrado.
+              Aún no hay usuarios — este será el administrador.
             </p>
           </div>
         </div>

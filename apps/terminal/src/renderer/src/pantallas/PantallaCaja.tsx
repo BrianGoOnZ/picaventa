@@ -147,8 +147,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
             </div>
           </dl>
           <p className="mt-2 text-xs text-neutral-500">
-            La tarjeta y el fiado se muestran en el total vendido, pero no cuentan para el efectivo
-            esperado en caja.
+            Tarjeta y fiado no cuentan para el efectivo esperado en caja.
           </p>
           <button
             type="button"

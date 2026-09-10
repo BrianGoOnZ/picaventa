@@ -126,8 +126,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-texto-secundario">
-          Registra mermas (caducidad, daño) o corrige el stock tras un conteo físico. Ambos quedan
-          en el historial con tu usuario y la fecha.
+          Registra una merma o corrige el stock tras un conteo físico.
         </p>
         <button
           type="button"

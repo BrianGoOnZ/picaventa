@@ -279,8 +279,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-texto-secundario">
-          Escanea o busca cada producto y la cantidad recibida se agrega a una lista — revisa que
-          todo esté correcto y confirma para cargarlo todo junto al inventario.
+          Escanea cada producto recibido — revisa la lista y confirma para cargarlo al inventario.
         </p>
         {esAdmin && (
           <button
@@ -563,7 +562,7 @@ export default function PantallaEntradaInventario({ sesion }: Props): React.JSX.
         </div>
         {pendientes.length === 0 ? (
           <p className="text-sm text-texto-secundario">
-            Aún no has agregado nada a la lista. Escanea un producto arriba para empezar.
+            Escanea un producto arriba para empezar.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">

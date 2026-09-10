@@ -118,15 +118,13 @@ function FormularioServidor({ onVolver, onConfigurado }: PropsFormulario): React
     <Contenedor titulo="Configurar como Servidor">
       {ipLocal && (
         <p className="mb-4 rounded-md border border-borde bg-arena p-3 text-sm text-onix">
-          La IP de este servidor en la red es <strong>{ipLocal}</strong> — anótala, la vas a
-          necesitar para configurar las demás cajas.
+          IP de este servidor: <strong>{ipLocal}</strong> — la necesitarás para configurar las
+          demás cajas.
         </p>
       )}
       <p className="mb-4 text-sm text-texto-secundario">
-        PostgreSQL ya debe estar instalado en esta PC. Solo necesitamos la contraseña del
-        superusuario <strong>postgres</strong> que se configuró al instalarlo — la app crea y
-        administra su propio usuario dedicado automáticamente, no vuelvas a necesitar esta
-        contraseña después de este paso.
+        Necesitamos la contraseña del superusuario <strong>postgres</strong> que configuraste al
+        instalar PostgreSQL. No la vuelve a pedir después de este paso.
       </p>
       <form onSubmit={manejarEnviar} className="flex flex-col gap-3 rounded-xl border border-borde bg-tarjeta p-6 shadow-sm">
         <div className="flex gap-3">

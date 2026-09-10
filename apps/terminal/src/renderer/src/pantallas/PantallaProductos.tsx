@@ -333,9 +333,8 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
         <div className="rounded-lg border border-borde bg-tarjeta p-4">
           <h2 className="mb-1 text-sm font-semibold text-texto-secundario">Excel del catálogo</h2>
           <p className="mb-3 text-xs text-texto-secundario">
-            Exporta o carga muchos productos a la vez sin tener que capturarlos uno por uno. Esta
-            función es exclusiva de administrador, ya que el archivo incluye precio de compra y de
-            venta juntos.
+            Exporta o carga muchos productos a la vez — incluye precio de compra y de venta, por
+            eso es exclusivo de administrador.
           </p>
           <div className="flex flex-wrap gap-2">
             <button

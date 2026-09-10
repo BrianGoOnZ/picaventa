@@ -172,21 +172,21 @@ export default function PantallaPromociones(): React.JSX.Element {
     ? productos.filter((p) => p.nombreProducto.toLowerCase().includes(buscarProducto.toLowerCase()))
     : productos
 
-  const claseSeccion = 'col-span-2 border-b border-borde pb-1 text-xs font-semibold uppercase tracking-wide text-texto-secundario'
+  const claseSeccion = 'col-span-full border-b border-borde pb-1 text-xs font-semibold uppercase tracking-wide text-texto-secundario'
 
   return (
     <div className="flex flex-col gap-4">
       <form
         ref={formularioRef}
         onSubmit={manejarEnviar}
-        className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-borde bg-tarjeta p-4"
+        className="grid w-full grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3 rounded-lg border border-borde bg-tarjeta p-4"
       >
-        <h2 className="col-span-2 text-sm font-semibold text-texto-secundario">
+        <h2 className="col-span-full text-sm font-semibold text-texto-secundario">
           {idEditando === null ? 'Nueva promoción' : 'Editar promoción'}
         </h2>
 
         <h3 className={claseSeccion}>1. Datos de la promoción</h3>
-        <label className="col-span-2 text-sm font-medium text-neutral-700">
+        <label className="col-span-full text-sm font-medium text-neutral-700">
           Nombre
           <input
             type="text"
@@ -227,10 +227,10 @@ export default function PantallaPromociones(): React.JSX.Element {
             />
           </label>
         )}
-        <p className="col-span-2 -mt-1 text-xs text-texto-secundario">{AYUDA_TIPO[formulario.tipoPromocion]}</p>
+        <p className="col-span-full -mt-1 text-xs text-texto-secundario">{AYUDA_TIPO[formulario.tipoPromocion]}</p>
 
         <h3 className={claseSeccion}>2. ¿A qué aplica?</h3>
-        <div className="col-span-2 flex gap-2">
+        <div className="col-span-full flex max-w-md gap-2">
           <button
             type="button"
             onClick={() => setAlcance('categoria')}
@@ -256,7 +256,7 @@ export default function PantallaPromociones(): React.JSX.Element {
         </div>
 
         {alcance === 'categoria' ? (
-          <label className="col-span-2 text-sm font-medium text-neutral-700">
+          <label className="col-span-full max-w-md text-sm font-medium text-neutral-700">
             Categoría
             <select
               value={formulario.idCategoria}
@@ -275,7 +275,7 @@ export default function PantallaPromociones(): React.JSX.Element {
             </span>
           </label>
         ) : (
-          <div className="col-span-2">
+          <div className="col-span-full max-w-md">
             <label className="text-sm font-medium text-neutral-700">Productos</label>
             <span className="mb-1 block text-xs text-texto-secundario">
               Marca uno o varios productos de tu catálogo.
@@ -331,7 +331,7 @@ export default function PantallaPromociones(): React.JSX.Element {
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        <label className="col-span-2 text-sm font-medium text-neutral-700">
+        <label className="text-sm font-medium text-neutral-700">
           Descripción (opcional)
           <input
             type="text"
@@ -340,7 +340,7 @@ export default function PantallaPromociones(): React.JSX.Element {
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
-        <label className="col-span-2 flex items-center gap-1.5 text-sm text-texto-secundario">
+        <label className="col-span-full flex items-center gap-1.5 text-sm text-texto-secundario">
           <input
             type="checkbox"
             checked={formulario.activa}
@@ -349,8 +349,8 @@ export default function PantallaPromociones(): React.JSX.Element {
           Activa (se aplica automáticamente en el punto de venta)
         </label>
 
-        {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
-        <div className="col-span-2 flex gap-2">
+        {error && <p className="col-span-full text-sm text-red-600">{error}</p>}
+        <div className="col-span-full flex gap-2">
           {idEditando !== null && (
             <button type="button" onClick={cancelarEdicion} className={BOTON_SECUNDARIO}>
               Cancelar
@@ -359,7 +359,7 @@ export default function PantallaPromociones(): React.JSX.Element {
           <button
             type="submit"
             disabled={enviando}
-            className="flex-1 rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
+            className="rounded-md bg-cobre px-4 py-2 text-sm font-semibold text-white hover:bg-cobre-oscuro disabled:opacity-50"
           >
             {enviando ? 'Guardando...' : idEditando === null ? 'Crear promoción' : 'Guardar cambios'}
           </button>

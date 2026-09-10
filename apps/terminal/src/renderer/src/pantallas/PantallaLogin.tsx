@@ -149,8 +149,7 @@ function FormularioRecuperacion({ onVolver, onExito }: PropsRecuperacion): React
           <div className="text-center">
             <h1 className="font-display text-2xl font-semibold text-onix">Recuperar acceso</h1>
             <p className="text-sm text-texto-secundario">
-              Solo funciona para administradores, con el código que se mostró una sola vez al crear
-              esa cuenta.
+              Solo para administradores, con el código que se mostró al crear la cuenta.
             </p>
           </div>
         </div>

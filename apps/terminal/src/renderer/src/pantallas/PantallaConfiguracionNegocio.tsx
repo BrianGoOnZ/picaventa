@@ -255,8 +255,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
               Respaldo automático de la base de datos
             </h2>
             <p className="mb-3 text-xs text-neutral-500">
-              Corre solo en esta computadora (rol de Servidor) todos los días a las 3:00 a.m. Se
-              conserva un respaldo local por cada uno de los últimos 30 días.
+              Todos los días a las 3:00 a.m. — se conservan los últimos 30 días.
             </p>
 
             <div className="mb-4 rounded-md border border-neutral-200 bg-neutral-50 p-3">
@@ -265,8 +264,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
                 {carpetaRespaldos ?? 'Carpeta por defecto de la aplicación'}
               </p>
               <p className="mt-1 text-xs text-neutral-400">
-                Si eliges una carpeta sincronizada con OneDrive o Google Drive, el respaldo también
-                queda en la nube automáticamente. El cambio aplica de inmediato.
+                Una carpeta de OneDrive o Google Drive también sube el respaldo a la nube.
               </p>
               <div className="mt-2 flex gap-2">
                 <button
@@ -356,9 +354,8 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
             <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-lg">
               <h2 className="text-lg font-semibold text-neutral-900">¿Restaurar este respaldo?</h2>
               <p className="mt-2 text-sm text-neutral-600">
-                Esto <strong>reemplaza toda la información actual</strong> (ventas, productos, cortes,
-                usuarios, todo) por la que había en el momento de este respaldo. No se puede deshacer.
-                Confirma con tu PIN para continuar.
+                <strong>Reemplaza toda la información actual</strong> por la de este respaldo — no
+                se puede deshacer. Confirma con tu PIN.
               </p>
               <label className="mt-4 block text-sm font-medium text-neutral-700">
                 Tu PIN
