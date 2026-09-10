@@ -255,7 +255,7 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
               Respaldo automático de la base de datos
             </h2>
             <p className="mb-3 text-xs text-neutral-500">
-              3 veces al día (3:00 a.m., 1:00 p.m. y 10:30 p.m.) — se conservan los últimos 30 días.
+              3 veces al día (12:00 p.m., 6:00 p.m. y 10:30 p.m.) — se conservan los últimos 30 días.
             </p>
 
             <div className="mb-4 rounded-md border border-neutral-200 bg-neutral-50 p-3">

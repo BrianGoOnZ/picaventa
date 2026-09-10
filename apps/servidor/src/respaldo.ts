@@ -22,13 +22,14 @@ const execFileAsync = promisify(execFile)
 
 const NOMBRE_MANIFIESTO = 'estado-respaldo.json'
 const DIAS_RETENCION = 30
-// Tres veces al día (hora local del servidor) en vez de una sola — si hay un
-// corte de luz, apagón o falla a media tarde, el respaldo más viejo que se
-// puede perder son unas horas, no todo el día.
+// Tres veces al día (hora local del servidor), repartidas en el horario de
+// la tienda en vez de en la madrugada (cuando está cerrada y no hay nada
+// nuevo que respaldar) — si hay un corte de luz, apagón o falla, el
+// respaldo más viejo que se puede perder son unas horas, no todo el día.
 const HORAS_RESPALDO_DIARIO = [
-  '0 3 * * *', // 3:00 a.m. — fuera de horario, respaldo de cierre de día
-  '0 13 * * *', // 1:00 p.m.
-  '30 22 * * *' // 10:30 p.m.
+  '0 12 * * *', // 12:00 p.m.
+  '0 18 * * *', // 6:00 p.m.
+  '30 22 * * *' // 10:30 p.m. — cierre
 ]
 
 type Db = ReturnType<typeof crearConexion>
@@ -226,8 +227,9 @@ export interface ProgramadorRespaldo {
 
 // Máximo tiempo aceptable sin respaldo antes de considerar que se perdió uno
 // (por un apagón, un corte de luz, o la PC apagada a esa hora) y generar uno
-// de inmediato al arrancar — la mitad del intervalo más largo entre dos
-// horarios programados (3:00→13:00 son 10h), con margen.
+// de inmediato al arrancar. Cubre con margen los huecos entre horarios
+// durante el día (12→18h son 6h, 18→22:30 son 4.5h) sin disparar de más
+// solo porque la tienda cerró de un día para otro (22:30→12:00 son 13.5h).
 const UMBRAL_RESPALDO_ATRASADO_MS = 12 * 60 * 60 * 1000
 
 // Solo corre en la instancia "servidor" (la única con la base de datos
