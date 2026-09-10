@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'node:path'
 import { registrarManejadoresIpc } from './ipc'
 import { detenerServidorEmbebido } from './servidor-embebido'
+import { sincronizarInicioAutomatico } from './inicio-automatico'
 
 // Sin menú nativo: en Windows, la tecla Alt sola abre el menú de la
 // aplicación por defecto (File/Edit/View...), lo que interfiere con los
@@ -33,6 +34,7 @@ function crearVentana(): void {
 app.whenReady().then(() => {
   registrarManejadoresIpc()
   crearVentana()
+  sincronizarInicioAutomatico()
 })
 
 app.on('window-all-closed', () => {

@@ -217,6 +217,8 @@ export interface ProgramadorRespaldo {
   actualizarCarpeta: (carpeta: string) => void
 }
 
+const UN_DIA_MS = 24 * 60 * 60 * 1000
+
 // Solo corre en la instancia "servidor" (la única con la base de datos
 // completa) — ver 03-Arquitectura-general.md, fila 11.
 export function programarRespaldoDiario(
@@ -228,6 +230,16 @@ export function programarRespaldoDiario(
   const tarea = cron.schedule(HORA_RESPALDO_DIARIO, () => {
     void generarRespaldo(postgresUrl, carpetaDestino)
   })
+
+  // Si la PC estuvo apagada a las 3 a.m. (o la app cerrada), ese respaldo
+  // diario se perdió — en vez de esperar hasta el día siguiente, se genera
+  // uno en cuanto la app vuelve a arrancar, si el último tiene más de un día
+  // (o nunca se ha generado ninguno).
+  void (async () => {
+    const ultimoEstado = await leerManifiesto(carpetaDestino)
+    const antiguo = !ultimoEstado || Date.now() - new Date(ultimoEstado.fecha).getTime() > UN_DIA_MS
+    if (antiguo) await generarRespaldo(postgresUrl, carpetaDestino)
+  })()
 
   return {
     detener: () => tarea.stop(),

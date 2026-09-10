@@ -95,6 +95,7 @@ import {
   actualizarCarpetaRespaldosEmbebido,
   obtenerCarpetaRespaldosDefecto
 } from './servidor-embebido'
+import { sincronizarInicioAutomatico } from './inicio-automatico'
 import {
   listarProveedores,
   crearProveedor,
@@ -205,7 +206,10 @@ function obtenerIpLocal(): string | null {
 export function registrarManejadoresIpc(): void {
   ipcMain.handle(CANALES_IPC.obtenerConfig, (): ConfigLocal | null => obtenerConfig())
 
-  ipcMain.handle(CANALES_IPC.borrarConfig, (): void => borrarConfig())
+  ipcMain.handle(CANALES_IPC.borrarConfig, (): void => {
+    borrarConfig()
+    sincronizarInicioAutomatico()
+  })
 
   ipcMain.handle(CANALES_IPC.obtenerIpLocal, (): string | null => obtenerIpLocal())
 
@@ -253,6 +257,7 @@ export function registrarManejadoresIpc(): void {
         jwtSecret,
         puerto: PUERTO_SERVIDOR_DEFECTO
       })
+      sincronizarInicioAutomatico()
       return { ok: true }
     }
   )
@@ -264,6 +269,7 @@ export function registrarManejadoresIpc(): void {
       if (!resultado.ok) return resultado
 
       guardarConfig({ modo: 'terminal', serverHost: host, serverPort: puerto })
+      sincronizarInicioAutomatico()
       return { ok: true }
     }
   )
