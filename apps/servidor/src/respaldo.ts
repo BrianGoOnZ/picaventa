@@ -21,7 +21,7 @@ import { verificarJwt, requiereAdministrador } from './auth.js'
 const execFileAsync = promisify(execFile)
 
 const NOMBRE_MANIFIESTO = 'estado-respaldo.json'
-const DIAS_RETENCION = 30
+const DIAS_RETENCION = 15
 // Tres veces al día (hora local del servidor), repartidas en el horario de
 // la tienda en vez de en la madrugada (cuando está cerrada y no hay nada
 // nuevo que respaldar) — si hay un corte de luz, apagón o falla, el
