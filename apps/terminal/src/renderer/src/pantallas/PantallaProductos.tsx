@@ -9,6 +9,7 @@ import {
   type UnidadMedida
 } from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO, colorCategoriaAutomatica } from '../lib/estilos'
+import { comprimirImagen } from '../lib/imagenes'
 import { confirmarEliminar, confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 import {
@@ -68,21 +69,16 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [historialPrecios, setHistorialPrecios] = useState<CambioPrecioHistorial[]>([])
   const [cargandoHistorialPrecios, setCargandoHistorialPrecios] = useState(false)
 
-  function manejarArchivoImagen(evento: ChangeEvent<HTMLInputElement>): void {
+  async function manejarArchivoImagen(evento: ChangeEvent<HTMLInputElement>): Promise<void> {
     const archivo = evento.target.files?.[0]
     if (!archivo) return
 
-    if (archivo.size > IMAGEN_PRODUCTO_MAX_BYTES) {
-      setError('La foto no debe pesar más de 200 KB')
-      return
-    }
-
-    const lector = new FileReader()
-    lector.onload = () => {
-      setImagenDatos(lector.result as string)
+    try {
+      setImagenDatos(await comprimirImagen(archivo, IMAGEN_PRODUCTO_MAX_BYTES))
       setError('')
+    } catch {
+      setError('No se pudo procesar esa foto — intenta con otra.')
     }
-    lector.readAsDataURL(archivo)
   }
 
   async function cargarProductos(): Promise<void> {
@@ -531,14 +527,14 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
         </label>
         <div className="col-span-full">
           <p className="text-sm font-medium text-neutral-700">
-            Foto (opcional, máx. 200 KB) — si no se sube, se muestra un color por categoría
+            Foto (opcional) — si no se sube, se muestra un color por categoría
           </p>
           <div className="mt-1 flex items-center gap-3">
             <input
               ref={inputImagenRef}
               type="file"
               accept="image/png,image/jpeg"
-              onChange={manejarArchivoImagen}
+              onChange={(e) => void manejarArchivoImagen(e)}
               className="hidden"
             />
             <button type="button" onClick={() => inputImagenRef.current?.click()} className={BOTON_SECUNDARIO}>

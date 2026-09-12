@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LOGO_MAX_BYTES, type ConfigLocal, type EstadoRespaldo, type InfoRespaldo } from '@picaventa/shared'
 import { BOTON_SECUNDARIO, BOTON_PELIGRO } from '../lib/estilos'
+import { comprimirImagen } from '../lib/imagenes'
 import { useToast } from '../lib/ToastContext'
 
 function formatearTamano(bytes: number): string {
@@ -134,21 +135,16 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function manejarArchivo(evento: ChangeEvent<HTMLInputElement>): void {
+  async function manejarArchivo(evento: ChangeEvent<HTMLInputElement>): Promise<void> {
     const archivo = evento.target.files?.[0]
     if (!archivo) return
 
-    if (archivo.size > LOGO_MAX_BYTES) {
-      setError('El logo no debe pesar más de 500 KB')
-      return
-    }
-
-    const lector = new FileReader()
-    lector.onload = () => {
-      setLogoDatos(lector.result as string)
+    try {
+      setLogoDatos(await comprimirImagen(archivo, LOGO_MAX_BYTES))
       setError('')
+    } catch {
+      setError('No se pudo procesar ese logo — intenta con otro.')
     }
-    lector.readAsDataURL(archivo)
   }
 
   async function manejarEnviar(evento: FormEvent): Promise<void> {
@@ -216,14 +212,14 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
           </div>
           <div className="mt-3">
             <p className="text-sm font-medium text-neutral-700">
-              Logo (PNG/JPG, máx. 500 KB) — se usa en el ticket impreso
+              Logo (PNG/JPG) — se usa en el ticket impreso
             </p>
             <div className="mt-1 flex items-center gap-3">
               <input
                 ref={inputLogoRef}
                 type="file"
                 accept="image/png,image/jpeg"
-                onChange={manejarArchivo}
+                onChange={(e) => void manejarArchivo(e)}
                 className="hidden"
               />
               <button type="button" onClick={() => inputLogoRef.current?.click()} className={BOTON_SECUNDARIO}>
