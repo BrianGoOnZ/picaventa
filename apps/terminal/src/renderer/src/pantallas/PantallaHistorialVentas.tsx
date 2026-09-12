@@ -8,6 +8,7 @@ import type {
   Venta
 } from '@picaventa/shared'
 import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
+import { formatoMoneda } from '../lib/formato'
 import { confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
@@ -257,7 +258,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                     <span className="text-texto-secundario">
                       {new Date(v.fechaVenta).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
-                    <span className="font-semibold text-onix">${v.total.toFixed(2)}</span>
+                    <span className="font-semibold text-onix">{formatoMoneda(v.total)}</span>
                   </span>
                 </button>
               </li>
@@ -280,7 +281,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                 </p>
               </div>
               <span className="font-display text-xl font-semibold text-onix">
-                ${ventaSeleccionada.total.toFixed(2)}
+                {formatoMoneda(ventaSeleccionada.total)}
               </span>
             </div>
 
@@ -293,7 +294,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                     <div className="flex items-center justify-between">
                       <span className="text-onix">{linea.nombreProducto}</span>
                       <span className="text-texto-secundario">
-                        {linea.cantidadVendida} {linea.unidadMedida} × ${linea.precioUnitarioVenta.toFixed(2)}
+                        {linea.cantidadVendida} {linea.unidadMedida} × {formatoMoneda(linea.precioUnitarioVenta)}
                       </span>
                     </div>
                     {yaDevuelto > 0 && (
@@ -409,7 +410,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                                               }}
                                               className="block w-full border-b border-borde px-2 py-1 text-left text-xs last:border-0 hover:bg-arena"
                                             >
-                                              {p.nombreProducto} — ${p.precioVenta.toFixed(2)}
+                                              {p.nombreProducto} — {formatoMoneda(p.precioVenta)}
                                             </button>
                                           ))}
                                       </div>
@@ -418,7 +419,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                                 ) : (
                                   <div className="flex items-center gap-2">
                                     <span className="flex-1 text-xs text-onix">
-                                      {productoCambio.nombreProducto} — ${productoCambio.precioVenta.toFixed(2)}
+                                      {productoCambio.nombreProducto} — {formatoMoneda(productoCambio.precioVenta)}
                                     </span>
                                     <input
                                       type="number"
@@ -443,8 +444,8 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                                 )}
                                 {productoCambio && cantidadCambioNum > 0 && cantidadNum > 0 && (
                                   <p className="mt-1.5 text-xs font-medium text-texto-secundario">
-                                    {diferencia > 0.005 && `El cliente paga $${diferencia.toFixed(2)} más`}
-                                    {diferencia < -0.005 && `Se le regresan $${Math.abs(diferencia).toFixed(2)}`}
+                                    {diferencia > 0.005 && `El cliente paga ${formatoMoneda(diferencia)} más`}
+                                    {diferencia < -0.005 && `Se le regresan ${formatoMoneda(Math.abs(diferencia))}`}
                                     {Math.abs(diferencia) <= 0.005 && 'Sin diferencia de precio'}
                                   </p>
                                 )}
@@ -502,7 +503,7 @@ export default function PantallaHistorialVentas({ sesion }: Props): React.JSX.El
                   {devoluciones.map((d) => (
                     <li key={d.idDevolucion} className="text-xs text-texto-secundario">
                       {d.cantidadDevuelta} × {d.nombreProducto} — {ETIQUETAS_RESOLUCION[d.tipoResolucion]}
-                      {d.montoReembolsado > 0 && ` ($${d.montoReembolsado.toFixed(2)})`}
+                      {d.montoReembolsado > 0 && ` (${formatoMoneda(d.montoReembolsado)})`}
                       {d.folioVentaCambio && ` → cambiado por venta ${d.folioVentaCambio}`} (
                       {d.motivoDevolucion}) por {d.nombreUsuario}
                     </li>

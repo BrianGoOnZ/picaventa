@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { ReporteVentas, VentaPorCajero } from '@picaventa/shared'
+import { formatoMoneda } from './formato'
 
 const COLOR_COBRE: [number, number, number] = [180, 83, 31]
 const COLOR_ARENA: [number, number, number] = [245, 240, 232]
@@ -14,7 +15,7 @@ function soloFecha(iso: string): string {
 }
 
 function dinero(valor: number): string {
-  return `$${valor.toFixed(2)}`
+  return formatoMoneda(valor)
 }
 
 function finDeTabla(doc: jsPDF): number {

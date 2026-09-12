@@ -17,6 +17,7 @@ import TarjetaProducto from '../componentes/TarjetaProducto'
 import TicketVenta, { type LineaTicket } from './TicketVenta'
 import { confirmarCritico } from '../lib/confirmar'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
+import { formatoMoneda } from '../lib/formato'
 
 interface LineaCarrito {
   idProducto: number
@@ -627,7 +628,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
           <div className="w-full max-w-sm rounded-lg border border-borde bg-tarjeta p-6 shadow-lg">
             <p className="font-display text-lg font-semibold text-onix">{productoParaPesar.nombreProducto}</p>
             <p className="mb-4 text-sm text-texto-secundario">
-              ${productoParaPesar.precioVenta.toFixed(2)} por kg — indica cuánto pesa
+              {formatoMoneda(productoParaPesar.precioVenta)} por kg — indica cuánto pesa
             </p>
 
             <label className="text-sm font-medium text-texto-secundario">
@@ -794,7 +795,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                       {linea.nombreProducto}
                     </p>
                     <span className="shrink-0 tabular-nums font-medium text-onix">
-                      ${(linea.cantidad * linea.precioVenta - linea.descuento).toFixed(2)}
+                      {formatoMoneda(linea.cantidad * linea.precioVenta - linea.descuento)}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-texto-secundario">
@@ -887,7 +888,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                 <p className="pb-2 text-sm text-texto-secundario">
                   Cambio:{' '}
                   <span className="font-semibold text-onix">
-                    ${cambio >= 0 ? cambio.toFixed(2) : '—'}
+                    {cambio >= 0 ? formatoMoneda(cambio) : '—'}
                   </span>
                 </p>
               )}
@@ -908,8 +909,8 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
                   <option value="">Selecciona un cliente...</option>
                   {clientes.map((c) => (
                     <option key={c.idCliente} value={c.idCliente}>
-                      {c.nombreCliente} (debe ${c.saldoActual.toFixed(2)} de $
-                      {c.limiteCredito.toFixed(2)})
+                      {c.nombreCliente} (debe {formatoMoneda(c.saldoActual)} de{' '}
+                      {formatoMoneda(c.limiteCredito)})
                     </option>
                   ))}
                 </select>
@@ -1000,7 +1001,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
 
           <div className="flex items-center justify-between border-t border-borde pt-3">
             <span className="font-display text-2xl font-semibold text-onix">
-              ${total.toFixed(2)}
+              {formatoMoneda(total)}
             </span>
             <div className="flex gap-2">
               <button

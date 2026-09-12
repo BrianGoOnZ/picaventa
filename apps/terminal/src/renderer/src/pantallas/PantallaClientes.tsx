@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { tienePermiso, type Cliente, type SesionUsuario } from '@picaventa/shared'
 import { BOTON_ACENTO, BOTON_PELIGRO, BOTON_SECUNDARIO, colorAvatar } from '../lib/estilos'
+import { formatoMoneda } from '../lib/formato'
 import { confirmarEliminar } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 
@@ -230,7 +231,7 @@ export default function PantallaClientes({ sesion }: Props): React.JSX.Element {
                       <p className="text-xs text-texto-secundario">
                         {cliente.telefonoCliente && `${cliente.telefonoCliente} · `}
                         <span className={sobreLimite ? 'font-semibold text-peligro' : ''}>
-                          debe ${cliente.saldoActual.toFixed(2)} de ${cliente.limiteCredito.toFixed(2)}
+                          debe {formatoMoneda(cliente.saldoActual)} de {formatoMoneda(cliente.limiteCredito)}
                         </span>
                       </p>
                       {cliente.notaCliente && (

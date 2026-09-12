@@ -2,6 +2,7 @@ import { useEffect, useState, type KeyboardEvent } from 'react'
 import type { Compra, CompraDetallada, Producto, Proveedor, UnidadMedida } from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO } from '../lib/estilos'
 import { confirmarCritico } from '../lib/confirmar'
+import { formatoMoneda } from '../lib/formato'
 import { useToast } from '../lib/ToastContext'
 
 interface LineaPendiente {
@@ -101,7 +102,7 @@ export default function PantallaCompras(): React.JSX.Element {
     }
 
     const confirmado = await confirmarCritico({
-      titulo: `¿Registrar esta compra por $${totalCompra.toFixed(2)}?`,
+      titulo: `¿Registrar esta compra por ${formatoMoneda(totalCompra)}?`,
       texto: 'Se sumará la cantidad de cada línea al inventario.',
       textoConfirmar: 'Sí, registrar compra',
       colorConfirmar: '#15803D'
@@ -202,7 +203,7 @@ export default function PantallaCompras(): React.JSX.Element {
                 Líneas de la factura ({lineas.length})
               </h2>
               <span className="font-display text-lg font-semibold text-onix">
-                ${totalCompra.toFixed(2)}
+                {formatoMoneda(totalCompra)}
               </span>
             </div>
             <ul className="flex flex-col gap-2">
@@ -279,7 +280,7 @@ export default function PantallaCompras(): React.JSX.Element {
                       {new Date(c.fechaCompra).toLocaleDateString('es-MX')}
                     </span>
                   </span>
-                  <span className="font-semibold text-onix">${c.total.toFixed(2)}</span>
+                  <span className="font-semibold text-onix">{formatoMoneda(c.total)}</span>
                 </button>
               </li>
             ))}
@@ -307,7 +308,7 @@ export default function PantallaCompras(): React.JSX.Element {
             <ul className="flex flex-col gap-1 text-xs text-texto-secundario">
               {compraSeleccionada.lineas.map((l) => (
                 <li key={l.idProducto}>
-                  {l.cantidadComprada} {l.unidadMedida} × {l.nombreProducto} — ${l.costoUnitario.toFixed(2)} c/u
+                  {l.cantidadComprada} {l.unidadMedida} × {l.nombreProducto} — {formatoMoneda(l.costoUnitario)} c/u
                 </li>
               ))}
             </ul>

@@ -1,3 +1,5 @@
+import { formatoMoneda } from '../lib/formato'
+
 interface Props {
   dias: { fecha: string; total: number }[]
 }
@@ -29,11 +31,11 @@ export default function GraficaBarrasDia({ dias }: Props): React.JSX.Element {
             <div className="flex w-full flex-1 flex-col items-center justify-end">
               {mostrarEtiquetas && d.total > 0 && (
                 <span className="mb-0.5 whitespace-nowrap text-[9px] font-medium tabular-nums text-texto-secundario">
-                  ${d.total.toFixed(0)}
+                  {formatoMoneda(d.total, 0)}
                 </span>
               )}
               <div
-                title={`${d.fecha}: $${d.total.toFixed(2)}`}
+                title={`${d.fecha}: ${formatoMoneda(d.total)}`}
                 className={`w-full rounded-t transition-all ${esHoy ? 'bg-cobre' : 'bg-cobre/30'}`}
                 style={{ height: `${Math.max((d.total / maximo) * alturaMaxima, d.total > 0 ? 4 : 1)}%` }}
               />

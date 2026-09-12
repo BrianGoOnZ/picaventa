@@ -4,6 +4,7 @@ import PantallaReportes from './PantallaReportes'
 import PantallaHistorialVentas from './PantallaHistorialVentas'
 import PantallaHistorialCortes from './PantallaHistorialCortes'
 import { useToast } from '../lib/ToastContext'
+import { formatoMoneda } from '../lib/formato'
 
 interface Props {
   sesion: SesionUsuario
@@ -95,27 +96,27 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
           <dl className="space-y-1 text-sm text-neutral-700">
             <div className="flex justify-between">
               <dt>Fondo inicial</dt>
-              <dd>${resumen.fondoInicial.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.fondoInicial)}</dd>
             </div>
             <div className="flex justify-between">
               <dt>Ventas en efectivo</dt>
-              <dd>${resumen.ventasPorMetodo.efectivo.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.ventasPorMetodo.efectivo)}</dd>
             </div>
             <div className="flex justify-between">
               <dt>Ventas con tarjeta</dt>
-              <dd>${resumen.ventasPorMetodo.tarjeta.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.ventasPorMetodo.tarjeta)}</dd>
             </div>
             <div className="flex justify-between">
               <dt>Ventas a fiado</dt>
-              <dd>${resumen.ventasPorMetodo.fiado.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.ventasPorMetodo.fiado)}</dd>
             </div>
             <div className="flex justify-between font-medium">
               <dt>Total vendido</dt>
-              <dd>${resumen.totalVendido.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.totalVendido)}</dd>
             </div>
             <div className="flex justify-between">
               <dt>Retiros / gastos</dt>
-              <dd>−${resumen.totalRetirosGastos.toFixed(2)}</dd>
+              <dd>−{formatoMoneda(resumen.totalRetirosGastos)}</dd>
             </div>
             {movimientosTurno.length > 0 && (
               <div className="ml-3 space-y-0.5 text-xs text-neutral-500">
@@ -124,7 +125,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                     <span>
                       {ETIQUETA_TIPO_MOVIMIENTO[m.tipoMovimiento]}: {m.conceptoMovimiento}
                     </span>
-                    <span>−${m.montoMovimiento.toFixed(2)}</span>
+                    <span>−{formatoMoneda(m.montoMovimiento)}</span>
                   </div>
                 ))}
               </div>
@@ -132,17 +133,17 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
             <div className="my-2 border-t border-neutral-200" />
             <div className="flex justify-between font-semibold">
               <dt>Total esperado en caja</dt>
-              <dd>${resumen.totalEsperado.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.totalEsperado)}</dd>
             </div>
             <div className="flex justify-between">
               <dt>Total contado</dt>
-              <dd>${resumen.totalContadoSistema.toFixed(2)}</dd>
+              <dd>{formatoMoneda(resumen.totalContadoSistema)}</dd>
             </div>
             <div className="flex justify-between font-semibold">
               <dt>Diferencia</dt>
               <dd className={resumen.diferencia !== 0 ? 'text-red-600' : 'text-green-700'}>
                 {resumen.diferencia >= 0 ? '+' : ''}
-                {resumen.diferencia.toFixed(2)}
+                {formatoMoneda(resumen.diferencia)}
               </dd>
             </div>
           </dl>
@@ -315,7 +316,7 @@ export default function PantallaCaja({ sesion, onCerrarSesion }: Props): React.J
                         {m.conceptoMovimiento}
                       </span>
                       <span className="shrink-0 font-medium text-neutral-700">
-                        −${m.montoMovimiento.toFixed(2)}
+                        −{formatoMoneda(m.montoMovimiento)}
                       </span>
                     </li>
                   ))}

@@ -7,6 +7,7 @@ import {
   type SesionUsuario
 } from '@picaventa/shared'
 import TarjetaKpi from '../componentes/TarjetaKpi'
+import { formatoMoneda } from '../lib/formato'
 
 interface Props {
   sesion: SesionUsuario
@@ -96,10 +97,10 @@ export default function PantallaDashboardCajero({
           <div>
             <h2 className="mb-2 text-sm font-semibold text-texto-secundario">Tu turno</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <TarjetaKpi titulo="Fondo inicial" valor={fondoInicial !== null ? `$${fondoInicial.toFixed(2)}` : '—'} />
-              <TarjetaKpi titulo="Vendido" valor={`$${(resumen?.totalVendido ?? 0).toFixed(2)}`} />
+              <TarjetaKpi titulo="Fondo inicial" valor={fondoInicial !== null ? formatoMoneda(fondoInicial) : '—'} />
+              <TarjetaKpi titulo="Vendido" valor={formatoMoneda(resumen?.totalVendido ?? 0)} />
               <TarjetaKpi titulo="Ventas" valor={String(resumen?.numeroVentas ?? 0)} />
-              <TarjetaKpi titulo="Retiros / gastos" valor={`$${totalRetiros.toFixed(2)}`} />
+              <TarjetaKpi titulo="Retiros / gastos" valor={formatoMoneda(totalRetiros)} />
             </div>
           </div>
 
@@ -109,15 +110,15 @@ export default function PantallaDashboardCajero({
               <div className="grid grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-texto-secundario">Efectivo</p>
-                  <p className="text-lg font-semibold text-onix">${resumen.ventasPorMetodo.efectivo.toFixed(2)}</p>
+                  <p className="text-lg font-semibold text-onix">{formatoMoneda(resumen.ventasPorMetodo.efectivo)}</p>
                 </div>
                 <div>
                   <p className="text-texto-secundario">Tarjeta</p>
-                  <p className="text-lg font-semibold text-onix">${resumen.ventasPorMetodo.tarjeta.toFixed(2)}</p>
+                  <p className="text-lg font-semibold text-onix">{formatoMoneda(resumen.ventasPorMetodo.tarjeta)}</p>
                 </div>
                 <div>
                   <p className="text-texto-secundario">Fiado</p>
-                  <p className="text-lg font-semibold text-onix">${resumen.ventasPorMetodo.fiado.toFixed(2)}</p>
+                  <p className="text-lg font-semibold text-onix">{formatoMoneda(resumen.ventasPorMetodo.fiado)}</p>
                 </div>
               </div>
             </div>
@@ -132,7 +133,7 @@ export default function PantallaDashboardCajero({
                 {movimientos.map((m) => (
                   <li key={m.idMovimiento} className="flex justify-between border-t border-borde pt-1.5 first:border-0 first:pt-0">
                     <span className="text-onix">{m.conceptoMovimiento}</span>
-                    <span className="font-medium text-texto-secundario">−${m.montoMovimiento.toFixed(2)}</span>
+                    <span className="font-medium text-texto-secundario">−{formatoMoneda(m.montoMovimiento)}</span>
                   </li>
                 ))}
               </ul>

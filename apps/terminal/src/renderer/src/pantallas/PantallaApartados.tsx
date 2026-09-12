@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Venta, VentaDetallada } from '@picaventa/shared'
+import { formatoMoneda } from '../lib/formato'
 
 interface Props {
   onVolver: () => void
@@ -52,7 +53,7 @@ export default function PantallaApartados({ onVolver, onReanudar }: Props): Reac
               {ventas.map((v) => (
                 <li key={v.idVenta} className="flex items-center justify-between py-2 text-sm">
                   <span>
-                    {v.folioVenta} — ${v.total.toFixed(2)} —{' '}
+                    {v.folioVenta} — {formatoMoneda(v.total)} —{' '}
                     {new Date(v.fechaVenta).toLocaleTimeString('es-MX')}
                   </span>
                   <button

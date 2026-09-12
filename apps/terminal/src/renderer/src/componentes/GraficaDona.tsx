@@ -1,3 +1,5 @@
+import { formatoMoneda } from '../lib/formato'
+
 interface Segmento {
   etiqueta: string
   valor: number
@@ -50,7 +52,7 @@ export default function GraficaDona({ segmentos }: Props): React.JSX.Element {
           <li key={s.etiqueta} className="flex items-center gap-2 text-xs">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
             <span className="text-texto-secundario">{s.etiqueta}</span>
-            <span className="font-medium tabular-nums text-onix">${s.valor.toFixed(0)}</span>
+            <span className="font-medium tabular-nums text-onix">{formatoMoneda(s.valor, 0)}</span>
             <span className="text-texto-secundario">({((s.valor / total) * 100).toFixed(0)}%)</span>
           </li>
         ))}

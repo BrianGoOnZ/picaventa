@@ -5,6 +5,7 @@ import GraficaBarrasDia from '../componentes/GraficaBarrasDia'
 import GraficaBarrasHorizontal from '../componentes/GraficaBarrasHorizontal'
 import GraficaDona from '../componentes/GraficaDona'
 import { BOTON_SECUNDARIO } from '../lib/estilos'
+import { formatoMoneda } from '../lib/formato'
 
 interface Props {
   onIrACatalogo: () => void
@@ -102,11 +103,11 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <TarjetaKpi
           titulo="Ventas de hoy"
-          valor={`$${ventasHoy.total.toFixed(2)}`}
+          valor={formatoMoneda(ventasHoy.total)}
           delta={{ porcentaje: deltaVsAyer, etiqueta: 'vs. ayer' }}
         />
-        <TarjetaKpi titulo="Ticket promedio (hoy)" valor={`$${ticketPromedio.toFixed(2)}`} />
-        <TarjetaKpi titulo="Ventas del mes" valor={`$${ventasMes.toFixed(2)}`} />
+        <TarjetaKpi titulo="Ticket promedio (hoy)" valor={formatoMoneda(ticketPromedio)} />
+        <TarjetaKpi titulo="Ventas del mes" valor={formatoMoneda(ventasMes)} />
       </div>
 
       <div className="rounded-lg border border-borde bg-tarjeta p-4">
@@ -128,7 +129,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
           </div>
         </div>
         <p className="mb-3 text-xs text-texto-secundario">
-          Total: <span className="font-semibold text-onix">${totalTendencia.toFixed(2)}</span>
+          Total: <span className="font-semibold text-onix">{formatoMoneda(totalTendencia)}</span>
         </p>
         <GraficaBarrasDia dias={tendencia} />
       </div>
@@ -198,7 +199,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
               {clientesPendientes.slice(0, 6).map((c) => (
                 <li key={c.idCliente} className="flex justify-between gap-2">
                   <span className="truncate text-onix">{c.nombreCliente}</span>
-                  <span className="shrink-0 text-texto-secundario">${c.limiteCredito.toFixed(0)}</span>
+                  <span className="shrink-0 text-texto-secundario">{formatoMoneda(c.limiteCredito, 0)}</span>
                 </li>
               ))}
               <li className="pt-1">
@@ -222,7 +223,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
                 <li key={c.idCliente} className="flex justify-between gap-2">
                   <span className="truncate text-onix">{c.nombreCliente}</span>
                   <span className="shrink-0 font-medium text-peligro">
-                    +${(c.saldoActual - c.limiteCredito).toFixed(0)}
+                    +{formatoMoneda(c.saldoActual - c.limiteCredito, 0)}
                   </span>
                 </li>
               ))}
@@ -253,8 +254,8 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
                     {c.diferencia === 0
                       ? 'Cuadra'
                       : c.diferencia < 0
-                        ? `Faltan $${Math.abs(c.diferencia).toFixed(0)}`
-                        : `Sobran $${c.diferencia.toFixed(0)}`}
+                        ? `Faltan ${formatoMoneda(Math.abs(c.diferencia), 0)}`
+                        : `Sobran ${formatoMoneda(c.diferencia, 0)}`}
                   </span>
                 </li>
               ))}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CorteCajaResumen } from '@picaventa/shared'
+import { formatoMoneda } from '../lib/formato'
 
 function inicioDeHoy(): Date {
   const fecha = new Date()
@@ -130,7 +131,7 @@ export default function PantallaHistorialCortes(): React.JSX.Element {
             Diferencia acumulada:{' '}
             <span className={`font-semibold ${totalDiferencias < 0 ? 'text-red-600' : 'text-green-700'}`}>
               {totalDiferencias >= 0 ? '+' : ''}
-              ${totalDiferencias.toFixed(2)}
+              {formatoMoneda(totalDiferencias)}
             </span>
             {cortesConFaltante > 0 && (
               <span className="ml-2 text-xs text-neutral-500">
@@ -165,16 +166,16 @@ export default function PantallaHistorialCortes(): React.JSX.Element {
                       {new Date(c.fechaCorte).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
                     </td>
                     <td className="py-1.5">{c.nombreUsuario}</td>
-                    <td className="py-1.5 text-right">${c.fondoInicial.toFixed(2)}</td>
-                    <td className="py-1.5 text-right">${c.totalVendido.toFixed(2)}</td>
-                    <td className="py-1.5 text-right">${c.totalEsperado.toFixed(2)}</td>
-                    <td className="py-1.5 text-right">${c.totalContadoSistema.toFixed(2)}</td>
+                    <td className="py-1.5 text-right">{formatoMoneda(c.fondoInicial)}</td>
+                    <td className="py-1.5 text-right">{formatoMoneda(c.totalVendido)}</td>
+                    <td className="py-1.5 text-right">{formatoMoneda(c.totalEsperado)}</td>
+                    <td className="py-1.5 text-right">{formatoMoneda(c.totalContadoSistema)}</td>
                     <td
                       className={`py-1.5 text-right font-medium ${
                         c.diferencia === 0 ? 'text-green-700' : c.diferencia < 0 ? 'text-red-600' : 'text-amber-600'
                       }`}
                     >
-                      {c.diferencia === 0 ? 'Cuadra' : `${c.diferencia >= 0 ? '+' : ''}$${c.diferencia.toFixed(2)}`}
+                      {c.diferencia === 0 ? 'Cuadra' : `${c.diferencia >= 0 ? '+' : ''}${formatoMoneda(c.diferencia)}`}
                     </td>
                   </tr>
                 ))}

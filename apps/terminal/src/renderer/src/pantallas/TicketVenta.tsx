@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { DatosNegocio } from '@picaventa/shared'
+import { formatoMoneda } from '../lib/formato'
 
 export interface LineaTicket {
   nombreProducto: string
@@ -96,12 +97,11 @@ export default function TicketVenta({
               <p>{linea.nombreProducto}</p>
               <div className="flex justify-between">
                 <span>
-                  {linea.cantidad} {linea.unidadMedida} x ${linea.precioUnitario.toFixed(2)}
-                  {linea.descuento > 0 ? ` (−$${linea.descuento.toFixed(2)})` : ''}
+                  {linea.cantidad} {linea.unidadMedida} x {formatoMoneda(linea.precioUnitario)}
+                  {linea.descuento > 0 ? ` (−${formatoMoneda(linea.descuento)})` : ''}
                 </span>
                 <span>
-                  $
-                  {(linea.cantidad * linea.precioUnitario - linea.descuento).toFixed(2)}
+                  {formatoMoneda(linea.cantidad * linea.precioUnitario - linea.descuento)}
                 </span>
               </div>
             </div>
@@ -109,14 +109,14 @@ export default function TicketVenta({
           <div className="my-2 border-t border-dashed border-neutral-400" />
           <div className="flex justify-between text-sm font-bold">
             <span>TOTAL</span>
-            <span>${total.toFixed(2)}</span>
+            <span>{formatoMoneda(total)}</span>
           </div>
           <p className="mt-1">Método de pago: {NOMBRES_METODO_PAGO[metodoPago] ?? metodoPago}</p>
           {clienteNombre && <p>Cliente: {clienteNombre}</p>}
           {efectivoRecibido !== undefined && (
             <>
-              <p>Recibido: ${efectivoRecibido.toFixed(2)}</p>
-              <p>Cambio: ${cambio?.toFixed(2)}</p>
+              <p>Recibido: {formatoMoneda(efectivoRecibido)}</p>
+              <p>Cambio: {formatoMoneda(cambio ?? 0)}</p>
             </>
           )}
           <p className="mt-3 text-center">¡Gracias por su compra!</p>

@@ -1,4 +1,5 @@
 import type { Producto } from '@picaventa/shared'
+import { formatoMoneda } from '../lib/formato'
 
 interface Props {
   producto: Producto
@@ -48,7 +49,7 @@ export default function TarjetaProducto({
           {producto.nombreProducto}
         </p>
         <p className="mt-auto font-display text-sm font-semibold tabular-nums text-cobre">
-          ${producto.precioVenta.toFixed(2)}
+          {formatoMoneda(producto.precioVenta)}
           {producto.unidadMedida === 'kg' && <span className="text-texto-secundario">/kg</span>}
         </p>
         {agotado && <p className="text-[10px] font-semibold uppercase text-peligro">Agotado</p>}

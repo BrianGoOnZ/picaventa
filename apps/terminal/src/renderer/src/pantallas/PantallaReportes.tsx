@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { DevolucionReporte, ReporteVentas, TipoResolucion, VentaPorCajero } from '@picaventa/shared'
 import { exportarReportePdf } from '../lib/pdfReportes'
+import { formatoMoneda } from '../lib/formato'
 import { useToast } from '../lib/ToastContext'
 
 function inicioDeHoy(): Date {
@@ -150,19 +151,19 @@ export default function PantallaReportes(): React.JSX.Element {
           <div className="mb-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
               <p className="text-neutral-500">Total vendido</p>
-              <p className="text-lg font-semibold">${reporte.totalVendido.toFixed(2)}</p>
+              <p className="text-lg font-semibold">{formatoMoneda(reporte.totalVendido)}</p>
             </div>
             <div>
               <p className="text-neutral-500">Efectivo</p>
-              <p className="text-lg font-semibold">${reporte.porMetodo.efectivo.toFixed(2)}</p>
+              <p className="text-lg font-semibold">{formatoMoneda(reporte.porMetodo.efectivo)}</p>
             </div>
             <div>
               <p className="text-neutral-500">Tarjeta</p>
-              <p className="text-lg font-semibold">${reporte.porMetodo.tarjeta.toFixed(2)}</p>
+              <p className="text-lg font-semibold">{formatoMoneda(reporte.porMetodo.tarjeta)}</p>
             </div>
             <div>
               <p className="text-neutral-500">Fiado</p>
-              <p className="text-lg font-semibold">${reporte.porMetodo.fiado.toFixed(2)}</p>
+              <p className="text-lg font-semibold">{formatoMoneda(reporte.porMetodo.fiado)}</p>
             </div>
           </div>
 
@@ -173,7 +174,7 @@ export default function PantallaReportes(): React.JSX.Element {
                 {ventasPorCajero.map((c) => (
                   <li key={c.idUsuario} className="flex justify-between border-t border-neutral-100 py-1">
                     <span>{c.nombreUsuario}</span>
-                    <span className="font-medium">${c.total.toFixed(2)}</span>
+                    <span className="font-medium">{formatoMoneda(c.total)}</span>
                   </li>
                 ))}
               </ul>
@@ -201,8 +202,8 @@ export default function PantallaReportes(): React.JSX.Element {
                     <tr key={p.idProducto} className="border-t border-neutral-100">
                       <td className="py-1">{p.nombreProducto}</td>
                       <td className="py-1 text-right">{p.cantidad}</td>
-                      <td className="py-1 text-right">${p.ingresos.toFixed(2)}</td>
-                      <td className="py-1 text-right">${p.margenEstimado.toFixed(2)}</td>
+                      <td className="py-1 text-right">{formatoMoneda(p.ingresos)}</td>
+                      <td className="py-1 text-right">{formatoMoneda(p.margenEstimado)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -243,7 +244,7 @@ export default function PantallaReportes(): React.JSX.Element {
                         {ETIQUETAS_RESOLUCION[d.tipoResolucion]}
                       </span>
                       {d.montoReembolsado > 0 && (
-                        <p className="mt-1 font-semibold text-neutral-900">${d.montoReembolsado.toFixed(2)}</p>
+                        <p className="mt-1 font-semibold text-neutral-900">{formatoMoneda(d.montoReembolsado)}</p>
                       )}
                     </div>
                   </div>

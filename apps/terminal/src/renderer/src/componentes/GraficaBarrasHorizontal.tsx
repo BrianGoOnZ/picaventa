@@ -1,3 +1,5 @@
+import { formatoMoneda } from '../lib/formato'
+
 interface Props {
   datos: { etiqueta: string; valor: number }[]
   color?: string
@@ -24,7 +26,7 @@ export default function GraficaBarrasHorizontal({ datos, color }: Props): React.
             />
           </div>
           <span className="w-16 shrink-0 text-right text-xs font-medium tabular-nums text-onix">
-            ${d.valor.toFixed(0)}
+            {formatoMoneda(d.valor, 0)}
           </span>
         </div>
       ))}

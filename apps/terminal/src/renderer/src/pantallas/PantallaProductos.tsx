@@ -10,6 +10,7 @@ import {
 } from '@picaventa/shared'
 import { BOTON_PELIGRO, BOTON_SECUNDARIO, colorCategoriaAutomatica } from '../lib/estilos'
 import { comprimirImagen } from '../lib/imagenes'
+import { formatoMoneda } from '../lib/formato'
 import { confirmarEliminar, confirmarCritico } from '../lib/confirmar'
 import { useToast } from '../lib/ToastContext'
 import {
@@ -578,8 +579,8 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
                       <td className="py-2 pr-3 text-onix">{cambio.nombreProducto}</td>
                       <td className="py-2 pr-3 text-onix">{cambio.nombreUsuario}</td>
                       <td className="py-2 text-texto-secundario">
-                        ${cambio.precioAnterior.toFixed(2)} →{' '}
-                        <span className="font-semibold text-onix">${cambio.precioNuevo.toFixed(2)}</span>
+                        {formatoMoneda(cambio.precioAnterior)} →{' '}
+                        <span className="font-semibold text-onix">{formatoMoneda(cambio.precioNuevo)}</span>
                       </td>
                     </tr>
                   ))}
@@ -639,7 +640,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
                 )}
                 {!fila.error && (
                   <p className="mt-1 text-xs text-texto-secundario">
-                    ${fila.precioVenta.toFixed(2)} · stock {fila.stockActual} {fila.unidadMedida}
+                    {formatoMoneda(fila.precioVenta)} · stock {fila.stockActual} {fila.unidadMedida}
                   </p>
                 )}
               </li>
@@ -907,7 +908,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-onix">{producto.nombreProducto}</p>
                     <p className="text-xs text-texto-secundario">
-                      {nombreCategoria(producto.idCategoria)} · ${producto.precioVenta.toFixed(2)} ·{' '}
+                      {nombreCategoria(producto.idCategoria)} · {formatoMoneda(producto.precioVenta)} ·{' '}
                       <span className={stockBajo ? 'font-semibold text-peligro' : ''}>
                         stock: {producto.stockActual} {producto.unidadMedida}
                       </span>
