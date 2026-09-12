@@ -96,7 +96,6 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
     ventasAyer > 0 ? ((ventasHoy.total - ventasAyer) / ventasAyer) * 100 : ventasHoy.total > 0 ? 100 : 0
   const ticketPromedio = ventasHoy.numero > 0 ? ventasHoy.total / ventasHoy.numero : 0
   const totalTendencia = tendencia.reduce((acumulado, d) => acumulado + d.total, 0)
-  const promedioTendencia = tendencia.length > 0 ? totalTendencia / tendencia.length : 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -129,9 +128,7 @@ export default function PantallaDashboardAdmin({ onIrACatalogo, onIrAClientes }:
           </div>
         </div>
         <p className="mb-3 text-xs text-texto-secundario">
-          Total: <span className="font-semibold text-onix">${totalTendencia.toFixed(2)}</span> ·
-          Promedio diario:{' '}
-          <span className="font-semibold text-onix">${promedioTendencia.toFixed(2)}</span>
+          Total: <span className="font-semibold text-onix">${totalTendencia.toFixed(2)}</span>
         </p>
         <GraficaBarrasDia dias={tendencia} />
       </div>
