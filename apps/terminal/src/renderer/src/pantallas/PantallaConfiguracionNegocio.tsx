@@ -212,13 +212,13 @@ export default function PantallaConfiguracionNegocio({ config }: Props): React.J
           </div>
           <div className="mt-3">
             <p className="text-sm font-medium text-neutral-700">
-              Logo (PNG/JPG) — se usa en el ticket impreso
+              Logo — se usa en el ticket impreso
             </p>
             <div className="mt-1 flex items-center gap-3">
               <input
                 ref={inputLogoRef}
                 type="file"
-                accept="image/png,image/jpeg"
+                accept="image/*"
                 onChange={(e) => void manejarArchivo(e)}
                 className="hidden"
               />

@@ -533,7 +533,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
             <input
               ref={inputImagenRef}
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/*"
               onChange={(e) => void manejarArchivoImagen(e)}
               className="hidden"
             />
