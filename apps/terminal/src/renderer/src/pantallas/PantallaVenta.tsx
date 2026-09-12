@@ -66,6 +66,7 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
   const [ticket, setTicket] = useState<TicketPendiente | null>(null)
   const [indiceSeleccionado, setIndiceSeleccionado] = useState<number | null>(null)
   const inputBusquedaRef = useRef<HTMLInputElement>(null)
+  const inputRecibidoRef = useRef<HTMLInputElement>(null)
   const [indiceResaltado, setIndiceResaltado] = useState(0)
   const tarjetaRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
   const gridRef = useRef<HTMLDivElement>(null)
@@ -518,6 +519,15 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
         return
       }
 
+      if (evento.key === 'F6') {
+        evento.preventDefault()
+        if (metodoPago === 'efectivo') {
+          inputRecibidoRef.current?.focus()
+          inputRecibidoRef.current?.select()
+        }
+        return
+      }
+
       if (evento.key === 'F8') {
         evento.preventDefault()
         if (!enviando && carrito.length > 0) void manejarPausar()
@@ -593,7 +603,8 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
     enviando,
     manejarCobrar,
     manejarPausar,
-    productoParaPesar
+    productoParaPesar,
+    metodoPago
   ])
 
   if (vista === 'apartados') {
@@ -874,8 +885,9 @@ export default function PantallaVenta({ sesion }: Props): React.JSX.Element {
           {metodoPago === 'efectivo' && (
             <div className="flex items-end gap-3">
               <label className="flex-1 text-xs font-medium text-texto-secundario">
-                Recibido
+                Recibido <span className="text-texto-secundario">(F6)</span>
                 <input
+                  ref={inputRecibidoRef}
                   type="number"
                   min="0"
                   step="0.01"
