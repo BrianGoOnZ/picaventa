@@ -150,6 +150,11 @@ export function crearRutasCatalogo(): Router {
       .select()
       .from(producto)
       .where(condiciones.length > 0 ? and(...condiciones) : undefined)
+      // Sin esto, Postgres puede regresar las filas en otro orden cada vez
+      // (sobre todo después de editar uno — una fila editada puede quedar
+      // físicamente en otro lugar), lo que da la impresión de que el
+      // producto "se movió" en la lista. Orden alfabético fijo y predecible.
+      .orderBy(producto.nombreProducto)
 
     res.json({ ok: true, productos: filas.map(filaAProducto) })
   })
