@@ -27,6 +27,28 @@ interface ResultadoImportacion {
   mensaje: string
 }
 
+interface ResultadoLoteFotos {
+  archivo: string
+  ok: boolean
+  mensaje: string
+}
+
+// Para emparejar el nombre del archivo con el producto sin que el usuario
+// tenga que escribirlo exactamente igual: sin acentos, sin mayúsculas, y
+// tratando guiones/guiones bajos como espacios ("coca-cola_600ml" ~ "Coca
+// Cola 600ml").
+const RANGO_DIACRITICOS = /[̀-ͯ]/g
+
+function normalizarClave(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(RANGO_DIACRITICOS, '') // quita acentos (marcas diacríticas combinadas tras NFD)
+    .toLowerCase()
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 interface Props {
   sesion: SesionUsuario
 }
@@ -65,6 +87,9 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [resultadosImportacion, setResultadosImportacion] = useState<ResultadoImportacion[]>([])
   const inputExcelRef = useRef<HTMLInputElement>(null)
   const inputImagenRef = useRef<HTMLInputElement>(null)
+  const inputLoteFotosRef = useRef<HTMLInputElement>(null)
+  const [procesandoLoteFotos, setProcesandoLoteFotos] = useState(false)
+  const [resultadosLoteFotos, setResultadosLoteFotos] = useState<ResultadoLoteFotos[]>([])
 
   const [mostrarHistorialPrecios, setMostrarHistorialPrecios] = useState(false)
   const [historialPrecios, setHistorialPrecios] = useState<CambioPrecioHistorial[]>([])
@@ -80,6 +105,71 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
     } catch {
       setError('No se pudo procesar esa foto — intenta con otra.')
     }
+  }
+
+  // Deja subir muchas fotos de golpe en vez de una por una: el nombre de
+  // cada archivo (sin extensión) se busca contra el código de barras y,
+  // si no coincide, contra el nombre del producto (ignorando acentos,
+  // mayúsculas y guiones). Lo que no se pudo emparejar queda listado abajo
+  // para que se pueda renombrar y volver a intentar solo con esos.
+  async function manejarLoteFotos(evento: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const archivos = Array.from(evento.target.files ?? [])
+    if (archivos.length === 0) return
+
+    setProcesandoLoteFotos(true)
+    setResultadosLoteFotos([])
+    const resultados: ResultadoLoteFotos[] = []
+
+    for (const archivo of archivos) {
+      const nombreSinExtension = archivo.name.replace(/\.[a-z0-9]+$/i, '')
+      const claveArchivo = normalizarClave(nombreSinExtension)
+
+      const productoEncontrado =
+        productos.find((p) => p.codigoBarras && p.codigoBarras === nombreSinExtension.trim()) ??
+        productos.find((p) => normalizarClave(p.nombreProducto) === claveArchivo)
+
+      if (!productoEncontrado) {
+        resultados.push({
+          archivo: archivo.name,
+          ok: false,
+          mensaje: 'No coincide con ningún producto (por código de barras o nombre)'
+        })
+        continue
+      }
+
+      try {
+        const imagenComprimida = await comprimirImagen(archivo, IMAGEN_PRODUCTO_MAX_BYTES)
+        const resultado = await window.picaventa.editarProducto(productoEncontrado.idProducto, {
+          nombreProducto: productoEncontrado.nombreProducto,
+          codigoBarras: productoEncontrado.codigoBarras,
+          precioCompra: productoEncontrado.precioCompra,
+          precioVenta: productoEncontrado.precioVenta,
+          unidadMedida: productoEncontrado.unidadMedida,
+          stockActual: productoEncontrado.stockActual,
+          stockMinimo: productoEncontrado.stockMinimo,
+          idCategoria: productoEncontrado.idCategoria,
+          imagenDatos: imagenComprimida
+        })
+        resultados.push({
+          archivo: archivo.name,
+          ok: resultado.ok,
+          mensaje: resultado.ok ? `Foto puesta en "${productoEncontrado.nombreProducto}"` : resultado.error
+        })
+      } catch {
+        resultados.push({ archivo: archivo.name, ok: false, mensaje: 'No se pudo procesar esa imagen' })
+      }
+    }
+
+    setResultadosLoteFotos(resultados)
+    await cargarProductos()
+    setProcesandoLoteFotos(false)
+    evento.target.value = ''
+
+    const exitosos = resultados.filter((r) => r.ok).length
+    mostrarToast(
+      `${exitosos} de ${resultados.length} fotos puestas correctamente`,
+      exitosos === resultados.length ? 'exito' : 'error'
+    )
   }
 
   async function cargarProductos(): Promise<void> {
@@ -389,6 +479,61 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
               {mostrarHistorialPrecios ? 'Ocultar historial de precios' : 'Ver historial de precios'}
             </button>
           </div>
+        </div>
+      )}
+
+      {esAdmin && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-1 text-sm font-semibold text-texto-secundario">Fotos de productos en lote</h2>
+          <p className="mb-3 text-xs text-texto-secundario">
+            Selecciona varias fotos a la vez — cada una se empareja sola con el producto cuyo
+            código de barras o nombre coincida con el nombre del archivo (ej. "7501055300013.jpg"
+            o "Coca-Cola 600ml.jpg"). Se comprimen igual que al subir una por una.
+          </p>
+          <button
+            type="button"
+            onClick={() => inputLoteFotosRef.current?.click()}
+            disabled={procesandoLoteFotos}
+            className={BOTON_SECUNDARIO}
+          >
+            {procesandoLoteFotos ? 'Procesando...' : 'Elegir varias fotos...'}
+          </button>
+          <input
+            ref={inputLoteFotosRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(evento) => void manejarLoteFotos(evento)}
+            className="hidden"
+          />
+        </div>
+      )}
+
+      {resultadosLoteFotos.length > 0 && (
+        <div className="rounded-lg border border-borde bg-tarjeta p-4">
+          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+            Resultado del lote de fotos ({resultadosLoteFotos.length})
+          </h2>
+          <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+            {resultadosLoteFotos.map((resultado, indice) => (
+              <li
+                key={indice}
+                className={`flex items-center justify-between rounded-lg border p-3 text-sm ${
+                  resultado.ok ? 'border-borde' : 'border-peligro bg-peligro/5'
+                }`}
+              >
+                <span className="flex items-center gap-2 text-onix">
+                  <span className={resultado.ok ? 'text-exito' : 'text-peligro'}>
+                    {resultado.ok ? '✓' : '✗'}
+                  </span>
+                  {resultado.archivo}
+                </span>
+                <span className={resultado.ok ? 'text-texto-secundario' : 'font-medium text-peligro'}>
+                  {resultado.mensaje}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
