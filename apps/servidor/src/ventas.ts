@@ -10,6 +10,7 @@ import {
   cliente,
   devolucion,
   movimientoCaja,
+  merma,
   usuarios,
   type crearConexion
 } from '@picaventa/db'
@@ -377,6 +378,18 @@ export function crearRutasVentas(): Router {
             .set({ stockActual: stockNuevo.toString() })
             .where(eq(producto.idProducto, datos.data.idProducto))
             .returning()
+
+          // El producto devuelto no regresa a la venta (se da por dañado o
+          // descartado) — es exactamente una merma, así que se registra ahí
+          // también para que el reporte de mermas la refleje sin que el
+          // administrador tenga que capturarla dos veces a mano.
+          await tx.insert(merma).values({
+            idProducto: datos.data.idProducto,
+            tipoMerma: 'merma',
+            motivoMerma: `Devolución (${ventaFila.folioVenta}): ${datos.data.motivo}`,
+            cantidadMerma: datos.data.cantidad.toString(),
+            idUsuario: payload.idUsuario
+          })
         } else {
           ;[productoActualizado] = await tx
             .update(producto)
