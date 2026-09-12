@@ -511,9 +511,18 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
 
       {resultadosLoteFotos.length > 0 && (
         <div className="rounded-lg border border-borde bg-tarjeta p-4">
-          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
-            Resultado del lote de fotos ({resultadosLoteFotos.length})
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-texto-secundario">
+              Resultado del lote de fotos ({resultadosLoteFotos.length})
+            </h2>
+            <button
+              type="button"
+              onClick={() => setResultadosLoteFotos([])}
+              className={BOTON_SECUNDARIO}
+            >
+              Cerrar
+            </button>
+          </div>
           <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
             {resultadosLoteFotos.map((resultado, indice) => (
               <li
@@ -641,9 +650,18 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
 
       {resultadosImportacion.length > 0 && (
         <div className="rounded-lg border border-borde bg-tarjeta p-4">
-          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
-            Resultado de la última importación ({resultadosImportacion.length})
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-texto-secundario">
+              Resultado de la última importación ({resultadosImportacion.length})
+            </h2>
+            <button
+              type="button"
+              onClick={() => setResultadosImportacion([])}
+              className={BOTON_SECUNDARIO}
+            >
+              Cerrar
+            </button>
+          </div>
           <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
             {resultadosImportacion.map((resultado) => (
               <li
