@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { MermaHistorial, Producto, TipoMerma } from '@picaventa/shared'
 import { confirmarCritico } from '../lib/confirmar'
 import { BOTON_SECUNDARIO } from '../lib/estilos'
@@ -15,9 +15,8 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  const [mostrarHistorial, setMostrarHistorial] = useState(false)
   const [historial, setHistorial] = useState<MermaHistorial[]>([])
-  const [cargandoHistorial, setCargandoHistorial] = useState(false)
+  const [cargandoHistorial, setCargandoHistorial] = useState(true)
 
   const { mostrarToast } = useToast()
   const inputCodigoRef = useRef<HTMLInputElement>(null)
@@ -99,7 +98,7 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
           : `Stock corregido — ahora: ${resultado.stockNuevo}`
       )
       cancelarSeleccion()
-      if (mostrarHistorial) await cargarHistorial()
+      await cargarHistorial()
     } else {
       setError(resultado.error)
     }
@@ -113,74 +112,15 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
     setCargandoHistorial(false)
   }
 
-  async function alternarHistorial(): Promise<void> {
-    if (mostrarHistorial) {
-      setMostrarHistorial(false)
-      return
-    }
-    setMostrarHistorial(true)
-    await cargarHistorial()
-  }
+  useEffect(() => {
+    void cargarHistorial()
+  }, [])
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-sm text-texto-secundario">
-          Registra una merma o corrige el stock tras un conteo físico.
-        </p>
-        <button
-          type="button"
-          onClick={() => void alternarHistorial()}
-          className="shrink-0 rounded-md border border-borde px-3 py-1.5 text-xs font-medium text-texto-secundario hover:bg-arena"
-        >
-          {mostrarHistorial ? 'Ocultar historial' : 'Ver historial'}
-        </button>
-      </div>
-
-      {mostrarHistorial && (
-        <div className="rounded-lg border border-borde bg-tarjeta p-4">
-          <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
-            Historial de mermas y ajustes
-          </h2>
-          {cargandoHistorial ? (
-            <p className="text-sm text-texto-secundario">Cargando...</p>
-          ) : historial.length === 0 ? (
-            <p className="text-sm text-texto-secundario">Aún no hay registros.</p>
-          ) : (
-            <div className="max-h-96 overflow-x-auto overflow-y-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-xs text-texto-secundario">
-                    <th className="pb-2 pr-3 font-medium">Fecha</th>
-                    <th className="pb-2 pr-3 font-medium">Producto</th>
-                    <th className="pb-2 pr-3 font-medium">Tipo</th>
-                    <th className="pb-2 pr-3 font-medium">Motivo</th>
-                    <th className="pb-2 pr-3 font-medium">Cantidad</th>
-                    <th className="pb-2 font-medium">Quién</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historial.map((m) => (
-                    <tr key={m.idMerma} className="border-t border-borde">
-                      <td className="py-2 pr-3 text-texto-secundario">
-                        {new Date(m.fechaMerma).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
-                      </td>
-                      <td className="py-2 pr-3 text-onix">{m.nombreProducto}</td>
-                      <td className="py-2 pr-3 capitalize text-onix">{m.tipoMerma}</td>
-                      <td className="py-2 pr-3 text-texto-secundario">{m.motivoMerma}</td>
-                      <td className={`py-2 pr-3 font-medium ${m.cantidadMerma < 0 ? 'text-peligro' : 'text-onix'}`}>
-                        {m.cantidadMerma > 0 && m.tipoMerma === 'ajuste' ? '+' : ''}
-                        {m.cantidadMerma} {m.unidadMedida}
-                      </td>
-                      <td className="py-2 text-texto-secundario">{m.nombreUsuario}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      <p className="text-sm text-texto-secundario">
+        Registra una merma o corrige el stock tras un conteo físico.
+      </p>
 
       <div className="w-full rounded-lg border border-borde bg-tarjeta p-4">
         {!productoEncontrado ? (
@@ -288,6 +228,49 @@ export default function PantallaAjusteInventario(): React.JSX.Element {
               {enviando ? 'Guardando...' : tipoMerma === 'merma' ? 'Registrar merma' : 'Guardar ajuste'}
             </button>
           </form>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-borde bg-tarjeta p-4">
+        <h2 className="mb-3 text-sm font-semibold text-texto-secundario">
+          Historial de mermas y ajustes
+        </h2>
+        {cargandoHistorial ? (
+          <p className="text-sm text-texto-secundario">Cargando...</p>
+        ) : historial.length === 0 ? (
+          <p className="text-sm text-texto-secundario">Aún no hay registros.</p>
+        ) : (
+          <div className="max-h-96 overflow-x-auto overflow-y-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs text-texto-secundario">
+                  <th className="pb-2 pr-3 font-medium">Fecha</th>
+                  <th className="pb-2 pr-3 font-medium">Producto</th>
+                  <th className="pb-2 pr-3 font-medium">Tipo</th>
+                  <th className="pb-2 pr-3 font-medium">Motivo</th>
+                  <th className="pb-2 pr-3 font-medium">Cantidad</th>
+                  <th className="pb-2 font-medium">Quién</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historial.map((m) => (
+                  <tr key={m.idMerma} className="border-t border-borde">
+                    <td className="py-2 pr-3 text-texto-secundario">
+                      {new Date(m.fechaMerma).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td className="py-2 pr-3 text-onix">{m.nombreProducto}</td>
+                    <td className="py-2 pr-3 capitalize text-onix">{m.tipoMerma}</td>
+                    <td className="py-2 pr-3 text-texto-secundario">{m.motivoMerma}</td>
+                    <td className={`py-2 pr-3 font-medium ${m.cantidadMerma < 0 ? 'text-peligro' : 'text-onix'}`}>
+                      {m.cantidadMerma > 0 && m.tipoMerma === 'ajuste' ? '+' : ''}
+                      {m.cantidadMerma} {m.unidadMedida}
+                    </td>
+                    <td className="py-2 text-texto-secundario">{m.nombreUsuario}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
