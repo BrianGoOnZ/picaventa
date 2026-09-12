@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   IMAGEN_PRODUCTO_MAX_BYTES,
   tienePermiso,
@@ -49,6 +49,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
   const [cargando, setCargando] = useState(true)
   const [buscar, setBuscar] = useState('')
   const [soloStockBajo, setSoloStockBajo] = useState(false)
+  const [orden, setOrden] = useState<'nombre-asc' | 'nombre-desc' | 'reciente' | 'antiguo'>('nombre-asc')
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
   const [imagenDatos, setImagenDatos] = useState<string | undefined>(undefined)
   const [idEditando, setIdEditando] = useState<number | null>(null)
@@ -101,6 +102,23 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
     void cargarProductos()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscar, soloStockBajo])
+
+  // El servidor ya regresa los productos en orden alfabético por defecto;
+  // esto solo reordena lo que ya se cargó (sin volver a pedirlo al
+  // servidor), así que cambiar el orden es instantáneo.
+  const productosOrdenados = useMemo(() => {
+    const copia = [...productos]
+    switch (orden) {
+      case 'nombre-asc':
+        return copia.sort((a, b) => a.nombreProducto.localeCompare(b.nombreProducto, 'es'))
+      case 'nombre-desc':
+        return copia.sort((a, b) => b.nombreProducto.localeCompare(a.nombreProducto, 'es'))
+      case 'reciente':
+        return copia.sort((a, b) => b.idProducto - a.idProducto)
+      case 'antiguo':
+        return copia.sort((a, b) => a.idProducto - b.idProducto)
+    }
+  }, [productos, orden])
 
   function manejarEditar(producto: Producto): void {
     setIdEditando(producto.idProducto)
@@ -677,6 +695,19 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
             />
             Solo stock bajo
           </label>
+          <label className="flex items-center gap-1.5 text-sm text-texto-secundario">
+            Ordenar por
+            <select
+              value={orden}
+              onChange={(evento) => setOrden(evento.target.value as typeof orden)}
+              className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+            >
+              <option value="nombre-asc">Nombre (A-Z)</option>
+              <option value="nombre-desc">Nombre (Z-A)</option>
+              <option value="reciente">Más reciente primero</option>
+              <option value="antiguo">Más antiguo primero</option>
+            </select>
+          </label>
         </div>
 
         {cargando ? (
@@ -685,7 +716,7 @@ export default function PantallaProductos({ sesion }: Props): React.JSX.Element 
           <p className="text-sm text-texto-secundario">Aún no hay productos registrados.</p>
         ) : (
           <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
-            {productos.map((producto) => {
+            {productosOrdenados.map((producto) => {
               const stockBajo = producto.stockActual <= producto.stockMinimo
               return (
                 <li
